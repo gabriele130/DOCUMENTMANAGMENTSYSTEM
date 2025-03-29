@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block title %}Upload Document - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Upload Document</h1>
+        <p class="text-muted">Upload a new document to the system</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Document Details</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="document" class="form-label">Document File*</label>
+                        <input type="file" class="form-control" id="document" name="document" required>
+                        <div class="form-text">Supported formats: PDF, DOCX, XLSX, JPG, PNG, etc. (Max 16MB)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" placeholder="Document title">
+                        <div class="form-text">Leave empty to use file name</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Document description"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <select class="form-select" id="tags" name="tags" multiple>
+                            {% for tag in tags %}
+                            <option value="{{ tag.id }}" style="color: {{ tag.color }};">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">You can select multiple tags</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="expiry_date" class="form-label">Expiry Date</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                        <div class="form-text">Set if the document has an expiration date</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('documents') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-cloud-upload"></i> Upload Document
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Upload Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> The system will automatically extract text using OCR
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> AI will classify your document based on content
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Document metadata will be automatically extracted
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> You can share documents with other users later
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Adding tags helps with organization and search
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Supported Formats</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <i class="bi bi-file-earmark-pdf fs-3 text-danger"></i>
+                        <p class="small">PDF</p>
+                    </div>
+                    <div class="col-3">
+                        <i class="bi bi-file-earmark-word fs-3 text-primary"></i>
+                        <p class="small">DOCX</p>
+                    </div>
+                    <div class="col-3">
+                        <i class="bi bi-file-earmark-excel fs-3 text-success"></i>
+                        <p class="small">XLSX</p>
+                    </div>
+                    <div class="col-3">
+                        <i class="bi bi-file-earmark-image fs-3 text-info"></i>
+                        <p class="small">Images</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize file input preview
+    const fileInput = document.getElementById('document');
+    fileInput.addEventListener('change', function() {
+        const fileName = this.files[0]?.name;
+        if (fileName) {
+            // Auto-fill title with filename if empty
+            const titleInput = document.getElementById('title');
+            if (!titleInput.value) {
+                titleInput.value = fileName.split('.').slice(0, -1).join('.');
+            }
+        }
+    });
+    
+    // Initialize tags select with Select2 if available
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $('#tags').select2({
+            theme: 'bootstrap4',
+            placeholder: 'Select tags',
+            allowClear: true
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,292 @@
+{% extends "layout.html" %}
+
+{% block title %}Workflows - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-0">Workflows</h1>
+        <p class="text-muted">Manage document workflows and approval processes</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('create_workflow_route') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create Workflow
+        </a>
+    </div>
+</div>
+
+<!-- Main Content Tabs -->
+<ul class="nav nav-tabs mb-4" id="workflowTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="true">
+            My Tasks <span class="badge bg-primary">{{ assigned_tasks|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="workflows-tab" data-bs-toggle="tab" data-bs-target="#workflows" type="button" role="tab" aria-controls="workflows" aria-selected="false">
+            My Workflows <span class="badge bg-secondary">{{ created_workflows|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="workflowTabContent">
+    <!-- Tasks Tab -->
+    <div class="tab-pane fade show active" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Tasks Assigned to Me</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if assigned_tasks %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Workflow</th>
+                                        <th>Status</th>
+                                        <th>Due Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for task in assigned_tasks %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <h6 class="mb-0">{{ task.name }}</h6>
+                                                <span class="text-muted small">{{ task.description|truncate(50) }}</span>
+                                            </div>
+                                        </td>
+                                        <td>{{ task.workflow.name }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if task.status == 'pending' %}bg-secondary
+                                                {% elif task.status == 'in_progress' %}bg-primary
+                                                {% elif task.status == 'complete' %}bg-success
+                                                {% elif task.status == 'rejected' %}bg-danger
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ task.status|replace('_', ' ')|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if task.due_date %}
+                                            <span class="{% if task.due_date < now %}text-danger{% endif %}">
+                                                {{ task.due_date.strftime('%b %d, %Y') }}
+                                            </span>
+                                            {% else %}
+                                            <span class="text-muted">No due date</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if task.status in ['pending', 'in_progress'] %}
+                                            <form id="completeTaskForm-{{ task.id }}" action="{{ url_for('complete_task', task_id=task.id) }}" method="POST">
+                                                <input type="hidden" name="action" value="approve">
+                                                <input type="hidden" name="comments" value="">
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-sm btn-outline-success btn-approve-task" data-task-id="{{ task.id }}">
+                                                        <i class="bi bi-check-circle"></i> Approve
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger btn-reject-task" data-task-id="{{ task.id }}">
+                                                        <i class="bi bi-x-circle"></i> Reject
+                                                    </button>
+                                                    <a href="{{ url_for('workflow_detail', workflow_id=task.workflow_id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-eye"></i> View
+                                                    </a>
+                                                </div>
+                                            </form>
+                                            {% else %}
+                                            <a href="{{ url_for('workflow_detail', workflow_id=task.workflow_id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View Workflow
+                                            </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center p-5">
+                            <i class="bi bi-check2-circle fs-1 text-muted"></i>
+                            <h5 class="mt-3">No Tasks Assigned</h5>
+                            <p class="text-muted">You don't have any tasks assigned to you at the moment.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Workflows Tab -->
+    <div class="tab-pane fade" id="workflows" role="tabpanel" aria-labelledby="workflows-tab">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">My Workflows</h5>
+                        <a href="{{ url_for('create_workflow_route') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-plus-circle"></i> Create New
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if created_workflows %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Workflow Name</th>
+                                        <th>Description</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Documents</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for workflow in created_workflows %}
+                                    <tr>
+                                        <td>{{ workflow.name }}</td>
+                                        <td>{{ workflow.description|truncate(50) if workflow.description else '' }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if workflow.status == 'active' %}bg-primary
+                                                {% elif workflow.status == 'complete' %}bg-success
+                                                {% elif workflow.status == 'cancelled' %}bg-danger
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ workflow.status|title }}
+                                            </span>
+                                        </td>
+                                        <td>{{ workflow.created_at.strftime('%b %d, %Y') }}</td>
+                                        <td>{{ workflow.documents|length }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('workflow_detail', workflow_id=workflow.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> View
+                                                </a>
+                                                {% if workflow.status == 'active' %}
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="confirmCancelWorkflow({{ workflow.id }}, '{{ workflow.name }}')">
+                                                    <i class="bi bi-x-circle"></i> Cancel
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center p-5">
+                            <i class="bi bi-diagram-3 fs-1 text-muted"></i>
+                            <h5 class="mt-3">No Workflows Created</h5>
+                            <p class="text-muted">You haven't created any workflows yet.</p>
+                            <a href="{{ url_for('create_workflow_route') }}" class="btn btn-primary mt-2">
+                                <i class="bi bi-plus-circle"></i> Create First Workflow
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Comment Modal -->
+<div class="modal fade" id="taskCommentModal" tabindex="-1" aria-labelledby="taskCommentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskCommentModalLabel">Task Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="taskActionForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" id="modalTaskId" name="task_id">
+                    <input type="hidden" id="modalAction" name="action" value="approve">
+                    
+                    <div class="mb-3">
+                        <label for="taskComments" class="form-label">Comments</label>
+                        <textarea class="form-control" id="taskComments" name="comments" rows="3" placeholder="Add any comments about this task..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="taskActionSubmit" class="btn btn-success">Approve</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+<script>
+    function confirmCancelWorkflow(workflowId, workflowName) {
+        confirmAction(
+            'Cancel Workflow',
+            `Are you sure you want to cancel workflow "${workflowName}"? This action cannot be undone.`,
+            () => {
+                // Create a form to submit cancel request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/workflow/${workflowId}/cancel`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Setup task action buttons
+        const approveButtons = document.querySelectorAll('.btn-approve-task');
+        const rejectButtons = document.querySelectorAll('.btn-reject-task');
+        
+        approveButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                const form = document.getElementById(`completeTaskForm-${taskId}`);
+                
+                // Show modal for comments
+                const modal = new bootstrap.Modal(document.getElementById('taskCommentModal'));
+                document.getElementById('modalTaskId').value = taskId;
+                document.getElementById('modalAction').value = 'approve';
+                document.getElementById('taskComments').value = '';
+                document.getElementById('taskActionSubmit').className = 'btn btn-success';
+                document.getElementById('taskActionSubmit').textContent = 'Approve';
+                
+                // Set form action
+                document.getElementById('taskActionForm').action = form.action;
+                
+                modal.show();
+            });
+        });
+        
+        rejectButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                const form = document.getElementById(`completeTaskForm-${taskId}`);
+                
+                // Show modal for comments
+                const modal = new bootstrap.Modal(document.getElementById('taskCommentModal'));
+                document.getElementById('modalTaskId').value = taskId;
+                document.getElementById('modalAction').value = 'reject';
+                document.getElementById('taskComments').value = '';
+                document.getElementById('taskActionSubmit').className = 'btn btn-danger';
+                document.getElementById('taskActionSubmit').textContent = 'Reject';
+                
+                // Set form action
+                document.getElementById('taskActionForm').action = form.action;
+                
+                modal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

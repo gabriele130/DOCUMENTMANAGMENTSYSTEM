@@ -1,0 +1,314 @@
+{% extends "layout.html" %}
+
+{% block title %}Workflow Details - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-0">{{ workflow.name }}</h1>
+        <p class="text-muted">
+            Created by {{ workflow.created_by.username }} on {{ workflow.created_at.strftime('%b %d, %Y') }}
+            <span class="badge 
+                {% if workflow.status == 'active' %}bg-primary
+                {% elif workflow.status == 'complete' %}bg-success
+                {% elif workflow.status == 'cancelled' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                {{ workflow.status|title }}
+            </span>
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('workflow') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Workflows
+        </a>
+    </div>
+</div>
+
+<!-- Workflow Overview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Workflow Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        {% if workflow.description %}
+                        <h6>Description</h6>
+                        <p>{{ workflow.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Status:</span>
+                            <span class="badge 
+                                {% if workflow.status == 'active' %}bg-primary
+                                {% elif workflow.status == 'complete' %}bg-success
+                                {% elif workflow.status == 'cancelled' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ workflow.status|title }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Created:</span>
+                            <span>{{ workflow.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Tasks:</span>
+                            <span>{{ tasks|length }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Documents:</span>
+                            <span>{{ documents|length }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Diagram -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Workflow Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="workflow-container">
+                    <div id="workflowDiagram"></div>
+                </div>
+                
+                <!-- Hidden data for workflow visualization -->
+                <div id="workflowTasksData" style="display: none;">
+                    [
+                        {% for task in tasks %}
+                        {
+                            "id": {{ task.id }},
+                            "name": "{{ task.name }}",
+                            "assignedToUsername": "{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}",
+                            "status": "{{ task.status }}",
+                            "order": {{ task.order }}
+                        }{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    ]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task List -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Workflow Tasks</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Task</th>
+                                <th>Assigned To</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks|sort(attribute='order') %}
+                            <tr>
+                                <td>{{ task.order }}</td>
+                                <td>
+                                    <div>
+                                        <h6 class="mb-0">{{ task.name }}</h6>
+                                        <small class="text-muted">{{ task.description|truncate(50) if task.description else '' }}</small>
+                                    </div>
+                                </td>
+                                <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if task.status == 'pending' %}bg-secondary
+                                        {% elif task.status == 'in_progress' %}bg-primary
+                                        {% elif task.status == 'complete' %}bg-success
+                                        {% elif task.status == 'rejected' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ task.status|replace('_', ' ')|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if task.due_date %}
+                                    <span class="{% if task.due_date < now %}text-danger{% endif %}">
+                                        {{ task.due_date.strftime('%b %d, %Y') }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">No due date</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if task.assigned_to_id == current_user.id and task.status in ['pending', 'in_progress'] %}
+                                    <form id="completeTaskForm-{{ task.id }}" action="{{ url_for('complete_task', task_id=task.id) }}" method="POST">
+                                        <input type="hidden" name="action" value="approve">
+                                        <input type="hidden" name="comments" value="">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-success btn-approve-task" data-task-id="{{ task.id }}">
+                                                <i class="bi bi-check-circle"></i> Approve
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-reject-task" data-task-id="{{ task.id }}">
+                                                <i class="bi bi-x-circle"></i> Reject
+                                            </button>
+                                        </div>
+                                    </form>
+                                    {% elif task.status == 'complete' or task.status == 'rejected' %}
+                                    {% if task.comments %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="popover" 
+                                        title="Task Comments" 
+                                        data-bs-content="{{ task.comments }}">
+                                        <i class="bi bi-chat-text"></i> Comments
+                                    </button>
+                                    {% else %}
+                                    <span class="text-muted">No comments</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">No action available</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Associated Documents -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Associated Documents</h5>
+            </div>
+            <div class="card-body">
+                {% if documents %}
+                <div class="row g-3">
+                    {% for document in documents %}
+                    <div class="col-md-4">
+                        <div class="document-card card h-100">
+                            <div class="card-header py-2">
+                                <div class="d-flex align-items-center">
+                                    <div class="document-icon 
+                                        {% if document.file_type == 'pdf' %}bg-danger bg-opacity-10 text-danger
+                                        {% elif document.file_type in ['docx', 'doc'] %}bg-primary bg-opacity-10 text-primary
+                                        {% elif document.file_type in ['xlsx', 'xls'] %}bg-success bg-opacity-10 text-success
+                                        {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info bg-opacity-10 text-info
+                                        {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                                        <i class="bi 
+                                            {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
+                                            {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
+                                            {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
+                                            {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
+                                            {% else %}bi-file-earmark{% endif %}"></i>
+                                    </div>
+                                    <div class="ms-2">
+                                        <h6 class="card-title mb-0 text-truncate" title="{{ document.title or document.original_filename }}">
+                                            {{ document.title or document.original_filename }}
+                                        </h6>
+                                        <span class="badge bg-secondary">{{ document.classification or 'Unclassified' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer py-2 bg-transparent">
+                                <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="bi bi-eye"></i> View Document
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <i class="bi bi-file-earmark-text fs-1 text-muted"></i>
+                    <h5 class="mt-3">No Associated Documents</h5>
+                    <p class="text-muted">This workflow doesn't have any documents attached to it.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Action Modal -->
+<div class="modal fade" id="taskActionModal" tabindex="-1" aria-labelledby="taskActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskActionModalLabel">Complete Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="task-details mb-3"></div>
+                
+                <form id="completeTaskForm" method="POST">
+                    <input type="hidden" name="action" value="approve">
+                    
+                    <div class="mb-3">
+                        <label for="comments" class="form-label">Comments</label>
+                        <textarea class="form-control" id="comments" name="comments" rows="3" placeholder="Add any comments about this task..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger" onclick="document.querySelector('input[name=\'action\']').value='reject'; this.form.submit();">
+                            <i class="bi bi-x-circle"></i> Reject
+                        </button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Approve
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize popovers
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl, {
+            html: true,
+            trigger: 'click',
+            placement: 'top'
+        });
+    });
+    
+    // Task action modal
+    const taskModal = document.getElementById('taskActionModal');
+    if (taskModal) {
+        taskModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const taskId = button.getAttribute('data-task-id');
+            
+            // Update the form action
+            const form = document.getElementById('completeTaskForm');
+            form.action = `/workflow/task/${taskId}/complete`;
+            
+            // Reset the action to 'approve' by default
+            document.querySelector('input[name="action"]').value = 'approve';
+        });
+    }
+});
+</script>
+{% endblock %}

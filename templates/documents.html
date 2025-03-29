@@ -1,0 +1,279 @@
+{% extends "layout.html" %}
+
+{% block title %}Documents - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-0">Documents</h1>
+        <p class="text-muted">Manage your documents</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('upload_document') }}" class="btn btn-primary">
+            <i class="bi bi-cloud-upload"></i> Upload Document
+        </a>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Filters</h5>
+    </div>
+    <div class="card-body">
+        <form id="documentFilterForm" class="row g-3">
+            <div class="col-md-4">
+                <label for="tagFilter" class="form-label">Tag</label>
+                <select id="tagFilter" class="form-select tags-select" multiple>
+                    {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="typeFilter" class="form-label">Document Type</label>
+                <select id="typeFilter" class="form-select">
+                    <option value="">All Types</option>
+                    {% for doc_type in ['Invoice', 'Contract', 'Report', 'Legal Document', 'Form', 'Resume/CV', 'Email', 'Memo', 'Letter', 'Spreadsheet', 'Presentation', 'Other'] %}
+                    <option value="{{ doc_type }}">{{ doc_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="dateFilter" class="form-label">Uploaded After</label>
+                <input type="date" class="form-control" id="dateFilter">
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+                <button type="button" id="resetFilters" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-x-circle"></i> Reset
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-filter"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+        <div class="mt-3">
+            <span id="filterStatus" class="text-muted small">
+                Showing {{ owned_documents|length + shared_documents|length }} documents
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Document Tabs -->
+<ul class="nav nav-tabs mb-4" id="documentTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="my-documents-tab" data-bs-toggle="tab" data-bs-target="#my-documents" type="button" role="tab" aria-controls="my-documents" aria-selected="true">
+            My Documents <span class="badge bg-primary">{{ owned_documents|length }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="shared-documents-tab" data-bs-toggle="tab" data-bs-target="#shared-documents" type="button" role="tab" aria-controls="shared-documents" aria-selected="false">
+            Shared With Me <span class="badge bg-secondary">{{ shared_documents|length }}</span>
+        </button>
+    </li>
+</ul>
+
+<!-- Document Lists -->
+<div class="tab-content" id="documentTabContent">
+    <!-- My Documents Tab -->
+    <div class="tab-pane fade show active" id="my-documents" role="tabpanel" aria-labelledby="my-documents-tab">
+        {% if owned_documents %}
+        <div class="row g-4">
+            {% for document in owned_documents %}
+            <div class="col-md-4 col-sm-6 document-item" 
+                data-tags="{{ document.tags|map(attribute='id')|join(',') }}"
+                data-type="{{ document.classification }}"
+                data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
+                <div class="document-card card h-100">
+                    <div class="card-header py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="document-icon 
+                                {% if document.file_type == 'pdf' %}bg-danger bg-opacity-10 text-danger
+                                {% elif document.file_type in ['docx', 'doc'] %}bg-primary bg-opacity-10 text-primary
+                                {% elif document.file_type in ['xlsx', 'xls'] %}bg-success bg-opacity-10 text-success
+                                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info bg-opacity-10 text-info
+                                {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                                <i class="bi 
+                                    {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
+                                    {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
+                                    {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
+                                    {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
+                                    {% else %}bi-file-earmark{% endif %}"></i>
+                            </div>
+                            <div class="ms-2">
+                                <h6 class="card-title mb-0 text-truncate" title="{{ document.title or document.original_filename }}">
+                                    {{ document.title or document.original_filename }}
+                                </h6>
+                                <span class="badge bg-secondary">{{ document.classification or 'Unclassified' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if document.description %}
+                        <p class="card-text small text-truncate-2 mb-3">{{ document.description }}</p>
+                        {% endif %}
+                        
+                        <div class="document-meta mb-3">
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-calendar"></i> {{ document.created_at.strftime('%b %d, %Y') }}
+                            </p>
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-hdd"></i> {{ (document.file_size / 1024)|round|int }} KB
+                            </p>
+                            {% if document.expiry_date %}
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-clock"></i> Expires: {{ document.expiry_date.strftime('%b %d, %Y') }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if document.tags %}
+                        <div class="document-tags mb-3">
+                            {% for tag in document.tags %}
+                            <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                                {{ tag.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100">
+                            <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                            <button type="button" class="btn btn-outline-danger btn-sm btn-archive-document" 
+                                data-document-id="{{ document.id }}" 
+                                data-document-name="{{ document.title or document.original_filename }}">
+                                <i class="bi bi-archive"></i> Archive
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            <i class="bi bi-file-earmark-text fs-1 text-muted"></i>
+            <h5 class="mt-3">No Documents Found</h5>
+            <p class="text-muted">You haven't uploaded any documents yet.</p>
+            <a href="{{ url_for('upload_document') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-cloud-upload"></i> Upload Document
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Shared Documents Tab -->
+    <div class="tab-pane fade" id="shared-documents" role="tabpanel" aria-labelledby="shared-documents-tab">
+        {% if shared_documents %}
+        <div class="row g-4">
+            {% for document in shared_documents %}
+            <div class="col-md-4 col-sm-6 document-item" 
+                data-tags="{{ document.tags|map(attribute='id')|join(',') }}"
+                data-type="{{ document.classification }}"
+                data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
+                <div class="document-card card h-100">
+                    <div class="card-header py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="document-icon 
+                                {% if document.file_type == 'pdf' %}bg-danger bg-opacity-10 text-danger
+                                {% elif document.file_type in ['docx', 'doc'] %}bg-primary bg-opacity-10 text-primary
+                                {% elif document.file_type in ['xlsx', 'xls'] %}bg-success bg-opacity-10 text-success
+                                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info bg-opacity-10 text-info
+                                {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                                <i class="bi 
+                                    {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
+                                    {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
+                                    {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
+                                    {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
+                                    {% else %}bi-file-earmark{% endif %}"></i>
+                            </div>
+                            <div class="ms-2">
+                                <h6 class="card-title mb-0 text-truncate" title="{{ document.title or document.original_filename }}">
+                                    {{ document.title or document.original_filename }}
+                                </h6>
+                                <span class="badge bg-secondary">{{ document.classification or 'Unclassified' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if document.description %}
+                        <p class="card-text small text-truncate-2 mb-3">{{ document.description }}</p>
+                        {% endif %}
+                        
+                        <div class="document-meta mb-3">
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-person"></i> Shared by: {{ document.owner.username }}
+                            </p>
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-calendar"></i> {{ document.created_at.strftime('%b %d, %Y') }}
+                            </p>
+                            {% if document.expiry_date %}
+                            <p class="card-text small text-muted mb-1">
+                                <i class="bi bi-clock"></i> Expires: {{ document.expiry_date.strftime('%b %d, %Y') }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        
+                        {% if document.tags %}
+                        <div class="document-tags mb-3">
+                            {% for tag in document.tags %}
+                            <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                                {{ tag.name }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100">
+                            <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-download"></i> Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center p-5">
+            <i class="bi bi-share fs-1 text-muted"></i>
+            <h5 class="mt-3">No Shared Documents</h5>
+            <p class="text-muted">No documents have been shared with you yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="documentPreviewContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+{% endblock %}

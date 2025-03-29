@@ -1,0 +1,181 @@
+{% extends "layout.html" %}
+
+{% block title %}User Management - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-0">User Management</h1>
+        <p class="text-muted">Manage system users and permissions</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <a href="{{ url_for('admin_create_user') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Create User
+        </a>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            <h5 class="card-title mb-0">All Users</h5>
+            <span class="badge bg-primary ms-2">{{ users|length }}</span>
+        </div>
+        <div class="input-group" style="width: 300px;">
+            <input type="text" id="userSearchInput" class="form-control" placeholder="Search users...">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Joined Date</th>
+                        <th>Documents</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar me-2 bg-{{ 'danger' if user.role == 'admin' else 'primary' }} bg-opacity-10 text-{{ 'danger' if user.role == 'admin' else 'primary' }}">
+                                    <i class="bi bi-person"></i>
+                                </div>
+                                <span>{{ user.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ user.first_name }} {{ user.last_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'info' if user.role == 'reviewer' else 'secondary' }}">
+                                {{ user.role }}
+                            </span>
+                        </td>
+                        <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>{{ user.documents|length }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Edit
+                                </a>
+                                {% if user.id != current_user.id %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Roles Information Card -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">User Roles</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card h-100 bg-danger bg-opacity-10 border-0">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-shield-lock me-2"></i> Admin</h5>
+                        <p class="card-text">Administrators have full access to all system features, including user management, system settings, and all documents.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Manage users</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Configure system settings</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Access all documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Monitor system health</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 bg-info bg-opacity-10 border-0">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-eye me-2"></i> Reviewer</h5>
+                        <p class="card-text">Reviewers have additional access to review and approve documents in workflows.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Review documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Approve/reject in workflows</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Access shared documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Create workflows</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100 bg-secondary bg-opacity-10 border-0">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-person me-2"></i> User</h5>
+                        <p class="card-text">Regular users have basic access to upload, manage, and share their own documents.</p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Upload documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Manage own documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Share documents</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i> Participate in workflows</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDeleteUser(userId, username) {
+    confirmAction(
+        'Delete User',
+        `Are you sure you want to delete the user "${username}"? This will delete all their data and cannot be undone.`,
+        () => {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/users/${userId}/delete`;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    );
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // User search functionality
+    const searchInput = document.getElementById('userSearchInput');
+    const table = document.getElementById('usersTable');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    searchInput.addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        
+        rows.forEach(row => {
+            const username = row.cells[0].textContent.toLowerCase();
+            const fullName = row.cells[1].textContent.toLowerCase();
+            const email = row.cells[2].textContent.toLowerCase();
+            const role = row.cells[3].textContent.toLowerCase();
+            
+            if (username.includes(query) || fullName.includes(query) || email.includes(query) || role.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

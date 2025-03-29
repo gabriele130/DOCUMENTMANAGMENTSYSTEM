@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+
+{% block title %}Manage Tags - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3 mb-0">Manage Tags</h1>
+        <p class="text-muted">Create and manage document tags</p>
+    </div>
+    <div class="col-md-4 text-md-end">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTagModal">
+            <i class="bi bi-plus-circle"></i> Create New Tag
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Document Tags</h5>
+            </div>
+            <div class="card-body">
+                {% if tags %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Color</th>
+                                <th>Tag Name</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tag in tags %}
+                            <tr>
+                                <td>
+                                    <div class="tag-color-preview" style="width: 30px; height: 30px; border-radius: 50%; background-color: {{ tag.color }};"></div>
+                                </td>
+                                <td>
+                                    <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
+                                        {{ tag.name }}
+                                    </span>
+                                </td>
+                                <td>{{ tag.documents|length }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-tag-btn" 
+                                            data-tag-id="{{ tag.id }}" 
+                                            data-tag-name="{{ tag.name }}" 
+                                            data-tag-color="{{ tag.color }}">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-tag-btn" 
+                                            data-tag-id="{{ tag.id }}" 
+                                            data-tag-name="{{ tag.name }}">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-5">
+                    <i class="bi bi-tags fs-1 text-muted"></i>
+                    <h5 class="mt-3">No Tags Created</h5>
+                    <p class="text-muted">You haven't created any document tags yet.</p>
+                    <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#createTagModal">
+                        <i class="bi bi-plus-circle"></i> Create First Tag
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- About Tags Card -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">About Tags</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="bi bi-info-circle"></i> What are document tags?</h6>
+                <p class="small text-muted">
+                    Tags are keywords or terms that help categorize and organize your documents. 
+                    Using tags makes it easier to find and filter documents based on different criteria.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="bi bi-lightbulb"></i> Tag best practices</h6>
+                <ul class="small text-muted ms-3">
+                    <li>Use consistent naming conventions</li>
+                    <li>Create tags for departments, document types, and statuses</li>
+                    <li>Assign multiple tags to documents for better organization</li>
+                    <li>Use colors to visually distinguish between tag categories</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Tag Modal -->
+<div class="modal fade" id="createTagModal" tabindex="-1" aria-labelledby="createTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createTagModalLabel">Create New Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('create_tag') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="tag_name" class="form-label">Tag Name*</label>
+                        <input type="text" class="form-control" id="tag_name" name="tag_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tag_color" class="form-label">Tag Color</label>
+                        <input type="color" class="form-control form-control-color" id="tag_color" name="tag_color" value="#6c757d">
+                        <div class="form-text">Choose a color for the tag</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Tag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Tag Modal -->
+<div class="modal fade" id="editTagModal" tabindex="-1" aria-labelledby="editTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTagModalLabel">Edit Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editTagForm" action="" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_tag_name" class="form-label">Tag Name*</label>
+                        <input type="text" class="form-control" id="edit_tag_name" name="tag_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_tag_color" class="form-label">Tag Color</label>
+                        <input type="color" class="form-control form-control-color" id="edit_tag_color" name="tag_color">
+                        <div class="form-text">Choose a color for the tag</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Tag Modal -->
+<div class="modal fade" id="deleteTagModal" tabindex="-1" aria-labelledby="deleteTagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteTagModalLabel">Delete Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the tag "<span id="deleteTagName"></span>"?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> This will remove the tag from all documents it's attached to.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteTagForm" action="" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Edit tag button handler
+    const editButtons = document.querySelectorAll('.edit-tag-btn');
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.dataset.tagId;
+            const tagName = this.dataset.tagName;
+            const tagColor = this.dataset.tagColor;
+            
+            // Set form action URL
+            document.getElementById('editTagForm').action = `/tags/${tagId}/update`;
+            
+            // Set form fields
+            document.getElementById('edit_tag_name').value = tagName;
+            document.getElementById('edit_tag_color').value = tagColor;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('editTagModal'));
+            modal.show();
+        });
+    });
+    
+    // Delete tag button handler
+    const deleteButtons = document.querySelectorAll('.delete-tag-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.dataset.tagId;
+            const tagName = this.dataset.tagName;
+            
+            // Set form action URL
+            document.getElementById('deleteTagForm').action = `/tags/${tagId}/delete`;
+            
+            // Set tag name in confirmation message
+            document.getElementById('deleteTagName').textContent = tagName;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('deleteTagModal'));
+            modal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

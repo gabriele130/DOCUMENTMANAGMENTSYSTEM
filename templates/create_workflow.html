@@ -1,0 +1,122 @@
+{% extends "layout.html" %}
+
+{% block title %}Create Workflow - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Create New Workflow</h1>
+        <p class="text-muted">Set up a document approval or review workflow</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Workflow Details</h5>
+    </div>
+    <div class="card-body">
+        <form id="workflowCreationForm" action="{{ url_for('create_workflow_route') }}" method="POST">
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="workflow_name" class="form-label">Workflow Name*</label>
+                        <input type="text" class="form-control" id="workflow_name" name="workflow_name" required placeholder="e.g., Document Approval, Contract Review">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="workflow_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="workflow_description" name="workflow_description" rows="3" placeholder="Describe the purpose of this workflow..."></textarea>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="document_id" class="form-label">Associate Document (Optional)</label>
+                        <select class="form-select" id="document_id" name="document_id">
+                            <option value="">Select a document</option>
+                            {% for document in documents %}
+                            <option value="{{ document.id }}">{{ document.title or document.original_filename }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Link this workflow to a specific document</div>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="mb-4">
+            
+            <h5>Workflow Tasks</h5>
+            <p class="text-muted mb-4">Define the tasks for this workflow. Tasks will be executed in the order listed below.</p>
+            
+            <div id="tasksContainer">
+                <!-- Task 1 -->
+                <div class="task-item card mb-3" id="task-1">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Task #1</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="task_name_1" class="form-label">Task Name*</label>
+                            <input type="text" class="form-control" id="task_name_1" name="task_name_1" required placeholder="e.g., Initial Review, Manager Approval">
+                        </div>
+                        <div class="mb-3">
+                            <label for="task_description_1" class="form-label">Description</label>
+                            <textarea class="form-control" id="task_description_1" name="task_description_1" rows="2" placeholder="What needs to be done in this task..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="task_assigned_to_1" class="form-label">Assigned To*</label>
+                                <select class="form-select" id="task_assigned_to_1" name="task_assigned_to_1" required>
+                                    <option value="">Select User</option>
+                                    {% for user in users %}
+                                    <option value="{{ user.id }}">
+                                        {{ user.username }}
+                                        {% if user.first_name and user.last_name %}
+                                            ({{ user.first_name }} {{ user.last_name }})
+                                        {% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="task_due_date_1" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="task_due_date_1" name="task_due_date_1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <button type="button" id="addTaskButton" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle"></i> Add Another Task
+                </button>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('workflow') }}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Create Workflow
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div id="usersData" style="display: none;">
+    [
+        {% for user in users %}
+        {
+            "id": {{ user.id }},
+            "username": "{{ user.username }}",
+            "first_name": "{{ user.first_name or '' }}",
+            "last_name": "{{ user.last_name or '' }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ]
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/workflow.js') }}"></script>
+{% endblock %}

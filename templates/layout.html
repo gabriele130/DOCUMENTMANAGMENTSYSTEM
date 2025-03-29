@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Document Management System{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-light-subtle">
+        <div class="container-fluid">
+            <button id="sidebarToggler" class="btn btn-outline-light d-md-none me-2">
+                <i class="bi bi-list"></i>
+            </button>
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-folder2-open"></i> AI-DMS
+            </a>
+            <div class="d-flex ms-auto">
+                <div class="dropdown me-3">
+                    <a href="#" class="nav-link position-relative" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell"></i>
+                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationsDropdown" style="width: 300px;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+                            <h6 class="dropdown-header m-0 p-0">Notifications</h6>
+                            <a href="{{ url_for('notifications') }}" class="text-decoration-none small">See all</a>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="notification-list p-2" style="max-height: 300px; overflow-y: auto;">
+                            {% for notif in current_user.notifications[:5] if notif.is_read == False %}
+                            <div class="notification-item p-2 border-bottom">
+                                <small class="text-muted">{{ notif.created_at.strftime('%m/%d/%Y %H:%M') }}</small>
+                                <p class="mb-0 small">{{ notif.message }}</p>
+                            </div>
+                            {% else %}
+                            <div class="p-3 text-center text-muted">
+                                <i class="bi bi-check2-circle"></i>
+                                <p class="mb-0 small">No new notifications</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown">
+                    <a href="#" class="nav-link dropdown-toggle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i>
+                        {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer me-2"></i>Admin</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="me-2">
+                        <i class="bi bi-person-circle fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+                        <small class="text-muted">{{ current_user.role }}</small>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <a href="{{ url_for('upload_document') }}" class="btn btn-primary w-100">
+                        <i class="bi bi-cloud-upload"></i> Upload Document
+                    </a>
+                </div>
+            </div>
+            
+            <hr class="my-0 border-light-subtle">
+            
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('documents') }}">
+                        <i class="bi bi-file-earmark-text"></i> Documents
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('workflow') }}">
+                        <i class="bi bi-diagram-3"></i> Workflows
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('search') }}">
+                        <i class="bi bi-search"></i> Search
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('archived_documents') }}">
+                        <i class="bi bi-archive"></i> Archive
+                    </a>
+                </li>
+            </ul>
+            
+            <hr class="border-light-subtle">
+            
+            <div class="px-3 sidebar-heading">
+                Management
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('manage_tags') }}">
+                        <i class="bi bi-tags"></i> Tags
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('notifications') }}">
+                        <i class="bi bi-bell"></i> Notifications
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('settings') }}">
+                        <i class="bi bi-gear"></i> Settings
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Overlay for mobile sidebar -->
+        <div class="overlay"></div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="container-fluid">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+        {% block auth %}{% endblock %}
+    {% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- Custom Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

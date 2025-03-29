@@ -1,0 +1,194 @@
+{% extends "layout.html" %}
+
+{% block title %}Edit Document - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Edit Document</h1>
+        <p class="text-muted">Update document details or upload a new version</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Document Information</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('update_document', document_id=document.id) }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ document.title or '' }}" placeholder="Document title">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Document description">{{ document.description or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <select class="form-select" id="tags" name="tags" multiple>
+                            {% for tag in tags %}
+                            <option value="{{ tag.id }}" 
+                                {% if tag in document.tags %}selected{% endif %} 
+                                style="color: {{ tag.color }};">{{ tag.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">You can select multiple tags</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="expiry_date" class="form-label">Expiry Date</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" 
+                            value="{{ expiry_date if expiry_date else '' }}">
+                        <div class="form-text">Set if the document has an expiration date</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Current Document</label>
+                        <div class="d-flex align-items-center">
+                            <div class="document-icon me-3 
+                                {% if document.file_type == 'pdf' %}bg-danger bg-opacity-10 text-danger
+                                {% elif document.file_type in ['docx', 'doc'] %}bg-primary bg-opacity-10 text-primary
+                                {% elif document.file_type in ['xlsx', 'xls'] %}bg-success bg-opacity-10 text-success
+                                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info bg-opacity-10 text-info
+                                {% else %}bg-secondary bg-opacity-10 text-secondary{% endif %}">
+                                <i class="bi 
+                                    {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
+                                    {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
+                                    {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
+                                    {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
+                                    {% else %}bi-file-earmark{% endif %}"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">{{ document.original_filename }}</span>
+                                <div class="small text-muted">
+                                    {{ (document.file_size / 1024)|round|int }} KB • Uploaded on {{ document.created_at.strftime('%b %d, %Y') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="mb-4">
+                    
+                    <div class="mb-3">
+                        <h6>Upload New Version</h6>
+                        <div class="form-text mb-2">
+                            Leave this empty if you only want to update document information without replacing the file.
+                        </div>
+                        
+                        <label for="document" class="form-label">New Document File</label>
+                        <input type="file" class="form-control" id="document" name="document">
+                        <div class="form-text">Supported formats: PDF, DOCX, XLSX, JPG, PNG, etc. (Max 16MB)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="change_summary" class="form-label">Change Summary</label>
+                        <textarea class="form-control" id="change_summary" name="change_summary" rows="2" placeholder="Describe what was changed in this version..."></textarea>
+                        <div class="form-text">Only needed if uploading a new version of the document</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Document History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Version History</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for version in document.versions %}
+                    <div class="list-group-item bg-transparent">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-1">Version {{ version.version_number }}</h6>
+                            <span class="badge bg-secondary">{{ version.created_at.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        <p class="mb-1 small text-muted">
+                            By {{ version.created_by.username }}
+                            {% if version.change_summary %}
+                            <br>{{ version.change_summary }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item bg-transparent">
+                        <p class="text-muted mb-0">No previous versions</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tips Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Editing Tips</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i> Uploading a new file will create a new version
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i> All previous versions remain accessible
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i> The document will be reprocessed if you upload a new file
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i> Tags help with document organization and search
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tags select with Select2 if available
+    const tagsSelect = document.getElementById('tags');
+    if (tagsSelect && typeof $ !== 'undefined' && $.fn.select2) {
+        $(tagsSelect).select2({
+            theme: 'bootstrap4',
+            placeholder: 'Select tags',
+            allowClear: true
+        });
+    }
+    
+    // Show change summary field only when a file is selected
+    const fileInput = document.getElementById('document');
+    const changeSummaryGroup = document.getElementById('change_summary').closest('.mb-3');
+    
+    if (fileInput && changeSummaryGroup) {
+        // Initially hide the change summary if no file is selected
+        if (!fileInput.value) {
+            changeSummaryGroup.style.display = 'none';
+        }
+        
+        fileInput.addEventListener('change', function() {
+            if (this.value) {
+                changeSummaryGroup.style.display = 'block';
+            } else {
+                changeSummaryGroup.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
