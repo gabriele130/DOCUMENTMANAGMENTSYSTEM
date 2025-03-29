@@ -38,17 +38,10 @@
                         </div>
                         <div class="dropdown-divider"></div>
                         <div class="notification-list p-2" style="max-height: 300px; overflow-y: auto;">
-                            {% for notif in current_user.notifications[:5] if notif.is_read == False %}
-                            <div class="notification-item p-2 border-bottom">
-                                <small class="text-muted">{{ notif.created_at.strftime('%m/%d/%Y %H:%M') }}</small>
-                                <p class="mb-0 small">{{ notif.message }}</p>
-                            </div>
-                            {% else %}
                             <div class="p-3 text-center text-muted">
                                 <i class="bi bi-check2-circle"></i>
                                 <p class="mb-0 small">No new notifications</p>
                             </div>
-                            {% endfor %}
                         </div>
                     </div>
                 </div>

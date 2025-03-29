@@ -6,7 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
-    updateNotificationCount();
+    // Notification count disabled temporarily
 });
 
 /**
@@ -45,8 +45,8 @@ function setupEventListeners() {
         searchForm.addEventListener('submit', handleSearch);
     }
     
-    // Setup notification refresh
-    setInterval(updateNotificationCount, 60000); // Update every minute
+    // Setup notification refresh - disabled temporarily
+    // setInterval(updateNotificationCount, 60000); // Update every minute
 }
 
 /**
