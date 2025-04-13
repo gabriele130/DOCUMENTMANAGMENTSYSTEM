@@ -1,10 +1,12 @@
 import os
 import logging
-from flask import Flask, render_template
+import functools
+from flask import Flask, render_template, flash, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import LoginManager
 from flask_cors import CORS
+from flask_wtf.csrf import CSRFProtect
 import re
 from markupsafe import Markup
 
@@ -18,6 +20,7 @@ class Base(DeclarativeBase):
 # Initialize extensions
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 # Create the app
 app = Flask(__name__)
@@ -45,6 +48,7 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = "login"
+csrf.init_app(app)
 CORS(app)
 
 # Initialize database
@@ -70,4 +74,26 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def server_error(e):
+    # Log error
+    app.logger.error(f"500 Error: {str(e)}")
+    
+    # Rollback any ongoing transactions
+    try:
+        db.session.rollback()
+    except:
+        pass
+        
     return render_template('500.html'), 500
+
+# Decoratore per gestire le eccezioni SQL e le transazioni
+def handle_db_errors(f):
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Database error: {str(e)}")
+            flash("Si è verificato un errore nel database. Riprova più tardi.", "danger")
+            return redirect(url_for('dashboard'))
+    return decorated_function
