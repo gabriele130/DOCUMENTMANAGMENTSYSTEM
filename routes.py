@@ -6,7 +6,7 @@ from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from app import app, db
+from app import app, db, EmptyForm
 from models import (User, Document, DocumentVersion, DocumentMetadata, Tag, 
                     Workflow, WorkflowTask, SearchHistory, Notification,
                     Company, Folder, Permission, Reminder, ActivityLog, AccessLevel)
@@ -377,7 +377,7 @@ def upload_document():
     
     # Get all tags for the upload form
     tags = Tag.query.all()
-    return render_template('upload_document.html', tags=tags, form=app.context_processor_functions['inject_csrf_form']()['form'])
+    return render_template('upload_document.html', tags=tags, form=EmptyForm())
 
 @app.route('/documents/<int:document_id>')
 @login_required

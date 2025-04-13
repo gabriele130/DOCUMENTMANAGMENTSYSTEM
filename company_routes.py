@@ -4,7 +4,7 @@ import datetime
 from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
 from flask_login import login_required, current_user
-from app import app, db
+from app import app, db, EmptyForm
 from models import (User, Document, Company, Folder, Permission, ActivityLog, AccessLevel, 
                    Reminder, Tag, DocumentMetadata)
 from routes import log_activity, admin_required
@@ -762,7 +762,7 @@ def reminders():
                           upcoming_reminders=upcoming_reminders,
                           stats=stats,
                           now=now,
-                          form=app.context_processor_functions['inject_csrf_form']()['form'])
+                          form=EmptyForm())
 
 @app.route('/documents/<int:document_id>/reminders/add', methods=['GET', 'POST'])
 @login_required
@@ -873,7 +873,7 @@ def add_document_reminder(document_id):
         company = document.company
         company_users = company.users
     
-    return render_template('add_reminder.html', document=document, company_users=company_users, form=app.context_processor_functions['inject_csrf_form']()['form'])
+    return render_template('add_reminder.html', document=document, company_users=company_users, form=EmptyForm())
 
 @app.route('/reminders/<int:reminder_id>/complete', methods=['POST'])
 @login_required
