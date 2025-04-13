@@ -52,10 +52,19 @@ login_manager.login_view = "login"
 csrf.init_app(app)
 CORS(app)
 
+# Create an empty form for CSRF protection
+class EmptyForm(FlaskForm):
+    pass
+
 # Initialize database
 with app.app_context():
     import models
     db.create_all()
+
+# Create a context processor to add form to all templates
+@app.context_processor
+def inject_csrf_form():
+    return {'form': EmptyForm()}
 
 # Import routes after initializing everything
 from routes import *
