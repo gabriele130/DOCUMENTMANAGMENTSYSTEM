@@ -761,7 +761,8 @@ def reminders():
                           reminders=reminders,
                           upcoming_reminders=upcoming_reminders,
                           stats=stats,
-                          now=now)
+                          now=now,
+                          form=app.context_processor_functions['inject_csrf_form']()['form'])
 
 @app.route('/documents/<int:document_id>/reminders/add', methods=['GET', 'POST'])
 @login_required
@@ -872,7 +873,7 @@ def add_document_reminder(document_id):
         company = document.company
         company_users = company.users
     
-    return render_template('add_reminder.html', document=document, company_users=company_users)
+    return render_template('add_reminder.html', document=document, company_users=company_users, form=app.context_processor_functions['inject_csrf_form']()['form'])
 
 @app.route('/reminders/<int:reminder_id>/complete', methods=['POST'])
 @login_required
