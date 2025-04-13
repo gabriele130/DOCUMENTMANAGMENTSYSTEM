@@ -122,6 +122,77 @@ def log_activity(user_id, document_id=None, action=None, details=None, ip_addres
     db.session.commit()
     return activity
 
+def get_document_preview(document):
+    """Generate HTML preview for document"""
+    preview_html = f"""
+    <div class="document-preview">
+        <div class="document-preview-header mb-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="document-icon me-3 
+                    {'bg-danger bg-opacity-10 text-danger' if document.file_type == 'pdf' else
+                    'bg-primary bg-opacity-10 text-primary' if document.file_type in ['docx', 'doc'] else
+                    'bg-success bg-opacity-10 text-success' if document.file_type in ['xlsx', 'xls'] else
+                    'bg-info bg-opacity-10 text-info' if document.file_type in ['jpg', 'jpeg', 'png', 'gif'] else
+                    'bg-secondary bg-opacity-10 text-secondary'}">
+                    <i class="bi 
+                        {'bi-file-earmark-pdf' if document.file_type == 'pdf' else
+                        'bi-file-earmark-word' if document.file_type in ['docx', 'doc'] else
+                        'bi-file-earmark-excel' if document.file_type in ['xlsx', 'xls'] else
+                        'bi-file-earmark-image' if document.file_type in ['jpg', 'jpeg', 'png', 'gif'] else
+                        'bi-file-earmark'}"></i>
+                </div>
+                <div>
+                    <h4 class="mb-1">{document.title or document.original_filename}</h4>
+                    <p class="text-muted mb-0">
+                        <span class="badge bg-secondary">{document.classification or 'Unclassified'}</span>
+                        <small class="ms-2">{document.file_type.upper()} - {int(document.file_size / 1024)} KB</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="document-preview-details mb-4">
+            <h5 class="mb-3">Dettagli Documento</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Nome File:</strong> {document.original_filename}</p>
+                    <p><strong>Caricato il:</strong> {document.created_at.strftime('%d/%m/%Y %H:%M')}</p>
+                    <p><strong>Caricato da:</strong> {document.owner.username}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Ultima Modifica:</strong> {document.updated_at.strftime('%d/%m/%Y %H:%M')}</p>
+                    {'<p><strong>Scadenza:</strong> ' + document.expiry_date.strftime('%d/%m/%Y') + '</p>' if document.expiry_date else ''}
+                    <p><strong>Versioni:</strong> {len(document.versions) + 1}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="document-preview-content mb-4">
+            <h5 class="mb-3">Descrizione</h5>
+            <div class="card card-body bg-light">
+                {f'<p class="mb-0">{document.description}</p>' if document.description else '<p class="text-muted mb-0">Nessuna descrizione disponibile</p>'}
+            </div>
+        </div>
+        
+        <div class="document-preview-tags mb-4">
+            <h5 class="mb-3">Tags</h5>
+            <div>
+                {''.join([f'<span class="document-tag" style="background-color: {tag.color}20; color: {tag.color};">{tag.name}</span>' for tag in document.tags]) if document.tags else '<span class="text-muted">Nessun tag assegnato</span>'}
+            </div>
+        </div>
+        
+        <div class="document-preview-actions text-center mt-4">
+            <a href="{url_for('view_document', document_id=document.id)}" class="btn btn-primary">
+                <i class="bi bi-eye"></i> Visualizza Completa
+            </a>
+            <a href="{url_for('download_document', document_id=document.id)}" class="btn btn-secondary ms-2">
+                <i class="bi bi-download"></i> Scarica
+            </a>
+        </div>
+    </div>
+    """
+    return preview_html
+
 @app.route('/dashboard')
 @login_required
 def dashboard():
