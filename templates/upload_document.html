@@ -18,6 +18,7 @@
             </div>
             <div class="card-body">
                 <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data">
+                    {{ form.csrf_token }}
                     <div class="mb-3">
                         <label for="document" class="form-label">Document File*</label>
                         <input type="file" class="form-control d-none" id="document" name="document" required>
@@ -62,9 +63,57 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="expiry_date" class="form-label">Expiry Date</label>
+                        <label for="expiry_date" class="form-label">Data di Scadenza</label>
                         <input type="date" class="form-control" id="expiry_date" name="expiry_date">
-                        <div class="form-text">Set if the document has an expiration date</div>
+                        <div class="form-text">Imposta se il documento ha una data di scadenza</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="create_reminder" name="create_reminder" value="1">
+                            <label class="form-check-label" for="create_reminder">Crea un promemoria per questo documento</label>
+                        </div>
+                    </div>
+                    
+                    <div id="reminder_details" class="border rounded p-3 mb-3 d-none">
+                        <h6 class="mb-3">Dettagli Promemoria</h6>
+                        
+                        <div class="mb-3">
+                            <label for="reminder_title" class="form-label">Titolo Promemoria</label>
+                            <input type="text" class="form-control" id="reminder_title" name="reminder_title" placeholder="Es. Scadenza documento">
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="reminder_type" class="form-label">Tipo di Promemoria</label>
+                                <select class="form-select" id="reminder_type" name="reminder_type">
+                                    <option value="deadline" selected>Scadenza</option>
+                                    <option value="renewal">Rinnovo</option>
+                                    <option value="review">Revisione</option>
+                                    <option value="verification">Verifica</option>
+                                    <option value="payment">Pagamento</option>
+                                    <option value="other">Altro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="reminder_date" class="form-label">Data Promemoria</label>
+                                <input type="date" class="form-control" id="reminder_date" name="reminder_date">
+                                <div class="form-text">Se vuota, verrà usata la data di scadenza</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Invia notifica prima della scadenza</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="notify_days" name="notify_days" min="1" max="365" value="7">
+                                <select class="form-select" id="notify_unit" name="notify_unit">
+                                    <option value="days" selected>Giorni</option>
+                                    <option value="weeks">Settimane</option>
+                                    <option value="months">Mesi</option>
+                                </select>
+                            </div>
+                            <div class="form-text">Quanto tempo prima della scadenza ricevere la notifica</div>
+                        </div>
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -155,6 +204,47 @@ document.addEventListener('DOMContentLoaded', function() {
             placeholder: 'Select tags',
             allowClear: true
         });
+    }
+    
+    // Gestisci mostra/nascondi per i dettagli del promemoria
+    const createReminderCheckbox = document.getElementById('create_reminder');
+    const reminderDetailsDiv = document.getElementById('reminder_details');
+    const expiryDateInput = document.getElementById('expiry_date');
+    const reminderDateInput = document.getElementById('reminder_date');
+    
+    if (createReminderCheckbox && reminderDetailsDiv) {
+        createReminderCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                reminderDetailsDiv.classList.remove('d-none');
+                
+                // Se esiste una data di scadenza, usala come default per la data del promemoria
+                if (expiryDateInput && reminderDateInput && expiryDateInput.value) {
+                    reminderDateInput.value = expiryDateInput.value;
+                }
+                
+                // Genera un titolo di default per il promemoria
+                const reminderTitleInput = document.getElementById('reminder_title');
+                if (reminderTitleInput && !reminderTitleInput.value) {
+                    const documentTitleInput = document.getElementById('title');
+                    if (documentTitleInput && documentTitleInput.value) {
+                        reminderTitleInput.value = 'Scadenza: ' + documentTitleInput.value;
+                    } else {
+                        reminderTitleInput.value = 'Scadenza documento';
+                    }
+                }
+            } else {
+                reminderDetailsDiv.classList.add('d-none');
+            }
+        });
+        
+        // Aggiorna la data del promemoria quando cambia la data di scadenza
+        if (expiryDateInput && reminderDateInput) {
+            expiryDateInput.addEventListener('change', function() {
+                if (createReminderCheckbox.checked && !reminderDateInput.value) {
+                    reminderDateInput.value = this.value;
+                }
+            });
+        }
     }
     
     // Cambia il testo del pulsante di upload durante l'invio

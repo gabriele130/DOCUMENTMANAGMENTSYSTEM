@@ -22,4 +22,5 @@ dependencies = [
     "pillow>=11.1.0",
     "flask-wtf>=1.2.2",
     "sendgrid>=6.11.0",
+    "markupsafe>=3.0.2",
 ]
