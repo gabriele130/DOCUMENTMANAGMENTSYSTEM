@@ -79,8 +79,27 @@
                 
                 <div class="mb-2">
                     <a href="{{ url_for('upload_document') }}" class="btn btn-primary w-100">
-                        <i class="bi bi-cloud-upload"></i> Upload Document
+                        <i class="bi bi-cloud-upload"></i> Carica Documento
                     </a>
+                </div>
+                
+                <div class="mb-2 dropdown">
+                    <button class="btn btn-outline-secondary w-100 dropdown-toggle" type="button" id="companyDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-building"></i> Aziende
+                    </button>
+                    <ul class="dropdown-menu w-100" aria-labelledby="companyDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('companies') }}">Tutte le aziende</a></li>
+                        {% if current_user.companies %}
+                            <li><hr class="dropdown-divider"></li>
+                            {% for company in current_user.companies %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('company_detail', company_id=company.id) }}">
+                                    <i class="bi bi-building"></i> {{ company.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
                 </div>
             </div>
             
@@ -94,22 +113,52 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('documents') }}">
-                        <i class="bi bi-file-earmark-text"></i> Documents
+                        <i class="bi bi-file-earmark-text"></i> Documenti
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('companies') }}">
+                        <i class="bi bi-building"></i> Struttura
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('workflow') }}">
-                        <i class="bi bi-diagram-3"></i> Workflows
+                        <i class="bi bi-diagram-3"></i> Workflow
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('search') }}">
-                        <i class="bi bi-search"></i> Search
+                        <i class="bi bi-search"></i> Ricerca
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('archived_documents') }}">
-                        <i class="bi bi-archive"></i> Archive
+                        <i class="bi bi-archive"></i> Archivio
+                    </a>
+                </li>
+            </ul>
+            
+            <hr class="border-light-subtle">
+            
+            <div class="px-3 sidebar-heading">
+                Aziende
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('companies') }}">
+                        <i class="bi bi-building"></i> Elenco Aziende
+                    </a>
+                </li>
+                {% if current_user.is_admin() %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('create_company') }}">
+                        <i class="bi bi-plus-circle"></i> Nuova Azienda
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('reminders') }}">
+                        <i class="bi bi-calendar-check"></i> Scadenzario
                     </a>
                 </li>
             </ul>
@@ -127,12 +176,17 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('notifications') }}">
-                        <i class="bi bi-bell"></i> Notifications
+                        <i class="bi bi-bell"></i> Notifiche
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('activity_log') }}" {% if not current_user.is_admin() %}style="display:none"{% endif %}>
+                        <i class="bi bi-activity"></i> Log Attività
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('settings') }}">
-                        <i class="bi bi-gear"></i> Settings
+                        <i class="bi bi-gear"></i> Impostazioni
                     </a>
                 </li>
             </ul>
