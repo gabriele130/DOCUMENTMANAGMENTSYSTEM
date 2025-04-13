@@ -26,6 +26,9 @@
             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary">
                 <i class="bi bi-download"></i> Download
             </a>
+            <a href="{{ url_for('add_document_reminder', document_id=document.id) }}" class="btn btn-warning">
+                <i class="bi bi-calendar-plus"></i> Promemoria
+            </a>
             {% if document.owner_id == current_user.id %}
             <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-secondary">
                 <i class="bi bi-pencil"></i> Edit
