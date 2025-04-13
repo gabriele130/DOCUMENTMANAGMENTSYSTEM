@@ -1,12 +1,13 @@
 import os
 import logging
 import functools
-from flask import Flask, render_template, flash, redirect, url_for
+from flask import Flask, render_template, flash, redirect, url_for, g, request, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import LoginManager
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
+from flask_wtf import FlaskForm
 import re
 from markupsafe import Markup
 

@@ -179,7 +179,7 @@
                                             {% if not reminder.is_completed %}
                                             <li>
                                                 <form action="{{ url_for('complete_reminder', reminder_id=reminder.id) }}" method="POST" class="d-inline">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    {{ form.csrf_token }}
                                                     <button type="submit" class="dropdown-item">
                                                         <i class="bi bi-check2-circle me-2"></i> Segna come completato
                                                     </button>
@@ -189,7 +189,7 @@
                                             {% endif %}
                                             <li>
                                                 <form action="{{ url_for('delete_reminder', reminder_id=reminder.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Sei sicuro di voler eliminare questo promemoria?');">
-                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    {{ form.csrf_token }}
                                                     <button type="submit" class="dropdown-item text-danger">
                                                         <i class="bi bi-trash me-2"></i> Elimina
                                                     </button>
