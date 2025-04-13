@@ -8,7 +8,8 @@ from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
 from app import app, db
 from models import (User, Document, DocumentVersion, DocumentMetadata, Tag, 
-                    Workflow, WorkflowTask, SearchHistory, Notification)
+                    Workflow, WorkflowTask, SearchHistory, Notification,
+                    Company, Folder, Permission, Reminder, ActivityLog, AccessLevel)
 from services.document_processor import (allowed_file, save_document, 
                                         extract_document_metadata, get_document_preview)
 from services.ai_classifier import classify_document, extract_data_from_document
@@ -103,6 +104,23 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
+    
+# Logging user activity
+def log_activity(user_id, document_id=None, action=None, details=None, ip_address=None):
+    """Log user activity"""
+    if not action:
+        return
+        
+    activity = ActivityLog(
+        user_id=user_id,
+        document_id=document_id,
+        action=action,
+        details=details,
+        ip_address=ip_address or request.remote_addr
+    )
+    db.session.add(activity)
+    db.session.commit()
+    return activity
 
 @app.route('/dashboard')
 @login_required
