@@ -1,0 +1,150 @@
+{% extends 'layout.html' %}
+
+{% block title %}Gestione Utenti - {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company.id) }}">{{ company.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Gestione Utenti</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header">
+                    <h2 class="mb-0">Utenti di {{ company.name }}</h2>
+                </div>
+                <div class="card-body">
+                    {% if company_users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Ruolo</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in company_users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.first_name or '' }} {{ user.last_name or '' }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.is_admin() %}
+                                        <span class="badge bg-danger">Admin</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Utente</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.id != company.created_by_id %}
+                                        <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#removeUserModal{{ user.id }}">
+                                            <i class="fas fa-user-minus"></i> Rimuovi
+                                        </button>
+                                        
+                                        <!-- Remove User Modal -->
+                                        <div class="modal fade" id="removeUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Conferma rimozione</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Sei sicuro di voler rimuovere <strong>{{ user.username }}</strong> dall'azienda <strong>{{ company.name }}</strong>?</p>
+                                                        <p class="text-danger">Questa azione rimuoverà anche tutti i permessi dell'utente su cartelle e documenti di questa azienda.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                                        <form action="{{ url_for('remove_company_user', company_id=company.id, user_id=user.id) }}" method="POST">
+                                                            <button type="submit" class="btn btn-danger">Rimuovi</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted"><i class="fas fa-info-circle"></i> Creatore</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Non ci sono utenti associati a questa azienda.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Aggiungi Utenti</h2>
+                </div>
+                <div class="card-body">
+                    {% if other_users %}
+                    <form method="POST" action="{{ url_for('add_company_user', company_id=company.id) }}">
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">Seleziona Utente</label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="" selected disabled>Seleziona un utente...</option>
+                                {% for user in other_users %}
+                                <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-user-plus"></i> Aggiungi Utente
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Tutti gli utenti sono già membri di questa azienda.
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-grid mt-3">
+                        <a href="{{ url_for('company_detail', company_id=company.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Torna all'azienda
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4 shadow">
+                <div class="card-header">
+                    <h2 class="h5 mb-0">Informazioni</h2>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nome azienda:</strong> {{ company.name }}</p>
+                    <p><strong>Creata il:</strong> {{ company.created_at.strftime('%d/%m/%Y') }}</p>
+                    <p><strong>Creata da:</strong> {{ company.created_by.username }}</p>
+                    <p><strong>Numero utenti:</strong> {{ company_users|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends 'layout.html' %}
+
+{% block title %}Permessi {{ folder.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=folder.company.id) }}">{{ folder.company.name }}</a></li>
+                    {% if folder.parent %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=folder.parent.id) }}">{{ folder.parent.name }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=folder.id) }}">{{ folder.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Permessi</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Permessi utenti per: {{ folder.name }}</h5>
+                </div>
+                <div class="card-body">
+                    {% if permissions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Livello di accesso</th>
+                                    <th>Assegnato da</th>
+                                    <th>Data</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for permission in permissions %}
+                                <tr>
+                                    <td>{{ permission.user.username }}</td>
+                                    <td>
+                                        {% if permission.access_level == access_levels.READ %}
+                                        <span class="badge bg-info">Lettura</span>
+                                        {% elif permission.access_level == access_levels.WRITE %}
+                                        <span class="badge bg-success">Scrittura</span>
+                                        {% elif permission.access_level == access_levels.MANAGE %}
+                                        <span class="badge bg-warning">Gestione</span>
+                                        {% elif permission.access_level == access_levels.ADMIN %}
+                                        <span class="badge bg-danger">Admin</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Nessuno</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ permission.created_by.username }}</td>
+                                    <td>{{ permission.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editPermissionModal{{ permission.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deletePermissionModal{{ permission.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Edit Modal -->
+                                        <div class="modal fade" id="editPermissionModal{{ permission.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Modifica Permessi</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form action="{{ url_for('update_permission', permission_id=permission.id) }}" method="POST">
+                                                        <div class="modal-body">
+                                                            <p>Modifica i permessi per <strong>{{ permission.user.username }}</strong>:</p>
+                                                            <div class="mb-3">
+                                                                <label for="access_level" class="form-label">Livello di accesso</label>
+                                                                <select class="form-select" id="access_level" name="access_level">
+                                                                    <option value="{{ access_levels.READ }}" {% if permission.access_level == access_levels.READ %}selected{% endif %}>Lettura</option>
+                                                                    <option value="{{ access_levels.WRITE }}" {% if permission.access_level == access_levels.WRITE %}selected{% endif %}>Scrittura</option>
+                                                                    <option value="{{ access_levels.MANAGE }}" {% if permission.access_level == access_levels.MANAGE %}selected{% endif %}>Gestione</option>
+                                                                    <option value="{{ access_levels.ADMIN }}" {% if permission.access_level == access_levels.ADMIN %}selected{% endif %}>Admin</option>
+                                                                </select>
+                                                                <div class="form-text">
+                                                                    <ul class="small">
+                                                                        <li><strong>Lettura:</strong> Può visualizzare cartelle e documenti</li>
+                                                                        <li><strong>Scrittura:</strong> Può caricare documenti e creare cartelle</li>
+                                                                        <li><strong>Gestione:</strong> Può gestire i permessi e modificare le cartelle</li>
+                                                                        <li><strong>Admin:</strong> Accesso completo</li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                                            <button type="submit" class="btn btn-primary">Salva modifiche</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Delete Modal -->
+                                        <div class="modal fade" id="deletePermissionModal{{ permission.id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Conferma eliminazione</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Sei sicuro di voler rimuovere i permessi per <strong>{{ permission.user.username }}</strong>?</p>
+                                                        <p class="text-danger">Questa azione è irreversibile e rimuoverà tutti i permessi di questo utente sulla cartella.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                                                        <form action="{{ url_for('delete_permission', permission_id=permission.id) }}" method="POST">
+                                                            <button type="submit" class="btn btn-danger">Rimuovi permessi</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Nessun permesso specifico assegnato per questa cartella.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">Aggiungi permessi</h5>
+                </div>
+                <div class="card-body">
+                    {% if available_users %}
+                    <form action="{{ url_for('add_folder_permission', folder_id=folder.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label for="user_id" class="form-label">Utente</label>
+                            <select class="form-select" id="user_id" name="user_id" required>
+                                <option value="" selected disabled>Seleziona un utente...</option>
+                                {% for user in available_users %}
+                                <option value="{{ user.id }}">{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="access_level" class="form-label">Livello di accesso</label>
+                            <select class="form-select" id="access_level" name="access_level">
+                                <option value="{{ access_levels.READ }}" selected>Lettura</option>
+                                <option value="{{ access_levels.WRITE }}">Scrittura</option>
+                                <option value="{{ access_levels.MANAGE }}">Gestione</option>
+                                <option value="{{ access_levels.ADMIN }}">Admin</option>
+                            </select>
+                            <div class="form-text">
+                                <ul class="small">
+                                    <li><strong>Lettura:</strong> Può visualizzare cartelle e documenti</li>
+                                    <li><strong>Scrittura:</strong> Può caricare documenti e creare cartelle</li>
+                                    <li><strong>Gestione:</strong> Può gestire i permessi e modificare le cartelle</li>
+                                    <li><strong>Admin:</strong> Accesso completo</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Aggiungi permesso
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Tutti gli utenti dell'azienda hanno già permessi assegnati per questa cartella.
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-grid mt-3">
+                        <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Torna alla cartella
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informazioni</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Percorso:</strong> {{ folder.get_path() }}</p>
+                    <p><strong>Azienda:</strong> {{ folder.company.name }}</p>
+                    <p><strong>Creato da:</strong> {{ folder.created_by.username }}</p>
+                    <p><strong>Creato il:</strong> {{ folder.created_at.strftime('%d/%m/%Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -5,7 +5,8 @@ from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
 from flask_login import login_required, current_user
 from app import app, db
-from models import (User, Document, Company, Folder, Permission, ActivityLog, AccessLevel)
+from models import (User, Document, Company, Folder, Permission, ActivityLog, AccessLevel, 
+                   Reminder, Tag, DocumentMetadata)
 from routes import log_activity, admin_required
 
 # Company management routes

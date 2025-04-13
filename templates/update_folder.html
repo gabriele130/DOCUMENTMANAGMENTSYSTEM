@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+
+{% block title %}Modifica Cartella{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=folder.company.id) }}">{{ folder.company.name }}</a></li>
+                    {% if folder.parent %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=folder.parent.id) }}">{{ folder.parent.name }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=folder.id) }}">{{ folder.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Modifica</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2>Modifica Cartella</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_folder', folder_id=folder.id) }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome Cartella *</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ folder.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ folder.description }}</textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Indietro
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Salva Modifiche
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
