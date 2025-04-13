@@ -1,0 +1,189 @@
+{% extends "layout.html" %}
+
+{% block title %}Aggiungi Promemoria - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Aggiungi Promemoria</h1>
+        <p class="text-muted">Configura un promemoria per il documento</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Dettagli Promemoria</h5>
+                <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Torna al documento
+                </a>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('add_document_reminder', document_id=document.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="document_info" class="form-label">Documento</label>
+                        <input type="text" class="form-control" id="document_info" value="{{ document.title or document.original_filename }}" disabled>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Titolo Promemoria *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reminder_type" class="form-label">Tipo di Promemoria *</label>
+                        <select class="form-select" id="reminder_type" name="reminder_type" required>
+                            <option value="deadline">Scadenza</option>
+                            <option value="renewal">Rinnovo</option>
+                            <option value="review">Revisione</option>
+                            <option value="verification">Verifica</option>
+                            <option value="payment">Pagamento</option>
+                            <option value="other">Altro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="due_date" class="form-label">Data Scadenza *</label>
+                            <input type="date" class="form-control" id="due_date" name="due_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="due_time" class="form-label">Ora Scadenza</label>
+                            <input type="time" class="form-control" id="due_time" name="due_time" value="12:00">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Frequenza</label>
+                        <select class="form-select" id="frequency" name="frequency">
+                            <option value="once" selected>Una volta (default)</option>
+                            <option value="weekly">Settimanale</option>
+                            <option value="monthly">Mensile</option>
+                            <option value="quarterly">Trimestrale</option>
+                            <option value="yearly">Annuale</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notify_days_before" class="form-label">Invia notifica giorni prima *</label>
+                        <select class="form-select" id="notify_days_before" name="notify_days_before" required>
+                            <option value="0">Il giorno stesso</option>
+                            <option value="1">1 giorno prima</option>
+                            <option value="3">3 giorni prima</option>
+                            <option value="7" selected>7 giorni prima</option>
+                            <option value="14">14 giorni prima</option>
+                            <option value="30">30 giorni prima</option>
+                            <option value="60">60 giorni prima</option>
+                            <option value="90">90 giorni prima</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label d-block">Utenti da notificare</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="notify_creator" name="notify_users" value="{{ current_user.id }}" checked>
+                            <label class="form-check-label" for="notify_creator">Me stesso</label>
+                        </div>
+                        
+                        {% if document_users %}
+                            {% for user in document_users %}
+                                {% if user.id != current_user.id %}
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_user_{{ user.id }}" name="notify_users" value="{{ user.id }}">
+                                    <label class="form-check-label" for="notify_user_{{ user.id }}">{{ user.first_name }} {{ user.last_name }}</label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-secondary">Annulla</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calendar-check"></i> Salva Promemoria
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Suggerimenti</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i> I promemoria ti aiutano a non dimenticare scadenze importanti
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i> Puoi impostare la frequenza per promemoria ricorrenti
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i> Le notifiche verranno inviate via email e mostrate sul sistema
+                    </li>
+                    <li class="list-group-item bg-transparent">
+                        <i class="bi bi-info-circle-fill text-info me-2"></i> Scegli con cura quando ricevere le notifiche in base all'importanza
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightbulb"></i> Suggerimenti per i tipi di promemoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Scadenza:</strong> Quando un documento ha una scadenza fissa (es. contratto)</p>
+                <p><strong>Rinnovo:</strong> Per documenti che necessitano rinnovo periodico</p>
+                <p><strong>Revisione:</strong> Per documenti da rivedere periodicamente</p>
+                <p><strong>Verifica:</strong> Per verificare che un documento sia ancora valido</p>
+                <p><strong>Pagamento:</strong> Per ricordare scadenze di pagamento</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostra suggerimenti in base al tipo di promemoria selezionato
+    const reminderTypeSelect = document.getElementById('reminder_type');
+    const frequencySelect = document.getElementById('frequency');
+    
+    if (reminderTypeSelect) {
+        reminderTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            
+            // Imposta valori predefiniti in base al tipo
+            switch(selectedType) {
+                case 'renewal':
+                    frequencySelect.value = 'yearly';
+                    break;
+                case 'review':
+                    frequencySelect.value = 'quarterly';
+                    break;
+                case 'verification':
+                    frequencySelect.value = 'monthly';
+                    break;
+                default:
+                    frequencySelect.value = 'once';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

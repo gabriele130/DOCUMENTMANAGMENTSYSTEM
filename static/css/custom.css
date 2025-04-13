@@ -1,0 +1,285 @@
+/* Custom styles for Document Management System */
+:root {
+    --sidebar-width: 280px;
+}
+
+body {
+    min-height: 100vh;
+    background-color: var(--bs-body-bg);
+}
+
+/* Sidebar styling */
+.sidebar {
+    width: var(--sidebar-width);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1030;
+    overflow-y: auto;
+    background-color: var(--bs-dark-bg-subtle);
+    transition: all 0.3s;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-heading {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1rem;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    padding-top: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.content {
+    margin-left: var(--sidebar-width);
+    padding: 2rem;
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+/* Responsive sidebar */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-left: calc(var(--sidebar-width) * -1);
+    }
+    .sidebar.active {
+        margin-left: 0;
+    }
+    .content {
+        width: 100%;
+        margin-left: 0;
+    }
+    .overlay {
+        display: none;
+        position: fixed;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 998;
+        opacity: 0;
+        transition: all 0.5s ease-in-out;
+    }
+    .overlay.active {
+        display: block;
+        opacity: 1;
+    }
+}
+
+/* Dashboard cards */
+.stat-card {
+    position: relative;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-icon {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    opacity: 0.3;
+    font-size: 3rem;
+}
+
+/* Document cards */
+.document-card {
+    transition: all 0.2s ease;
+    height: 100%;
+    border: 1px solid var(--bs-border-color);
+}
+
+.document-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.document-card .card-img-top {
+    height: 160px;
+    object-fit: cover;
+    background-color: var(--bs-tertiary-bg);
+}
+
+.document-tag {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    margin-right: 0.25rem;
+}
+
+/* Table customization */
+.table-hover tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+/* Badges and status indicators */
+.status-indicator {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+/* File type icons */
+.file-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Timeline for activity log */
+.timeline {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0.5rem;
+    width: 2px;
+    background-color: var(--bs-border-color);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: -1.5rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    z-index: 1;
+}
+
+/* Border utilities */
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* Drop area styling */
+#drop-area {
+    min-height: 150px;
+    border: 2px dashed var(--bs-border-color);
+    border-radius: 0.375rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+#drop-area.highlight {
+    border-color: var(--bs-primary);
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.drag-text {
+    padding: 1.5rem;
+}
+
+.file-item {
+    background-color: rgba(var(--bs-light-rgb), 0.05);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Tree view for folder structure */
+.tree-nav {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tree-nav__item {
+    padding-left: 1.25rem;
+    position: relative;
+}
+
+.tree-nav__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.75rem;
+    width: 0.75rem;
+    height: 1px;
+    background-color: var(--bs-border-color);
+}
+
+.tree-nav__item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background-color: var(--bs-border-color);
+}
+
+.tree-nav__item:last-child::after {
+    height: 0.75rem;
+}
+
+.tree-nav__toggle {
+    cursor: pointer;
+    display: inline-block;
+    width: 1.25rem;
+    height: 1.25rem;
+    line-height: 1.25rem;
+    text-align: center;
+    border-radius: 0.25rem;
+    margin-right: 0.5rem;
+}
+
+.tree-nav__toggle:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.tree-nav__item-title {
+    display: flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.tree-nav__item-title:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+.tree-nav__item-title.active {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.tree-nav__children {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    padding-left: 0.75rem;
+}
+
+/* Folder colors */
+.folder-icon {
+    color: var(--bs-warning);
+    margin-right: 0.5rem;
+}
+
+/* Drag and drop highlight */
+.drag-highlight {
+    background-color: var(--bs-primary-bg-subtle);
+    border: 2px dashed var(--bs-primary);
+}

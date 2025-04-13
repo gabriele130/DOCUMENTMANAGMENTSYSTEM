@@ -21,4 +21,5 @@ dependencies = [
     "pytesseract>=0.3.13",
     "pillow>=11.1.0",
     "flask-wtf>=1.2.2",
+    "sendgrid>=6.11.0",
 ]
