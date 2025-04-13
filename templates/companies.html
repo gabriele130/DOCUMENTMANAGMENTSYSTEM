@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+
+{% block title %}Aziende{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Aziende</h1>
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('create_company') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nuova Azienda
+        </a>
+        {% endif %}
+    </div>
+
+    {% if companies %}
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for company in companies %}
+        <div class="col">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ company.name }}</h5>
+                    <p class="card-text">{{ company.description or 'Nessuna descrizione' }}</p>
+                    <p class="card-text text-muted">
+                        <small>Creato il {{ company.created_at.strftime('%d/%m/%Y') }} da 
+                        {{ company.created_by.username }}</small>
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('company_detail', company_id=company.id) }}" 
+                       class="btn btn-primary btn-sm">
+                        <i class="fas fa-folder-open"></i> Apri
+                    </a>
+                    {% if current_user.is_admin() %}
+                    <a href="{{ url_for('company_users', company_id=company.id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-users"></i> Utenti
+                    </a>
+                    <a href="{{ url_for('update_company', company_id=company.id) }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-edit"></i> Modifica
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Non ci sono aziende disponibili.
+        {% if current_user.is_admin() %}
+        <a href="{{ url_for('create_company') }}">Crea la prima azienda</a>.
+        {% else %}
+        Contatta un amministratore per essere aggiunto a un'azienda.
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

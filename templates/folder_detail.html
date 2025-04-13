@@ -1,0 +1,198 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ folder.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1>{{ folder.name }}</h1>
+            <p class="text-muted">{{ folder.description or 'Nessuna descrizione' }}</p>
+        </div>
+        <div>
+            {% if current_user.has_permission(folder.id, 2) or current_user.is_admin() %}
+            <a href="{{ url_for('create_folder', parent_id=folder.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-folder-plus"></i> Nuova Cartella
+            </a>
+            <a href="{{ url_for('upload_document_to_folder', folder_id=folder.id) }}" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Carica Documento
+            </a>
+            {% endif %}
+            {% if current_user.has_permission(folder.id, 3) or current_user.is_admin() %}
+            <div class="dropdown d-inline-block">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('update_folder', folder_id=folder.id) }}">
+                            <i class="fas fa-edit"></i> Modifica cartella
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('folder_permissions', folder_id=folder.id) }}">
+                            <i class="fas fa-lock"></i> Gestisci permessi
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company.id) }}">{{ company.name }}</a></li>
+                    {% for crumb in breadcrumbs[:-1] %}
+                        <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=crumb.id) }}">{{ crumb.name }}</a></li>
+                    {% endfor %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ folder.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Sottocartelle -->
+    {% if subfolders %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Sottocartelle</h5>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for subfolder in subfolders %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-folder fa-2x text-warning me-3"></i>
+                                <h5 class="card-title mb-0">{{ subfolder.name }}</h5>
+                            </div>
+                            <p class="card-text">{{ subfolder.description or 'Nessuna descrizione' }}</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">Creata il {{ subfolder.created_at.strftime('%d/%m/%Y') }}</small>
+                                <a href="{{ url_for('folder_detail', folder_id=subfolder.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-folder-open"></i> Apri
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Documenti -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Documenti</h5>
+            <div>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="documentSearch" placeholder="Cerca documenti...">
+                    <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if documents %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="documentsTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Dimensione</th>
+                            <th>Caricato da</th>
+                            <th>Data</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for document in documents %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('view_document', document_id=document.id) }}">
+                                    {{ document.title or document.original_filename }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge {% if document.file_type == 'pdf' %}bg-danger{% elif document.file_type in ['docx', 'doc'] %}bg-primary{% elif document.file_type in ['xlsx', 'xls'] %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ document.file_type }}
+                                </span>
+                            </td>
+                            <td>
+                                {% set kb_size = (document.file_size / 1024)|int %}
+                                {% if kb_size < 1024 %}
+                                    {{ kb_size }} KB
+                                {% else %}
+                                    {{ (kb_size / 1024)|round(1, 'common') }} MB
+                                {% endif %}
+                            </td>
+                            <td>{{ document.owner.username }}</td>
+                            <td>{{ document.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm" title="Visualizza">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm" title="Scarica">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% if document.owner_id == current_user.id or current_user.is_admin() %}
+                                <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifica">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Nessun documento presente in questa cartella.
+                {% if current_user.has_permission(folder.id, 2) or current_user.is_admin() %}
+                <a href="{{ url_for('upload_document_to_folder', folder_id=folder.id) }}">Carica il primo documento</a>.
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ricerca documenti
+        const documentSearch = document.getElementById('documentSearch');
+        const documentsTable = document.getElementById('documentsTable');
+        
+        if (documentSearch && documentsTable) {
+            documentSearch.addEventListener('keyup', function() {
+                const searchText = this.value.toLowerCase();
+                const rows = documentsTable.querySelectorAll('tbody tr');
+                
+                rows.forEach(row => {
+                    const docName = row.querySelector('td:first-child').textContent.toLowerCase();
+                    if (docName.includes(searchText)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

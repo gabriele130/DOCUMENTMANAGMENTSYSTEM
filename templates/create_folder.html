@@ -1,0 +1,58 @@
+{% extends 'layout.html' %}
+
+{% block title %}Crea Nuova Cartella{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=parent.company.id) }}">{{ parent.company.name }}</a></li>
+                    {% if parent.parent %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=parent.parent.id) }}">{{ parent.parent.name }}</a></li>
+                    {% endif %}
+                    <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=parent.id) }}">{{ parent.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Nuova Cartella</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2>Crea Nuova Cartella</h2>
+                    <p class="text-muted mb-0">Cartella principale: {{ parent.name }}</p>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('create_folder', parent_id=parent.id) }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome Cartella *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('folder_detail', folder_id=parent.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Indietro
+                            </a>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-folder-plus"></i> Crea Cartella
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1>{{ company.name }}</h1>
+            <p class="text-muted">{{ company.description or 'Nessuna descrizione' }}</p>
+        </div>
+        {% if current_user.is_admin() %}
+        <div>
+            <a href="{{ url_for('update_company', company_id=company.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-edit"></i> Modifica Azienda
+            </a>
+            <a href="{{ url_for('company_users', company_id=company.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-users"></i> Gestisci Utenti
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ company.name }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-9">
+            <!-- Struttura cartelle -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Struttura Documenti</h5>
+                </div>
+                <div class="card-body">
+                    {% if root_folders %}
+                    <div class="list-group">
+                        {% for folder in root_folders %}
+                        <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-folder text-warning"></i>
+                                {{ folder.name }}
+                                <small class="text-muted ms-2">{{ folder.description or '' }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">
+                                {{ folder.children|length }} cartelle, 
+                                {{ folder.documents|length }} documenti
+                            </span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Nessuna cartella principale trovata.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Documenti Recenti -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Documenti Recenti</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_documents %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Cartella</th>
+                                    <th>Caricato da</th>
+                                    <th>Data</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for document in recent_documents %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('view_document', document_id=document.id) }}">
+                                            {{ document.title or document.original_filename }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if document.file_type == 'pdf' %}bg-danger{% elif document.file_type in ['docx', 'doc'] %}bg-primary{% elif document.file_type in ['xlsx', 'xls'] %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {{ document.file_type }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if document.folder %}
+                                        <a href="{{ url_for('folder_detail', folder_id=document.folder.id) }}">
+                                            {{ document.folder.name }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ document.owner.username }}</td>
+                                    <td>{{ document.created_at.strftime('%d/%m/%Y') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Nessun documento recente trovato.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <!-- Informazioni e statistiche -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Informazioni</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Creato il:</strong> {{ company.created_at.strftime('%d/%m/%Y') }}</p>
+                    <p><strong>Creato da:</strong> {{ company.created_by.username }}</p>
+                    <p><strong>Utenti:</strong> {{ company.users|length }}</p>
+                    
+                    <hr>
+                    
+                    <div class="d-grid">
+                        <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="fas fa-upload"></i> Carica Documento
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Upload -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Seleziona una cartella</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Seleziona la cartella in cui caricare il documento:</p>
+                
+                <div class="list-group">
+                    {% for folder in root_folders %}
+                    <a href="{{ url_for('upload_document_to_folder', folder_id=folder.id) }}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-folder text-warning"></i> {{ folder.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

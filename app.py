@@ -52,6 +52,7 @@ with app.app_context():
 
 # Import routes after initializing everything
 from routes import *
+from company_routes import *
 
 # Register error handlers
 @app.errorhandler(404)

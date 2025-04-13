@@ -91,7 +91,7 @@ class User(UserMixin, db.Model):
     workflow_tasks = relationship('WorkflowTask', back_populates='assigned_to')
     shared_documents = relationship('Document', secondary=document_user, back_populates='shared_with')
     companies = relationship('Company', secondary=user_company, back_populates='users')
-    permissions = relationship('Permission', back_populates='user', cascade='all, delete-orphan')
+    permissions = relationship('Permission', back_populates='user', foreign_keys='Permission.user_id', cascade='all, delete-orphan')
     notifications = relationship('Notification', back_populates='user', cascade='all, delete-orphan')
     activity_logs = relationship('ActivityLog', back_populates='user')
     
@@ -128,7 +128,7 @@ class Permission(db.Model):
     """User permissions for folders"""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user = relationship('User', back_populates='permissions')
+    user = relationship('User', back_populates='permissions', foreign_keys=[user_id])
     folder_id = db.Column(db.Integer, db.ForeignKey('folder.id'))
     folder = relationship('Folder')
     access_level = db.Column(db.Integer, default=AccessLevel.READ)  # 0=none, 1=read, 2=write, 3=manage, 4=admin
