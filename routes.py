@@ -141,11 +141,15 @@ def dashboard():
         Document.expiry_date >= datetime.datetime.now().date()
     ).order_by(Document.expiry_date).all()
     
+    # Add current datetime for expiry calculations
+    now = datetime.datetime.now()
+    
     return render_template('dashboard.html', 
                           recent_documents=recent_documents,
                           document_count=document_count,
                           tasks=tasks,
-                          expiring_documents=expiring_documents)
+                          expiring_documents=expiring_documents,
+                          now=now)
 
 # Document routes
 @app.route('/documents')

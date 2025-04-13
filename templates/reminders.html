@@ -1,0 +1,412 @@
+{% extends "layout.html" %}
+
+{% block title %}Scadenzario - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Scadenzario</h1>
+        <p class="text-muted">Gestisci i promemoria e le scadenze per i tuoi documenti</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Promemoria attivi</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                        <i class="bi bi-funnel"></i> Filtri
+                    </button>
+                </div>
+            </div>
+            
+            <div class="collapse" id="filterCollapse">
+                <div class="card-body border-bottom">
+                    <form action="{{ url_for('reminders') }}" method="GET" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="reminder_type" class="form-label">Tipo di promemoria</label>
+                            <select class="form-select" id="reminder_type" name="reminder_type">
+                                <option value="" selected>Tutti</option>
+                                <option value="deadline" {% if request.args.get('reminder_type') == 'deadline' %}selected{% endif %}>Scadenza</option>
+                                <option value="renewal" {% if request.args.get('reminder_type') == 'renewal' %}selected{% endif %}>Rinnovo</option>
+                                <option value="review" {% if request.args.get('reminder_type') == 'review' %}selected{% endif %}>Revisione</option>
+                                <option value="verification" {% if request.args.get('reminder_type') == 'verification' %}selected{% endif %}>Verifica</option>
+                                <option value="payment" {% if request.args.get('reminder_type') == 'payment' %}selected{% endif %}>Pagamento</option>
+                                <option value="other" {% if request.args.get('reminder_type') == 'other' %}selected{% endif %}>Altro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_from" class="form-label">Data da</label>
+                            <input type="date" class="form-control" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to" class="form-label">Data a</label>
+                            <input type="date" class="form-control" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Stato</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="" {% if not request.args.get('status') %}selected{% endif %}>Tutti</option>
+                                <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Attivi</option>
+                                <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completati</option>
+                                <option value="overdue" {% if request.args.get('status') == 'overdue' %}selected{% endif %}>Scaduti</option>
+                            </select>
+                        </div>
+                        <div class="col-12 text-end">
+                            <a href="{{ url_for('reminders') }}" class="btn btn-outline-secondary me-2">Reset</a>
+                            <button type="submit" class="btn btn-primary">Applica filtri</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if reminders %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%">Titolo</th>
+                                <th style="width: 15%">Tipo</th>
+                                <th style="width: 20%">Documento</th>
+                                <th style="width: 15%">Scadenza</th>
+                                <th style="width: 10%">Stato</th>
+                                <th style="width: 10%">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reminder in reminders %}
+                            <tr class="{% if reminder.is_overdue() %}table-danger{% elif reminder.is_due_soon() %}table-warning{% endif %}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if reminder.reminder_type == 'deadline' %}
+                                        <i class="bi bi-calendar-event text-danger me-2" title="Scadenza"></i>
+                                        {% elif reminder.reminder_type == 'renewal' %}
+                                        <i class="bi bi-arrow-repeat text-primary me-2" title="Rinnovo"></i>
+                                        {% elif reminder.reminder_type == 'review' %}
+                                        <i class="bi bi-eye text-info me-2" title="Revisione"></i>
+                                        {% elif reminder.reminder_type == 'verification' %}
+                                        <i class="bi bi-check-circle text-success me-2" title="Verifica"></i>
+                                        {% elif reminder.reminder_type == 'payment' %}
+                                        <i class="bi bi-credit-card text-warning me-2" title="Pagamento"></i>
+                                        {% else %}
+                                        <i class="bi bi-bell text-secondary me-2" title="Altro"></i>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold">{{ reminder.title }}</div>
+                                            {% if reminder.description %}
+                                            <div class="small text-muted">{{ reminder.description|truncate(60) }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if reminder.reminder_type == 'deadline' %}
+                                    <span class="badge bg-danger">Scadenza</span>
+                                    {% elif reminder.reminder_type == 'renewal' %}
+                                    <span class="badge bg-primary">Rinnovo</span>
+                                    {% elif reminder.reminder_type == 'review' %}
+                                    <span class="badge bg-info">Revisione</span>
+                                    {% elif reminder.reminder_type == 'verification' %}
+                                    <span class="badge bg-success">Verifica</span>
+                                    {% elif reminder.reminder_type == 'payment' %}
+                                    <span class="badge bg-warning">Pagamento</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Altro</span>
+                                    {% endif %}
+                                    
+                                    {% if reminder.frequency != 'once' %}
+                                    <div class="small mt-1">
+                                        <i class="bi bi-arrow-repeat me-1"></i>
+                                        {% if reminder.frequency == 'weekly' %}
+                                        Settimanale
+                                        {% elif reminder.frequency == 'monthly' %}
+                                        Mensile
+                                        {% elif reminder.frequency == 'quarterly' %}
+                                        Trimestrale
+                                        {% elif reminder.frequency == 'yearly' %}
+                                        Annuale
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reminder.document %}
+                                    <a href="{{ url_for('view_document', document_id=reminder.document.id) }}" class="text-truncate d-inline-block" style="max-width: 200px;">
+                                        {{ reminder.document.title or reminder.document.original_filename }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">Nessun documento</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>{{ reminder.due_date.strftime('%d/%m/%Y') }}</div>
+                                    {% if reminder.is_overdue() %}
+                                    <small class="text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Scaduto 
+                                        ({{ (now.date() - reminder.due_date.date()).days }} giorni fa)
+                                    </small>
+                                    {% elif reminder.is_due_soon() %}
+                                    <small class="text-warning">
+                                        <i class="bi bi-exclamation-circle-fill"></i> 
+                                        Tra {{ (reminder.due_date.date() - now.date()).days }} giorni
+                                    </small>
+                                    {% else %}
+                                    <small class="text-muted">
+                                        Tra {{ (reminder.due_date.date() - now.date()).days }} giorni
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reminder.is_completed %}
+                                    <span class="badge bg-success">Completato</span>
+                                    {% elif reminder.is_overdue() %}
+                                    <span class="badge bg-danger">Scaduto</span>
+                                    {% elif reminder.is_due_soon() %}
+                                    <span class="badge bg-warning">Imminente</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Attivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ reminder.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Azioni
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ reminder.id }}">
+                                            {% if not reminder.is_completed %}
+                                            <li>
+                                                <form action="{{ url_for('complete_reminder', reminder_id=reminder.id) }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bi bi-check2-circle me-2"></i> Segna come completato
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i> Modifica</a></li>
+                                            {% endif %}
+                                            <li>
+                                                <form action="{{ url_for('delete_reminder', reminder_id=reminder.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Sei sicuro di voler eliminare questo promemoria?');">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="bi bi-trash me-2"></i> Elimina
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <img src="{{ url_for('static', filename='images/empty-reminders.svg') }}" alt="Nessun promemoria" class="mb-3" style="max-width: 150px; opacity: 0.5;">
+                    <h5>Nessun promemoria trovato</h5>
+                    <p class="text-muted">Non hai promemoria attivi al momento. Crea un nuovo promemoria per tenere traccia delle scadenze.</p>
+                </div>
+                {% endif %}
+            </div>
+            {% if reminders %}
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <div class="text-muted small">
+                    Visualizzazione di {{ reminders|length }} promemoria
+                </div>
+                <div>
+                    <!-- Pagination here if needed -->
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Prossime scadenze</h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_reminders %}
+                <div class="timeline">
+                    {% for reminder in upcoming_reminders %}
+                    <div class="timeline-item">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="date-badge">
+                                    <div class="month">{{ reminder.due_date.strftime('%b') }}</div>
+                                    <div class="day">{{ reminder.due_date.strftime('%d') }}</div>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ reminder.title }}</h6>
+                                <p class="mb-0 small">
+                                    {% if reminder.document %}
+                                    <a href="{{ url_for('view_document', document_id=reminder.document.id) }}">
+                                        {{ reminder.document.title or reminder.document.original_filename }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">Nessun documento</span>
+                                    {% endif %}
+                                </p>
+                                <div class="mt-1">
+                                    <span class="badge bg-{{ 'danger' if reminder.is_overdue() else 'warning' if reminder.is_due_soon() else 'info' }}">
+                                        {% if reminder.is_overdue() %}
+                                        Scaduto
+                                        {% elif reminder.is_due_soon() %}
+                                        Tra {{ (reminder.due_date.date() - now.date()).days }} giorni
+                                        {% else %}
+                                        {{ reminder.reminder_type|title }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <p class="text-muted">Nessuna scadenza imminente</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Statistiche</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-light-subtle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Totale promemoria</h6>
+                                    <h2 class="mb-0 mt-2">{{ stats.total }}</h2>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="bi bi-calendar-check fs-1 text-primary opacity-25"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-danger-subtle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Scaduti</h6>
+                                    <h2 class="mb-0 mt-2">{{ stats.overdue }}</h2>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="bi bi-exclamation-circle fs-1 text-danger opacity-25"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-warning-subtle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Imminenti</h6>
+                                    <h2 class="mb-0 mt-2">{{ stats.due_soon }}</h2>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="bi bi-hourglass-split fs-1 text-warning opacity-25"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded bg-success-subtle">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">Completati</h6>
+                                    <h2 class="mb-0 mt-2">{{ stats.completed }}</h2>
+                                </div>
+                                <div class="icon-box">
+                                    <i class="bi bi-check-circle fs-1 text-success opacity-25"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.timeline {
+    position: relative;
+    padding-left: 1.5rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0.5rem;
+    width: 2px;
+    background-color: var(--bs-border-color);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 0.25rem;
+    left: -1.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background-color: var(--bs-primary);
+    z-index: 1;
+}
+
+.date-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    text-align: center;
+    background-color: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+}
+
+.date-badge .month {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    padding: 2px 0;
+    background-color: var(--bs-primary);
+    color: white;
+}
+
+.date-badge .day {
+    font-size: 1.25rem;
+    font-weight: 600;
+    padding: 2px 0;
+}
+
+.icon-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+</style>
+{% endblock %}

@@ -685,27 +685,83 @@ def upload_document_to_folder(folder_id):
 @login_required
 def reminders():
     """View all reminders"""
-    # Get upcoming reminders
-    upcoming = Reminder.query.filter(
-        Reminder.is_completed == False,
-        Reminder.due_date >= datetime.datetime.now()
-    ).order_by(Reminder.due_date).all()
+    # Get current date for calculation
+    now = datetime.datetime.now()
     
-    # Get overdue reminders
-    overdue = Reminder.query.filter(
+    # Filtri
+    reminder_type = request.args.get('reminder_type')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    status = request.args.get('status', '')
+    
+    # Base query
+    query = Reminder.query
+    
+    # Apply filters
+    if reminder_type:
+        query = query.filter(Reminder.reminder_type == reminder_type)
+    
+    if date_from:
+        try:
+            from_date = datetime.datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(Reminder.due_date >= from_date)
+        except ValueError:
+            pass
+    
+    if date_to:
+        try:
+            to_date = datetime.datetime.strptime(date_to, '%Y-%m-%d')
+            query = query.filter(Reminder.due_date <= to_date)
+        except ValueError:
+            pass
+    
+    if status == 'active':
+        query = query.filter(Reminder.is_completed == False)
+    elif status == 'completed':
+        query = query.filter(Reminder.is_completed == True)
+    elif status == 'overdue':
+        query = query.filter(
+            Reminder.is_completed == False,
+            Reminder.due_date < datetime.datetime.now()
+        )
+    
+    # Get all reminders
+    reminders = query.order_by(Reminder.due_date).all()
+    
+    # Get upcoming reminders for the sidebar widget
+    upcoming_reminders = Reminder.query.filter(
+        Reminder.is_completed == False,
+        Reminder.due_date >= datetime.datetime.now(),
+        Reminder.due_date <= datetime.datetime.now() + datetime.timedelta(days=7)
+    ).order_by(Reminder.due_date).limit(5).all()
+    
+    # Calculate statistics
+    total_count = Reminder.query.count()
+    active_count = Reminder.query.filter_by(is_completed=False).count()
+    overdue_count = Reminder.query.filter(
         Reminder.is_completed == False,
         Reminder.due_date < datetime.datetime.now()
-    ).order_by(Reminder.due_date).all()
+    ).count()
+    completed_count = Reminder.query.filter_by(is_completed=True).count()
+    due_soon_count = Reminder.query.filter(
+        Reminder.is_completed == False,
+        Reminder.due_date >= datetime.datetime.now(),
+        Reminder.due_date <= datetime.datetime.now() + datetime.timedelta(days=7)
+    ).count()
     
-    # Get completed reminders
-    completed = Reminder.query.filter_by(
-        is_completed=True
-    ).order_by(Reminder.completed_at.desc()).limit(20).all()
+    stats = {
+        'total': total_count,
+        'active': active_count,
+        'overdue': overdue_count,
+        'completed': completed_count,
+        'due_soon': due_soon_count
+    }
     
     return render_template('reminders.html', 
-                          upcoming=upcoming, 
-                          overdue=overdue,
-                          completed=completed)
+                          reminders=reminders,
+                          upcoming_reminders=upcoming_reminders,
+                          stats=stats,
+                          now=now)
 
 @app.route('/documents/<int:document_id>/reminders/add', methods=['GET', 'POST'])
 @login_required
