@@ -289,6 +289,62 @@ def upload_document():
             db.session.add(document)
             db.session.commit()
             
+            # Create reminder if requested
+            if 'create_reminder' in request.form:
+                # Determine the reminder date (use expiry date if reminder date is not provided)
+                reminder_date = request.form.get('reminder_date')
+                if not reminder_date and expiry_date:
+                    reminder_date = expiry_date
+                
+                if reminder_date:
+                    reminder_date = datetime.datetime.strptime(reminder_date, '%Y-%m-%d')
+                    
+                    # Calculate notification days before
+                    notify_days = int(request.form.get('notify_days', 7))
+                    notify_unit = request.form.get('notify_unit', 'days')
+                    
+                    notify_days_before = notify_days
+                    if notify_unit == 'weeks':
+                        notify_days_before = notify_days * 7
+                    elif notify_unit == 'months':
+                        notify_days_before = notify_days * 30
+                    
+                    # Use document title as default reminder title if not provided
+                    reminder_title = request.form.get('reminder_title')
+                    if not reminder_title:
+                        reminder_title = f"Scadenza: {document.title}"
+                    
+                    # Create the reminder
+                    reminder = Reminder(
+                        document_id=document.id,
+                        title=reminder_title,
+                        description=f"Promemoria creato automaticamente per il documento: {document.title}",
+                        reminder_type=request.form.get('reminder_type', 'deadline'),
+                        due_date=reminder_date,
+                        frequency='once',
+                        notify_days_before=notify_days_before,
+                        notify_users=json.dumps([current_user.id]),
+                        created_by_id=current_user.id
+                    )
+                    
+                    db.session.add(reminder)
+                    db.session.commit()
+                    
+                    # Log the reminder creation
+                    log_activity(
+                        user_id=current_user.id,
+                        document_id=document.id,
+                        action="create_reminder",
+                        details=json.dumps({
+                            "reminder_id": reminder.id,
+                            "title": reminder_title,
+                            "due_date": reminder_date.strftime('%Y-%m-%d'),
+                            "reminder_type": reminder.reminder_type
+                        })
+                    )
+                    
+                    flash('Documento caricato e promemoria creato con successo!', 'success')
+            
             # Process the document asynchronously (in a real app, this would be a background task)
             try:
                 # Extract text with OCR if applicable
@@ -308,7 +364,8 @@ def upload_document():
                     db.session.add(metadata)
                 
                 db.session.commit()
-                flash('Document uploaded and processed successfully!', 'success')
+                if 'create_reminder' not in request.form:
+                    flash('Documento caricato ed elaborato con successo!', 'success')
             except Exception as e:
                 app.logger.error(f"Error processing document: {str(e)}")
                 flash(f'Document uploaded but processing failed: {str(e)}', 'warning')
@@ -320,7 +377,7 @@ def upload_document():
     
     # Get all tags for the upload form
     tags = Tag.query.all()
-    return render_template('upload_document.html', tags=tags)
+    return render_template('upload_document.html', tags=tags, form=app.context_processor_functions['inject_csrf_form']()['form'])
 
 @app.route('/documents/<int:document_id>')
 @login_required
