@@ -85,7 +85,7 @@
                 data-tags="{{ document.tags|map(attribute='id')|join(',') }}"
                 data-type="{{ document.classification }}"
                 data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
-                <div class="document-card card h-100">
+                <div class="document-card card h-100 cursor-pointer" onclick="previewDocument({{ document.id }})">
                     <div class="card-header py-3">
                         <div class="d-flex align-items-center">
                             <div class="document-icon 
@@ -139,7 +139,7 @@
                         {% endif %}
                     </div>
                     <div class="card-footer bg-transparent">
-                        <div class="btn-group w-100">
+                        <div class="btn-group w-100" onclick="event.stopPropagation()">
                             <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-eye"></i> View
                             </a>
