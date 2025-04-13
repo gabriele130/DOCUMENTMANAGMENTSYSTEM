@@ -771,7 +771,7 @@ def add_document_reminder(document_id):
     
     # Check if user has permission to add reminders to this document
     if document.owner_id != current_user.id and current_user not in document.shared_with:
-        flash('You do not have permission to add reminders to this document', 'danger')
+        flash('Non hai i permessi per aggiungere promemoria a questo documento', 'danger')
         return redirect(url_for('documents'))
     
     if request.method == 'POST':
@@ -780,17 +780,57 @@ def add_document_reminder(document_id):
         reminder_type = request.form.get('reminder_type')
         due_date = request.form.get('due_date')
         frequency = request.form.get('frequency', 'once')
-        notify_days = request.form.get('notify_days', 7)
+        
+        # Gestione notifiche con unità di tempo personalizzate
+        notify_amount = int(request.form.get('notify_amount', 7))
+        notify_unit = request.form.get('notify_unit', 'days')
+        
+        # Calcola giorni prima in base all'unità selezionata
+        notify_days_before = notify_amount
+        if notify_unit == 'weeks':
+            notify_days_before = notify_amount * 7
+        elif notify_unit == 'months':
+            notify_days_before = notify_amount * 30
+        
+        # Gestione notifiche multiple
+        notify_multiple = 'notify_multiple' in request.form
+        extra_notifications = []
+        
+        if notify_multiple:
+            extra_amounts = request.form.getlist('extra_notify_amount[]')
+            extra_units = request.form.getlist('extra_notify_unit[]')
+            
+            for i in range(len(extra_amounts)):
+                if i < len(extra_units):
+                    try:
+                        amount = int(extra_amounts[i])
+                        unit = extra_units[i]
+                        
+                        days = amount
+                        if unit == 'weeks':
+                            days = amount * 7
+                        elif unit == 'months':
+                            days = amount * 30
+                        
+                        extra_notifications.append({
+                            'days': days,
+                            'amount': amount,
+                            'unit': unit
+                        })
+                    except ValueError:
+                        # Ignora valori non numerici
+                        continue
+        
         notify_users = request.form.getlist('notify_users')
         
         if not title or not due_date or not reminder_type:
-            flash('Title, type and due date are required', 'danger')
+            flash('Titolo, tipo e data di scadenza sono obbligatori', 'danger')
             return redirect(request.url)
         
-        # Convert due date string to datetime
+        # Converte la data di scadenza da stringa a datetime
         due_date = datetime.datetime.strptime(due_date, '%Y-%m-%d')
         
-        # Create reminder
+        # Crea il promemoria
         reminder = Reminder(
             document_id=document.id,
             title=title,
@@ -798,10 +838,14 @@ def add_document_reminder(document_id):
             reminder_type=reminder_type,
             due_date=due_date,
             frequency=frequency,
-            notify_days_before=notify_days,
+            notify_days_before=notify_days_before,
             notify_users=json.dumps(notify_users) if notify_users else None,
             created_by_id=current_user.id
         )
+        
+        # Salva le notifiche aggiuntive nei metadati
+        if extra_notifications:
+            reminder.extra_notifications = json.dumps(extra_notifications)
         
         db.session.add(reminder)
         db.session.commit()
