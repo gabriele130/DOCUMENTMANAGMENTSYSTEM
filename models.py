@@ -329,6 +329,7 @@ class Reminder(db.Model):
     # Notification settings
     notify_days_before = db.Column(db.Integer, default=7)  # Send notification X days before due date
     notify_users = db.Column(db.Text)  # JSON array of user IDs to notify
+    extra_notifications = db.Column(db.Text)  # JSON array of additional notification settings
     
     def __repr__(self):
         return f'<Reminder {self.title} due={self.due_date}>'

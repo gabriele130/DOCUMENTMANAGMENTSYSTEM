@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import LoginManager
 from flask_cors import CORS
+import re
+from markupsafe import Markup
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -53,6 +55,13 @@ with app.app_context():
 # Import routes after initializing everything
 from routes import *
 from company_routes import *
+
+# Filtri personalizzati
+@app.template_filter('nl2br')
+def nl2br_filter(text):
+    if not text:
+        return text
+    return Markup(text.replace('\n', '<br>'))
 
 # Register error handlers
 @app.errorhandler(404)
