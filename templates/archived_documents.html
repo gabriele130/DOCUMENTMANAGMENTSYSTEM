@@ -1,16 +1,16 @@
 {% extends "layout.html" %}
 
-{% block title %}Archived Documents - Document Management System{% endblock %}
+{% block title %}Documenti Archiviati - Sistema di Gestione Documenti{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
-        <h1 class="h3 mb-0">Archived Documents</h1>
-        <p class="text-muted">Documents that have been moved to archive</p>
+        <h1 class="h3 mb-0">Documenti Archiviati</h1>
+        <p class="text-muted">Documenti che sono stati spostati nell'archivio</p>
     </div>
     <div class="col-md-4 text-md-end">
         <a href="{{ url_for('documents') }}" class="btn btn-primary">
-            <i class="bi bi-file-earmark-text"></i> Active Documents
+            <i class="bi bi-file-earmark-text"></i> Documenti Attivi
         </a>
     </div>
 </div>
@@ -18,7 +18,7 @@
 <!-- Archived Documents List -->
 <div class="card">
     <div class="card-header">
-        <h5 class="card-title mb-0">Archived Documents</h5>
+        <h5 class="card-title mb-0">Documenti Archiviati</h5>
     </div>
     <div class="card-body">
         {% if documents %}
@@ -26,11 +26,11 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 40%;">Document</th>
-                        <th>Type</th>
-                        <th>Tags</th>
-                        <th>Archived Date</th>
-                        <th>Actions</th>
+                        <th style="width: 40%;">Documento</th>
+                        <th>Tipo</th>
+                        <th>Etichette</th>
+                        <th>Data Archiviazione</th>
+                        <th>Azioni</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -57,7 +57,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ document.classification or 'Unclassified' }}</td>
+                        <td>{{ document.classification or 'Non classificato' }}</td>
                         <td>
                             {% for tag in document.tags %}
                             <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
@@ -65,15 +65,15 @@
                             </span>
                             {% endfor %}
                         </td>
-                        <td>{{ document.updated_at.strftime('%b %d, %Y') }}</td>
+                        <td>{{ document.updated_at.strftime('%d/%m/%Y') }}</td>
                         <td>
                             <div class="btn-group">
                                 <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i> View
+                                    <i class="bi bi-eye"></i> Visualizza
                                 </a>
                                 <form action="{{ url_for('unarchive_document', document_id=document.id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-success btn-unarchive-document" data-document-id="{{ document.id }}">
-                                        <i class="bi bi-arrow-up-circle"></i> Unarchive
+                                        <i class="bi bi-arrow-up-circle"></i> Ripristina
                                     </button>
                                 </form>
                             </div>
@@ -86,10 +86,10 @@
         {% else %}
         <div class="text-center p-5">
             <i class="bi bi-archive fs-1 text-muted"></i>
-            <h5 class="mt-3">No Archived Documents</h5>
-            <p class="text-muted">You don't have any archived documents yet.</p>
+            <h5 class="mt-3">Nessun Documento Archiviato</h5>
+            <p class="text-muted">Non hai ancora documenti archiviati.</p>
             <a href="{{ url_for('documents') }}" class="btn btn-primary mt-2">
-                <i class="bi bi-file-earmark-text"></i> View Active Documents
+                <i class="bi bi-file-earmark-text"></i> Visualizza Documenti Attivi
             </a>
         </div>
         {% endif %}
@@ -99,22 +99,22 @@
 <!-- Archive Information Card -->
 <div class="card mt-4">
     <div class="card-header">
-        <h5 class="card-title mb-0">About Archiving</h5>
+        <h5 class="card-title mb-0">Informazioni sull'Archiviazione</h5>
     </div>
     <div class="card-body">
         <div class="row">
             <div class="col-md-6">
-                <h6><i class="bi bi-info-circle"></i> What is archiving?</h6>
+                <h6><i class="bi bi-info-circle"></i> Cos'è l'archiviazione?</h6>
                 <p class="small text-muted">
-                    Archiving allows you to keep documents that are no longer actively needed while keeping your main document list clean and organized. Archived documents are still searchable and accessible when needed.
+                    L'archiviazione ti permette di conservare documenti che non sono più necessari attivamente, mantenendo la tua lista principale di documenti pulita e organizzata. I documenti archiviati sono ancora ricercabili e accessibili quando necessario.
                 </p>
             </div>
             <div class="col-md-6">
-                <h6><i class="bi bi-lightbulb"></i> Archiving tips</h6>
+                <h6><i class="bi bi-lightbulb"></i> Suggerimenti per l'archiviazione</h6>
                 <ul class="small text-muted ms-3">
-                    <li>Archive completed projects or outdated documents</li>
-                    <li>Archive documents that have been superseded by newer versions</li>
-                    <li>You can unarchive documents at any time if they become relevant again</li>
+                    <li>Archivia progetti completati o documenti obsoleti</li>
+                    <li>Archivia documenti che sono stati sostituiti da versioni più recenti</li>
+                    <li>Puoi ripristinare i documenti in qualsiasi momento se tornano a essere rilevanti</li>
                 </ul>
             </div>
         </div>
