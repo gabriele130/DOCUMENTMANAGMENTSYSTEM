@@ -239,7 +239,7 @@
                         <div class="d-flex">
                             <div class="flex-shrink-0 me-3">
                                 <div class="date-badge">
-                                    <div class="month">{{ reminder.due_date.strftime('%b') }}</div>
+                                    <div class="month">{{ reminder.due_date.strftime('%b')|replace('Jan', 'Gen')|replace('Feb', 'Feb')|replace('Mar', 'Mar')|replace('Apr', 'Apr')|replace('May', 'Mag')|replace('Jun', 'Giu')|replace('Jul', 'Lug')|replace('Aug', 'Ago')|replace('Sep', 'Set')|replace('Oct', 'Ott')|replace('Nov', 'Nov')|replace('Dec', 'Dic') }}</div>
                                     <div class="day">{{ reminder.due_date.strftime('%d') }}</div>
                                 </div>
                             </div>
@@ -261,7 +261,19 @@
                                         {% elif reminder.is_due_soon() %}
                                         Tra {{ (reminder.due_date.date() - now.date()).days }} giorni
                                         {% else %}
-                                        {{ reminder.reminder_type|title }}
+                                        {% if reminder.reminder_type == 'deadline' %}
+                                        Scadenza
+                                        {% elif reminder.reminder_type == 'renewal' %}
+                                        Rinnovo
+                                        {% elif reminder.reminder_type == 'review' %}
+                                        Revisione
+                                        {% elif reminder.reminder_type == 'verification' %}
+                                        Verifica
+                                        {% elif reminder.reminder_type == 'payment' %}
+                                        Pagamento
+                                        {% else %}
+                                        Altro
+                                        {% endif %}
                                         {% endif %}
                                     </span>
                                 </div>
