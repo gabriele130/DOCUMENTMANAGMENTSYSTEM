@@ -25,8 +25,36 @@ function initApp() {
         return new bootstrap.Popover(popoverTriggerEl);
     });
     
+    // Initialize theme preference
+    initTheme();
+    
     // Set active navigation item based on current page
     setActiveNavItem();
+}
+
+/**
+ * Initialize theme based on user preference
+ */
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    const htmlRoot = document.getElementById('htmlRoot');
+    const lightIcon = document.getElementById('lightIcon');
+    const darkIcon = document.getElementById('darkIcon');
+    const themeLink = document.getElementById('themeLink');
+    
+    if (savedTheme === 'light') {
+        // Set light theme
+        htmlRoot.setAttribute('data-bs-theme', 'light');
+        lightIcon.classList.add('d-none');
+        darkIcon.classList.remove('d-none');
+        themeLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css';
+    } else {
+        // Set dark theme (default)
+        htmlRoot.setAttribute('data-bs-theme', 'dark');
+        lightIcon.classList.remove('d-none');
+        darkIcon.classList.add('d-none');
+        themeLink.href = 'https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css';
+    }
 }
 
 /**
@@ -45,8 +73,40 @@ function setupEventListeners() {
         searchForm.addEventListener('submit', handleSearch);
     }
     
+    // Setup theme toggle
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    
     // Setup notification refresh - disabled temporarily
     // setInterval(updateNotificationCount, 60000); // Update every minute
+}
+
+/**
+ * Toggle between light and dark theme
+ */
+function toggleTheme() {
+    const htmlRoot = document.getElementById('htmlRoot');
+    const lightIcon = document.getElementById('lightIcon');
+    const darkIcon = document.getElementById('darkIcon');
+    const themeLink = document.getElementById('themeLink');
+    
+    if (htmlRoot.getAttribute('data-bs-theme') === 'dark') {
+        // Switch to light theme
+        htmlRoot.setAttribute('data-bs-theme', 'light');
+        lightIcon.classList.add('d-none');
+        darkIcon.classList.remove('d-none');
+        themeLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css';
+        localStorage.setItem('theme', 'light');
+    } else {
+        // Switch to dark theme
+        htmlRoot.setAttribute('data-bs-theme', 'dark');
+        lightIcon.classList.remove('d-none');
+        darkIcon.classList.add('d-none');
+        themeLink.href = 'https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css';
+        localStorage.setItem('theme', 'dark');
+    }
 }
 
 /**
