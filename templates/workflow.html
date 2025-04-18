@@ -1,16 +1,16 @@
 {% extends "layout.html" %}
 
-{% block title %}Workflows - Document Management System{% endblock %}
+{% block title %}Flussi di Lavoro - Sistema di Gestione Documenti{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
-        <h1 class="h3 mb-0">Workflows</h1>
-        <p class="text-muted">Manage document workflows and approval processes</p>
+        <h1 class="h3 mb-0">Flussi di Lavoro</h1>
+        <p class="text-muted">Gestisci i flussi di lavoro dei documenti e i processi di approvazione</p>
     </div>
     <div class="col-md-4 text-md-end">
         <a href="{{ url_for('create_workflow_route') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Workflow
+            <i class="bi bi-plus-circle"></i> Crea Flusso di Lavoro
         </a>
     </div>
 </div>
@@ -19,12 +19,12 @@
 <ul class="nav nav-tabs mb-4" id="workflowTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="true">
-            My Tasks <span class="badge bg-primary">{{ assigned_tasks|length }}</span>
+            Le Mie Attività <span class="badge bg-primary">{{ assigned_tasks|length }}</span>
         </button>
     </li>
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="workflows-tab" data-bs-toggle="tab" data-bs-target="#workflows" type="button" role="tab" aria-controls="workflows" aria-selected="false">
-            My Workflows <span class="badge bg-secondary">{{ created_workflows|length }}</span>
+            I Miei Flussi <span class="badge bg-secondary">{{ created_workflows|length }}</span>
         </button>
     </li>
 </ul>
@@ -36,7 +36,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="card-title mb-0">Tasks Assigned to Me</h5>
+                        <h5 class="card-title mb-0">Attività Assegnate a Me</h5>
                     </div>
                     <div class="card-body p-0">
                         {% if assigned_tasks %}
@@ -44,11 +44,11 @@
                             <table class="table table-hover align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Task</th>
-                                        <th>Workflow</th>
-                                        <th>Status</th>
-                                        <th>Due Date</th>
-                                        <th>Actions</th>
+                                        <th>Attività</th>
+                                        <th>Flusso di Lavoro</th>
+                                        <th>Stato</th>
+                                        <th>Data Scadenza</th>
+                                        <th>Azioni</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -74,10 +74,10 @@
                                         <td>
                                             {% if task.due_date %}
                                             <span class="{% if task.due_date < now %}text-danger{% endif %}">
-                                                {{ task.due_date.strftime('%b %d, %Y') }}
+                                                {{ task.due_date.strftime('%d/%m/%Y') }}
                                             </span>
                                             {% else %}
-                                            <span class="text-muted">No due date</span>
+                                            <span class="text-muted">Nessuna scadenza</span>
                                             {% endif %}
                                         </td>
                                         <td>
@@ -87,19 +87,19 @@
                                                 <input type="hidden" name="comments" value="">
                                                 <div class="btn-group">
                                                     <button type="button" class="btn btn-sm btn-outline-success btn-approve-task" data-task-id="{{ task.id }}">
-                                                        <i class="bi bi-check-circle"></i> Approve
+                                                        <i class="bi bi-check-circle"></i> Approva
                                                     </button>
                                                     <button type="button" class="btn btn-sm btn-outline-danger btn-reject-task" data-task-id="{{ task.id }}">
-                                                        <i class="bi bi-x-circle"></i> Reject
+                                                        <i class="bi bi-x-circle"></i> Rifiuta
                                                     </button>
                                                     <a href="{{ url_for('workflow_detail', workflow_id=task.workflow_id) }}" class="btn btn-sm btn-outline-primary">
-                                                        <i class="bi bi-eye"></i> View
+                                                        <i class="bi bi-eye"></i> Visualizza
                                                     </a>
                                                 </div>
                                             </form>
                                             {% else %}
                                             <a href="{{ url_for('workflow_detail', workflow_id=task.workflow_id) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i> View Workflow
+                                                <i class="bi bi-eye"></i> Visualizza Flusso
                                             </a>
                                             {% endif %}
                                         </td>
@@ -111,8 +111,8 @@
                         {% else %}
                         <div class="text-center p-5">
                             <i class="bi bi-check2-circle fs-1 text-muted"></i>
-                            <h5 class="mt-3">No Tasks Assigned</h5>
-                            <p class="text-muted">You don't have any tasks assigned to you at the moment.</p>
+                            <h5 class="mt-3">Nessuna Attività Assegnata</h5>
+                            <p class="text-muted">Non hai attività assegnate a te al momento.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -127,9 +127,9 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">My Workflows</h5>
+                        <h5 class="card-title mb-0">I Miei Flussi di Lavoro</h5>
                         <a href="{{ url_for('create_workflow_route') }}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-plus-circle"></i> Create New
+                            <i class="bi bi-plus-circle"></i> Crea Nuovo
                         </a>
                     </div>
                     <div class="card-body p-0">
@@ -138,12 +138,12 @@
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Workflow Name</th>
-                                        <th>Description</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                        <th>Documents</th>
-                                        <th>Actions</th>
+                                        <th>Nome Flusso</th>
+                                        <th>Descrizione</th>
+                                        <th>Stato</th>
+                                        <th>Creato</th>
+                                        <th>Documenti</th>
+                                        <th>Azioni</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -160,17 +160,17 @@
                                                 {{ workflow.status|title }}
                                             </span>
                                         </td>
-                                        <td>{{ workflow.created_at.strftime('%b %d, %Y') }}</td>
+                                        <td>{{ workflow.created_at.strftime('%d/%m/%Y') }}</td>
                                         <td>{{ workflow.documents|length }}</td>
                                         <td>
                                             <div class="btn-group">
                                                 <a href="{{ url_for('workflow_detail', workflow_id=workflow.id) }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="bi bi-eye"></i> View
+                                                    <i class="bi bi-eye"></i> Visualizza
                                                 </a>
                                                 {% if workflow.status == 'active' %}
                                                 <button type="button" class="btn btn-sm btn-outline-danger" 
                                                     onclick="confirmCancelWorkflow({{ workflow.id }}, '{{ workflow.name }}')">
-                                                    <i class="bi bi-x-circle"></i> Cancel
+                                                    <i class="bi bi-x-circle"></i> Annulla
                                                 </button>
                                                 {% endif %}
                                             </div>
@@ -183,10 +183,10 @@
                         {% else %}
                         <div class="text-center p-5">
                             <i class="bi bi-diagram-3 fs-1 text-muted"></i>
-                            <h5 class="mt-3">No Workflows Created</h5>
-                            <p class="text-muted">You haven't created any workflows yet.</p>
+                            <h5 class="mt-3">Nessun Flusso Creato</h5>
+                            <p class="text-muted">Non hai ancora creato nessun flusso di lavoro.</p>
                             <a href="{{ url_for('create_workflow_route') }}" class="btn btn-primary mt-2">
-                                <i class="bi bi-plus-circle"></i> Create First Workflow
+                                <i class="bi bi-plus-circle"></i> Crea Primo Flusso
                             </a>
                         </div>
                         {% endif %}
@@ -202,7 +202,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="taskCommentModalLabel">Task Action</h5>
+                <h5 class="modal-title" id="taskCommentModalLabel">Azione Attività</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="taskActionForm" method="POST">
@@ -211,13 +211,13 @@
                     <input type="hidden" id="modalAction" name="action" value="approve">
                     
                     <div class="mb-3">
-                        <label for="taskComments" class="form-label">Comments</label>
-                        <textarea class="form-control" id="taskComments" name="comments" rows="3" placeholder="Add any comments about this task..."></textarea>
+                        <label for="taskComments" class="form-label">Commenti</label>
+                        <textarea class="form-control" id="taskComments" name="comments" rows="3" placeholder="Aggiungi commenti su questa attività..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" id="taskActionSubmit" class="btn btn-success">Approve</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" id="taskActionSubmit" class="btn btn-success">Approva</button>
                 </div>
             </form>
         </div>
@@ -230,8 +230,8 @@
 <script>
     function confirmCancelWorkflow(workflowId, workflowName) {
         confirmAction(
-            'Cancel Workflow',
-            `Are you sure you want to cancel workflow "${workflowName}"? This action cannot be undone.`,
+            'Annulla Flusso di Lavoro',
+            `Sei sicuro di voler annullare il flusso di lavoro "${workflowName}"? Questa azione non può essere annullata.`,
             () => {
                 // Create a form to submit cancel request
                 const form = document.createElement('form');
@@ -259,7 +259,7 @@
                 document.getElementById('modalAction').value = 'approve';
                 document.getElementById('taskComments').value = '';
                 document.getElementById('taskActionSubmit').className = 'btn btn-success';
-                document.getElementById('taskActionSubmit').textContent = 'Approve';
+                document.getElementById('taskActionSubmit').textContent = 'Approva';
                 
                 // Set form action
                 document.getElementById('taskActionForm').action = form.action;
@@ -279,7 +279,7 @@
                 document.getElementById('modalAction').value = 'reject';
                 document.getElementById('taskComments').value = '';
                 document.getElementById('taskActionSubmit').className = 'btn btn-danger';
-                document.getElementById('taskActionSubmit').textContent = 'Reject';
+                document.getElementById('taskActionSubmit').textContent = 'Rifiuta';
                 
                 // Set form action
                 document.getElementById('taskActionForm').action = form.action;
