@@ -1,12 +1,12 @@
 {% extends "layout.html" %}
 
-{% block title %}Upload Document - Document Management System{% endblock %}
+{% block title %}Carica Documento - Sistema di Gestione Documenti{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col">
-        <h1 class="h3 mb-0">Upload Document</h1>
-        <p class="text-muted">Upload a new document to the system</p>
+        <h1 class="h3 mb-0">Carica Documento</h1>
+        <p class="text-muted">Carica un nuovo documento nel sistema</p>
     </div>
 </div>
 
@@ -14,13 +14,13 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Document Details</h5>
+                <h5 class="card-title mb-0">Dettagli Documento</h5>
             </div>
             <div class="card-body">
                 <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data">
                     {{ form.csrf_token }}
                     <div class="mb-3">
-                        <label for="document" class="form-label">Document File*</label>
+                        <label for="document" class="form-label">File Documento*</label>
                         <input type="file" class="form-control d-none" id="document" name="document" required>
                         
                         <div id="drop-area" class="border border-2 border-dashed rounded p-4 text-center position-relative">
@@ -42,24 +42,24 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="title" class="form-label">Title</label>
-                        <input type="text" class="form-control" id="title" name="title" placeholder="Document title">
-                        <div class="form-text">Leave empty to use file name</div>
+                        <label for="title" class="form-label">Titolo</label>
+                        <input type="text" class="form-control" id="title" name="title" placeholder="Titolo del documento">
+                        <div class="form-text">Lascia vuoto per usare il nome del file</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Document description"></textarea>
+                        <label for="description" class="form-label">Descrizione</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" placeholder="Descrizione del documento"></textarea>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="tags" class="form-label">Tags</label>
+                        <label for="tags" class="form-label">Etichette</label>
                         <select class="form-select" id="tags" name="tags" multiple>
                             {% for tag in tags %}
                             <option value="{{ tag.id }}" style="color: {{ tag.color }};">{{ tag.name }}</option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">You can select multiple tags</div>
+                        <div class="form-text">Puoi selezionare più etichette</div>
                     </div>
                     
                     <div class="mb-3">
@@ -117,9 +117,9 @@
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('documents') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <a href="{{ url_for('documents') }}" class="btn btn-outline-secondary">Annulla</a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-cloud-upload"></i> Upload Document
+                            <i class="bi bi-cloud-upload"></i> Carica Documento
                         </button>
                     </div>
                 </form>
@@ -130,24 +130,24 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header">
-                <h5 class="card-title mb-0">Upload Tips</h5>
+                <h5 class="card-title mb-0">Consigli per il Caricamento</h5>
             </div>
             <div class="card-body">
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item bg-transparent">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i> The system will automatically extract text using OCR
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Il sistema estrarrà automaticamente il testo tramite OCR
                     </li>
                     <li class="list-group-item bg-transparent">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i> AI will classify your document based on content
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> L'IA classificherà il documento in base al contenuto
                     </li>
                     <li class="list-group-item bg-transparent">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i> Document metadata will be automatically extracted
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> I metadati del documento verranno estratti automaticamente
                     </li>
                     <li class="list-group-item bg-transparent">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i> You can share documents with other users later
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Potrai condividere i documenti con altri utenti
                     </li>
                     <li class="list-group-item bg-transparent">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i> Adding tags helps with organization and search
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> Aggiungere etichette aiuta l'organizzazione e la ricerca
                     </li>
                 </ul>
             </div>
@@ -155,7 +155,7 @@
         
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Supported Formats</h5>
+                <h5 class="card-title mb-0">Formati Supportati</h5>
             </div>
             <div class="card-body">
                 <div class="row text-center">
@@ -173,7 +173,7 @@
                     </div>
                     <div class="col-3">
                         <i class="bi bi-file-earmark-image fs-3 text-info"></i>
-                        <p class="small">Images</p>
+                        <p class="small">Immagini</p>
                     </div>
                 </div>
             </div>
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof $ !== 'undefined' && $.fn.select2) {
         $('#tags').select2({
             theme: 'bootstrap4',
-            placeholder: 'Select tags',
+            placeholder: 'Seleziona etichette',
             allowClear: true
         });
     }
