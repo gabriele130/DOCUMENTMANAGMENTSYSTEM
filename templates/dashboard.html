@@ -1,12 +1,12 @@
 {% extends "layout.html" %}
 
-{% block title %}Dashboard - Document Management System{% endblock %}
+{% block title %}Dashboard - Sistema di Gestione Documenti{% endblock %}
 
 {% block content %}
 <div class="row mb-4">
     <div class="col">
         <h1 class="h3 mb-0">Dashboard</h1>
-        <p class="text-muted">Welcome back, {{ current_user.first_name or current_user.username }}</p>
+        <p class="text-muted">Bentornato, {{ current_user.first_name or current_user.username }}</p>
     </div>
 </div>
 
@@ -18,9 +18,9 @@
                 <div class="card-icon bg-primary bg-opacity-10 text-primary">
                     <i class="bi bi-file-earmark-text"></i>
                 </div>
-                <h5 class="card-title">Documents</h5>
+                <h5 class="card-title">Documenti</h5>
                 <div class="stats-value">{{ document_count }}</div>
-                <p class="card-text text-muted mb-0">Total documents</p>
+                <p class="card-text text-muted mb-0">Documenti totali</p>
             </div>
         </div>
     </div>
@@ -31,9 +31,9 @@
                 <div class="card-icon bg-warning bg-opacity-10 text-warning">
                     <i class="bi bi-clock"></i>
                 </div>
-                <h5 class="card-title">Pending Tasks</h5>
+                <h5 class="card-title">Attività Pendenti</h5>
                 <div class="stats-value">{{ tasks|length }}</div>
-                <p class="card-text text-muted mb-0">Tasks waiting for action</p>
+                <p class="card-text text-muted mb-0">Attività in attesa</p>
             </div>
         </div>
     </div>
@@ -44,9 +44,9 @@
                 <div class="card-icon bg-danger bg-opacity-10 text-danger">
                     <i class="bi bi-calendar-x"></i>
                 </div>
-                <h5 class="card-title">Expiring Documents</h5>
+                <h5 class="card-title">Documenti in Scadenza</h5>
                 <div class="stats-value">{{ expiring_documents|length }}</div>
-                <p class="card-text text-muted mb-0">Documents expiring soon</p>
+                <p class="card-text text-muted mb-0">Documenti in scadenza</p>
             </div>
         </div>
     </div>
@@ -57,13 +57,13 @@
                 <div class="card-icon bg-success bg-opacity-10 text-success">
                     <i class="bi bi-cloud-arrow-up"></i>
                 </div>
-                <h5 class="card-title">Quick Actions</h5>
+                <h5 class="card-title">Azioni Rapide</h5>
                 <div class="d-grid gap-2">
                     <button id="quickUploadButton" class="btn btn-sm btn-primary">
-                        <i class="bi bi-upload"></i> Upload
+                        <i class="bi bi-upload"></i> Carica
                     </button>
                     <button id="quickSearchButton" class="btn btn-sm btn-secondary">
-                        <i class="bi bi-search"></i> Search
+                        <i class="bi bi-search"></i> Cerca
                     </button>
                 </div>
             </div>
@@ -77,8 +77,8 @@
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Pending Tasks</h5>
-                <a href="{{ url_for('workflow') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <h5 class="card-title mb-0">Attività Pendenti</h5>
+                <a href="{{ url_for('workflow') }}" class="btn btn-sm btn-outline-primary">Vedi Tutte</a>
             </div>
             <div class="card-body">
                 {% if tasks %}
@@ -101,7 +101,7 @@
                                 {{ task.status|replace('_', ' ')|title }}
                             </span>
                             <a href="{{ url_for('workflow_detail', workflow_id=task.workflow_id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-arrow-right"></i> Go to Task
+                                <i class="bi bi-arrow-right"></i> Vai all'Attività
                             </a>
                         </div>
                     </div>
@@ -110,7 +110,7 @@
                 {% else %}
                 <div class="text-center p-4">
                     <i class="bi bi-check2-circle fs-1 text-muted"></i>
-                    <p class="mt-2">No pending tasks at the moment</p>
+                    <p class="mt-2">Nessuna attività pendente al momento</p>
                 </div>
                 {% endif %}
             </div>
@@ -121,8 +121,8 @@
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Recently Added Documents</h5>
-                <a href="{{ url_for('documents') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                <h5 class="card-title mb-0">Documenti Recenti</h5>
+                <a href="{{ url_for('documents') }}" class="btn btn-sm btn-outline-primary">Vedi Tutti</a>
             </div>
             <div class="card-body">
                 {% if recent_documents %}
@@ -150,7 +150,7 @@
                             </div>
                             <div class="card-body py-2">
                                 <p class="card-text small text-muted mb-1">
-                                    <i class="bi bi-tag"></i> {{ document.classification or 'Unclassified' }}
+                                    <i class="bi bi-tag"></i> {{ document.classification or 'Non classificato' }}
                                 </p>
                                 <p class="card-text small text-muted mb-1">
                                     <i class="bi bi-calendar"></i> {{ document.created_at.strftime('%b %d, %Y') }}
@@ -167,7 +167,7 @@
                             </div>
                             <div class="card-footer py-2 bg-transparent">
                                 <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary w-100">
-                                    <i class="bi bi-eye"></i> View
+                                    <i class="bi bi-eye"></i> Visualizza
                                 </a>
                             </div>
                         </div>
@@ -177,9 +177,9 @@
                 {% else %}
                 <div class="text-center p-4">
                     <i class="bi bi-file-earmark fs-1 text-muted"></i>
-                    <p class="mt-2">No documents yet</p>
+                    <p class="mt-2">Nessun documento ancora</p>
                     <a href="{{ url_for('upload_document') }}" class="btn btn-primary">
-                        <i class="bi bi-cloud-upload"></i> Upload First Document
+                        <i class="bi bi-cloud-upload"></i> Carica Primo Documento
                     </a>
                 </div>
                 {% endif %}
@@ -194,18 +194,18 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Documents Expiring Soon</h5>
+                <h5 class="card-title mb-0">Documenti in Scadenza</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Document</th>
-                                <th>Type</th>
-                                <th>Expiry Date</th>
-                                <th>Days Left</th>
-                                <th>Actions</th>
+                                <th>Documento</th>
+                                <th>Tipo</th>
+                                <th>Data Scadenza</th>
+                                <th>Giorni Rimanenti</th>
+                                <th>Azioni</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -217,16 +217,16 @@
                                         {{ document.title or document.original_filename }}
                                     </a>
                                 </td>
-                                <td>{{ document.classification or 'Unclassified' }}</td>
+                                <td>{{ document.classification or 'Non classificato' }}</td>
                                 <td>{{ document.expiry_date.strftime('%b %d, %Y') }}</td>
                                 <td>
                                     <span class="badge {% if days_left < 7 %}bg-danger{% elif days_left < 15 %}bg-warning{% else %}bg-info{% endif %}">
-                                        {{ days_left }} days
+                                        {{ days_left }} giorni
                                     </span>
                                 </td>
                                 <td>
                                     <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil"></i> Update
+                                        <i class="bi bi-pencil"></i> Aggiorna
                                     </a>
                                 </td>
                             </tr>
@@ -245,7 +245,7 @@
     <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="card-title mb-0">Document Types</h5>
+                <h5 class="card-title mb-0">Tipi di Documenti</h5>
             </div>
             <div class="card-body">
                 <div style="height: 250px;">
@@ -258,7 +258,7 @@
     <div class="col-md-6 mb-3">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="card-title mb-0">Document Upload Trends</h5>
+                <h5 class="card-title mb-0">Tendenze Caricamento Documenti</h5>
             </div>
             <div class="card-body">
                 <div style="height: 250px;">
@@ -273,11 +273,11 @@
 <div id="docCountByTypeData" style="display: none;">
     [
         {% for type in [
-            {"type": "Invoice", "count": recent_documents|selectattr("classification", "equalto", "Invoice")|list|length},
-            {"type": "Contract", "count": recent_documents|selectattr("classification", "equalto", "Contract")|list|length},
-            {"type": "Report", "count": recent_documents|selectattr("classification", "equalto", "Report")|list|length},
-            {"type": "Form", "count": recent_documents|selectattr("classification", "equalto", "Form")|list|length},
-            {"type": "Other", "count": recent_documents|rejectattr("classification", "in", ["Invoice", "Contract", "Report", "Form"])|list|length}
+            {"type": "Fattura", "count": recent_documents|selectattr("classification", "equalto", "Invoice")|list|length},
+            {"type": "Contratto", "count": recent_documents|selectattr("classification", "equalto", "Contract")|list|length},
+            {"type": "Rapporto", "count": recent_documents|selectattr("classification", "equalto", "Report")|list|length},
+            {"type": "Modulo", "count": recent_documents|selectattr("classification", "equalto", "Form")|list|length},
+            {"type": "Altro", "count": recent_documents|rejectattr("classification", "in", ["Invoice", "Contract", "Report", "Form"])|list|length}
         ] %}
             {"type": "{{ type.type }}", "count": {{ type.count }}}{% if not loop.last %},{% endif %}
         {% endfor %}
@@ -287,7 +287,7 @@
 <div id="docCountByMonthData" style="display: none;">
     [
         {% for month in range(1, 13) %}
-            {"month": "{{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month-1] }}", "count": {{ [1, 3, 5, 2, 7, 4, 8, 6, 3, 5, 4, 2][month-1] }}}{% if not loop.last %},{% endif %}
+            {"month": "{{ ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'][month-1] }}", "count": {{ [1, 3, 5, 2, 7, 4, 8, 6, 3, 5, 4, 2][month-1] }}}{% if not loop.last %},{% endif %}
         {% endfor %}
     ]
 </div>

@@ -41,6 +41,8 @@ function initTheme() {
     const lightIcon = document.getElementById('lightIcon');
     const darkIcon = document.getElementById('darkIcon');
     const themeLink = document.getElementById('themeLink');
+    const navbar = document.querySelector('.navbar');
+    const sidebar = document.querySelector('.sidebar');
     
     if (savedTheme === 'light') {
         // Set light theme
@@ -48,12 +50,34 @@ function initTheme() {
         lightIcon.classList.add('d-none');
         darkIcon.classList.remove('d-none');
         themeLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css';
+        
+        // Correzione per elementi navbar in tema chiaro
+        if (navbar) {
+            navbar.classList.remove('navbar-dark', 'bg-dark');
+            navbar.classList.add('navbar-light', 'bg-light');
+        }
+        
+        // Correzione per i colori del sidebar in tema chiaro
+        if (sidebar) {
+            sidebar.classList.add('sidebar-light');
+        }
     } else {
         // Set dark theme (default)
         htmlRoot.setAttribute('data-bs-theme', 'dark');
         lightIcon.classList.remove('d-none');
         darkIcon.classList.add('d-none');
         themeLink.href = 'https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css';
+        
+        // Ripristina navbar dark
+        if (navbar) {
+            navbar.classList.remove('navbar-light', 'bg-light');
+            navbar.classList.add('navbar-dark', 'bg-dark');
+        }
+        
+        // Ripristina sidebar in tema scuro
+        if (sidebar) {
+            sidebar.classList.remove('sidebar-light');
+        }
     }
 }
 
@@ -99,6 +123,19 @@ function toggleTheme() {
         darkIcon.classList.remove('d-none');
         themeLink.href = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css';
         localStorage.setItem('theme', 'light');
+        
+        // Correzione per elementi navbar in tema chiaro
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            navbar.classList.remove('navbar-dark', 'bg-dark');
+            navbar.classList.add('navbar-light', 'bg-light');
+        }
+        
+        // Correzione per i colori del sidebar in tema chiaro
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.add('sidebar-light');
+        }
     } else {
         // Switch to dark theme
         htmlRoot.setAttribute('data-bs-theme', 'dark');
@@ -106,6 +143,19 @@ function toggleTheme() {
         darkIcon.classList.add('d-none');
         themeLink.href = 'https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css';
         localStorage.setItem('theme', 'dark');
+        
+        // Ripristina navbar dark
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            navbar.classList.remove('navbar-light', 'bg-light');
+            navbar.classList.add('navbar-dark', 'bg-dark');
+        }
+        
+        // Ripristina sidebar in tema scuro
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) {
+            sidebar.classList.remove('sidebar-light');
+        }
     }
 }
 
