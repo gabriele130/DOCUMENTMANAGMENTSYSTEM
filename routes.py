@@ -286,8 +286,19 @@ def upload_document():
             if expiry_date:
                 document.expiry_date = datetime.datetime.strptime(expiry_date, '%Y-%m-%d').date()
             
+            # Gestisci la visibilità del documento (solo per gli amministratori)
+            visibility = request.form.get('visibility', 'all')
+            allowed_user_ids = request.form.getlist('allowed_users')
+            
             db.session.add(document)
             db.session.commit()
+            
+            # Se l'utente è admin e la visibilità è limitata, condividi il documento solo con gli utenti selezionati
+            if current_user.is_admin() and visibility == 'selected' and allowed_user_ids:
+                allowed_users = User.query.filter(User.id.in_(allowed_user_ids)).all()
+                document.shared_with.extend(allowed_users)
+                db.session.commit()
+                app.logger.info(f"Documento {document.id} condiviso con {len(allowed_users)} utenti selezionati")
             
             # Create reminder if requested
             if 'create_reminder' in request.form:
@@ -377,7 +388,13 @@ def upload_document():
     
     # Get all tags for the upload form
     tags = Tag.query.all()
-    return render_template('upload_document.html', tags=tags, form=EmptyForm())
+    
+    # Se l'utente è amministratore, ottieni l'elenco completo degli utenti per il selettore di visibilità
+    all_users = []
+    if current_user.is_admin():
+        all_users = User.query.all()
+    
+    return render_template('upload_document.html', tags=tags, all_users=all_users, form=EmptyForm())
 
 @app.route('/documents/<int:document_id>')
 @login_required

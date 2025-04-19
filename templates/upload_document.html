@@ -68,6 +68,27 @@
                         <div class="form-text">Imposta se il documento ha una data di scadenza</div>
                     </div>
                     
+                    {% if current_user.is_admin() %}
+                    <div class="mb-3">
+                        <label for="visibility" class="form-label">Visibilità del Documento</label>
+                        <select class="form-select" id="visibility" name="visibility">
+                            <option value="all" selected>Visibile a tutti gli utenti</option>
+                            <option value="selected">Visibile solo agli utenti selezionati</option>
+                        </select>
+                        <div class="form-text">Predefinito: visibile a tutti gli utenti</div>
+                    </div>
+                    
+                    <div id="visibilityOptions" class="mb-3 d-none">
+                        <label for="allowed_users" class="form-label">Utenti con Accesso</label>
+                        <select class="form-select" id="allowed_users" name="allowed_users" multiple>
+                            {% for user in all_users %}
+                            <option value="{{ user.id }}">{{ user.username }} ({{ user.email }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Seleziona gli utenti che potranno accedere al documento</div>
+                    </div>
+                    {% endif %}
+                    
                     <div class="mb-3">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="create_reminder" name="create_reminder" value="1">
@@ -243,6 +264,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (createReminderCheckbox.checked && !reminderDateInput.value) {
                     reminderDateInput.value = this.value;
                 }
+            });
+        }
+    }
+    
+    // Gestisci il cambio di visibilità per amministratori
+    const visibilitySelect = document.getElementById('visibility');
+    const visibilityOptionsDiv = document.getElementById('visibilityOptions');
+    const allowedUsersSelect = document.getElementById('allowed_users');
+    
+    if (visibilitySelect && visibilityOptionsDiv) {
+        visibilitySelect.addEventListener('change', function() {
+            if (this.value === 'selected') {
+                visibilityOptionsDiv.classList.remove('d-none');
+                if (allowedUsersSelect) {
+                    allowedUsersSelect.required = true;
+                }
+            } else {
+                visibilityOptionsDiv.classList.add('d-none');
+                if (allowedUsersSelect) {
+                    allowedUsersSelect.required = false;
+                }
+            }
+        });
+        
+        // Inizializza select2 per il selettore di utenti se disponibile
+        if (typeof $ !== 'undefined' && $.fn.select2 && allowedUsersSelect) {
+            $('#allowed_users').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Seleziona gli utenti',
+                allowClear: true
             });
         }
     }
