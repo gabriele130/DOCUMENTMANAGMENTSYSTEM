@@ -10,9 +10,12 @@ from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
 import re
 from markupsafe import Markup
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Setup SQLAlchemy base class
 class Base(DeclarativeBase):
@@ -22,6 +25,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 csrf = CSRFProtect()
+scheduler = BackgroundScheduler(daemon=True)
 
 # Create the app
 app = Flask(__name__)

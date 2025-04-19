@@ -23,4 +23,5 @@ dependencies = [
     "flask-wtf>=1.2.2",
     "sendgrid>=6.11.0",
     "markupsafe>=3.0.2",
+    "apscheduler>=3.11.0",
 ]
