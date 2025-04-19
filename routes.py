@@ -1223,3 +1223,34 @@ def api_search_tags():
     } for tag in tags]
     
     return jsonify(results)
+    
+@app.route('/documents/<int:document_id>/view-content')
+@login_required
+def view_document_content(document_id):
+    """Visualizza il contenuto del documento direttamente nel browser"""
+    document = Document.query.get_or_404(document_id)
+    
+    # Verifica autorizzazioni
+    if document.owner_id != current_user.id and current_user not in document.shared_with:
+        flash('Non hai il permesso di visualizzare questo documento.', 'danger')
+        return redirect(url_for('documents'))
+    
+    # Controlla che il file esista
+    if not os.path.exists(document.file_path):
+        flash('File non trovato nel sistema.', 'danger')
+        return redirect(url_for('view_document', document_id=document.id))
+    
+    # Per immagini, PDF e altri tipi supportati dal browser, visualizzali direttamente
+    if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg']:
+        # Log activity
+        log_activity(current_user.id, document_id, 'view_content', 'Visualizzazione contenuto documento')
+        
+        # Invia il file al browser (ma non come download)
+        return send_file(document.file_path,
+                         mimetype=f'application/{document.file_type}' if document.file_type == 'pdf' else f'image/{document.file_type}',
+                         as_attachment=False,
+                         download_name=document.original_filename)
+    
+    # Per altri tipi, reindirizza al download
+    flash(f'Visualizzazione diretta non supportata per i file {document.file_type.upper()}. Il file verrà scaricato.', 'info')
+    return redirect(url_for('download_document', document_id=document.id))

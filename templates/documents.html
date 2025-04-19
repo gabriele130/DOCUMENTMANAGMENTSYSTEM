@@ -143,6 +143,11 @@
                             <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-eye"></i> View
                             </a>
+                            {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                            <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-outline-info btn-sm" target="_blank">
+                                <i class="bi bi-file-earmark-text"></i> Anteprima
+                            </a>
+                            {% endif %}
                             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-download"></i> Download
                             </a>
@@ -236,6 +241,11 @@
                             <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
                                 <i class="bi bi-eye"></i> View
                             </a>
+                            {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                            <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-outline-info btn-sm" target="_blank">
+                                <i class="bi bi-file-earmark-text"></i> Anteprima
+                            </a>
+                            {% endif %}
                             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-download"></i> Download
                             </a>

@@ -55,12 +55,27 @@
             </div>
             <div class="card-body p-0">
                 <div class="document-preview-container">
-                    {% if preview_html %}
+                    {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                        <div class="mb-3 d-flex justify-content-between align-items-center p-3">
+                            <h5 class="mb-0">Anteprima Diretta</h5>
+                            <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-sm btn-primary" target="_blank">
+                                <i class="bi bi-arrows-fullscreen"></i> Apri a schermo intero
+                            </a>
+                        </div>
+                        <div class="document-iframe-container" style="height: 600px; overflow: hidden; border-top: 1px solid rgba(0,0,0,0.1);">
+                            <iframe src="{{ url_for('view_document_content', document_id=document.id) }}" 
+                                    style="width: 100%; height: 100%; border: none;" 
+                                    title="Anteprima {{ document.original_filename }}"></iframe>
+                        </div>
+                    {% elif preview_html %}
                         {{ preview_html|safe }}
                     {% else %}
                         <div class="alert alert-info m-3">
                             <h4 class="alert-heading">Anteprima non disponibile</h4>
                             <p>L'anteprima non è disponibile per questo tipo di documento. Si prega di scaricare il file per visualizzarne il contenuto.</p>
+                            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary">
+                                <i class="bi bi-download"></i> Scarica Documento
+                            </a>
                         </div>
                     {% endif %}
                 </div>
