@@ -1088,12 +1088,14 @@ def admin_delete_user(user_id):
 # API Endpoints for AJAX requests
 @app.route('/api/notifications/count')
 @login_required
+@csrf.exempt
 def get_unread_notification_count():
     count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
     return jsonify({'count': count})
 
 @app.route('/api/notifications/recent')
 @login_required
+@csrf.exempt
 def get_recent_notifications():
     """Ottieni le notifiche recenti non lette per il dropdown"""
     notifications = Notification.query.filter_by(
