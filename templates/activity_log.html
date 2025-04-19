@@ -1,0 +1,397 @@
+{% extends 'layout.html' %}
+
+{% block title %}Registro Attività{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">
+            <i class="bi bi-shield-check me-2 text-primary"></i>
+            Registro Attività di Sistema
+        </h1>
+        
+        <div class="d-flex">
+            <a href="{{ url_for('export_activity_logs', format='json') }}" class="btn btn-outline-primary btn-sm ms-2">
+                <i class="bi bi-download me-1"></i> Esporta JSON
+            </a>
+            <a href="{{ url_for('export_activity_logs', format='csv') }}" class="btn btn-outline-secondary btn-sm ms-2">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Esporta CSV
+            </a>
+            <a href="{{ url_for('verify_log_integrity') }}" class="btn btn-outline-success btn-sm ms-2">
+                <i class="bi bi-shield-lock me-1"></i> Verifica Integrità
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Filtri</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('activity_logs') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label for="user" class="form-label">Utente</label>
+                    <select class="form-select" name="user_id" id="user">
+                        <option value="">Tutti gli utenti</option>
+                        {% for user in all_users %}
+                        <option value="{{ user.id }}" {% if request.args.get('user_id')|int == user.id %}selected{% endif %}>
+                            {{ user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="action" class="form-label">Azione</label>
+                    <select class="form-select" name="action" id="action">
+                        <option value="">Tutte le azioni</option>
+                        {% for action_type in action_types %}
+                        <option value="{{ action_type }}" {% if request.args.get('action') == action_type %}selected{% endif %}>
+                            {{ action_type }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="category" class="form-label">Categoria</label>
+                    <select class="form-select" name="category" id="category">
+                        <option value="">Tutte le categorie</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}" {% if request.args.get('category') == category %}selected{% endif %}>
+                            {{ category }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="result" class="form-label">Risultato</label>
+                    <select class="form-select" name="result" id="result">
+                        <option value="">Tutti i risultati</option>
+                        <option value="success" {% if request.args.get('result') == 'success' %}selected{% endif %}>Successo</option>
+                        <option value="failure" {% if request.args.get('result') == 'failure' %}selected{% endif %}>Fallimento</option>
+                        <option value="denied" {% if request.args.get('result') == 'denied' %}selected{% endif %}>Negato</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Data Inizio</label>
+                    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">Data Fine</label>
+                    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="security_level" class="form-label">Livello Sicurezza</label>
+                    <select class="form-select" name="security_level" id="security_level">
+                        <option value="">Tutti i livelli</option>
+                        <option value="standard" {% if request.args.get('security_level') == 'standard' %}selected{% endif %}>Standard</option>
+                        <option value="sensitive" {% if request.args.get('security_level') == 'sensitive' %}selected{% endif %}>Sensitive</option>
+                        <option value="critical" {% if request.args.get('security_level') == 'critical' %}selected{% endif %}>Critical</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i> Filtra
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <div>
+            Registro di audit trail conforme a ISO 27001, GDPR ed eIDAS con verifica di integrità.
+            Sono visualizzati {{ logs|length }} record di attività.
+        </div>
+    </div>
+    
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>Utente</th>
+                            <th>Azione</th>
+                            <th>Categoria</th>
+                            <th>Documento</th>
+                            <th>Risultato</th>
+                            <th>IP</th>
+                            <th>Sicurezza</th>
+                            <th>Dettagli</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr class="{% if log.security_level == 'critical' %}table-danger{% elif log.security_level == 'sensitive' %}table-warning{% endif %}">
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                            <td>
+                                {% if log.user %}
+                                    {{ log.user.username }}
+                                {% else %}
+                                    <span class="text-muted">Sistema</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if log.action in ['delete', 'permission_change', 'user_creation', 'user_deletion'] %}
+                                        bg-danger
+                                    {% elif log.action in ['login', 'logout', 'password_change', 'share', 'unshare'] %}
+                                        bg-warning
+                                    {% elif log.action in ['view', 'download', 'print'] %}
+                                        bg-info
+                                    {% else %}
+                                        bg-primary
+                                    {% endif %}">
+                                    {{ log.action }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="badge bg-secondary">{{ log.action_category }}</small>
+                            </td>
+                            <td>
+                                {% if log.document %}
+                                <a href="{{ url_for('view_document', document_id=log.document.id) }}" class="text-decoration-none">
+                                    {{ log.document.title or log.document.original_filename }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if log.result == 'success' %}
+                                        bg-success
+                                    {% elif log.result == 'failure' %}
+                                        bg-danger
+                                    {% elif log.result == 'denied' %}
+                                        bg-warning
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}">
+                                    {{ log.result }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ log.ip_address or '-' }}</small>
+                            </td>
+                            <td>
+                                <small class="badge 
+                                    {% if log.security_level == 'critical' %}
+                                        bg-danger
+                                    {% elif log.security_level == 'sensitive' %}
+                                        bg-warning
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}">
+                                    {{ log.security_level }}
+                                </small>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#logDetailsModal{{ log.id }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                
+                                <!-- Modal per i dettagli -->
+                                <div class="modal fade" id="logDetailsModal{{ log.id }}" tabindex="-1" aria-labelledby="logDetailsModalLabel{{ log.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="logDetailsModalLabel{{ log.id }}">
+                                                    Dettagli Attività #{{ log.id }}
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="fw-bold">Informazioni di Base</h6>
+                                                        <table class="table table-sm">
+                                                            <tr>
+                                                                <th scope="row">ID:</th>
+                                                                <td>{{ log.id }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Timestamp:</th>
+                                                                <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Utente:</th>
+                                                                <td>{{ log.user.username if log.user else 'Sistema' }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Azione:</th>
+                                                                <td>{{ log.action }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Categoria:</th>
+                                                                <td>{{ log.action_category }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Risultato:</th>
+                                                                <td>{{ log.result }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Integrità:</th>
+                                                                <td>
+                                                                    {% if log.verify_integrity() %}
+                                                                    <span class="text-success">
+                                                                        <i class="bi bi-shield-check me-1"></i> Verificata
+                                                                    </span>
+                                                                    {% else %}
+                                                                    <span class="text-danger">
+                                                                        <i class="bi bi-shield-exclamation me-1"></i> Compromessa
+                                                                    </span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="fw-bold">Informazioni Dispositivo</h6>
+                                                        <table class="table table-sm">
+                                                            <tr>
+                                                                <th scope="row">IP:</th>
+                                                                <td>{{ log.ip_address or '-' }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">User Agent:</th>
+                                                                <td>
+                                                                    <small>{{ log.user_agent or '-' }}</small>
+                                                                </td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Device Info:</th>
+                                                                <td>{{ log.device_info or '-' }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th scope="row">Geolocation:</th>
+                                                                <td>{{ log.geolocation or '-' }}</td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row mt-3">
+                                                    <div class="col-md-12">
+                                                        <h6 class="fw-bold">Dettagli Tecnici</h6>
+                                                        
+                                                        <div class="card bg-light mb-3">
+                                                            <div class="card-header">
+                                                                <strong>Dettagli</strong>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <pre class="mb-0"><code>{{ log.details or '{}' }}</code></pre>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="card bg-light">
+                                                            <div class="card-header">
+                                                                <strong>Metadati Contestuali</strong>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <pre class="mb-0"><code>{{ log.context_metadata or '{}' }}</code></pre>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <div class="alert alert-info mb-0">
+                                    <i class="bi bi-info-circle me-2"></i>
+                                    Nessun record di attività trovato con i criteri di ricerca specificati.
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Paginazione" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('activity_logs', page=pagination.prev_num, **request.args) }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+            </li>
+            {% endif %}
+            
+            {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                {% if page %}
+                    {% if page == pagination.page %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ page }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('activity_logs', page=page, **request.args) }}">{{ page }}</a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('activity_logs', page=pagination.next_num, **request.args) }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatta JSON nei dettagli
+    document.querySelectorAll('pre code').forEach(function(codeBlock) {
+        try {
+            // Prova a parsare il contenuto come JSON
+            const content = codeBlock.textContent;
+            if (content && content.trim() !== '' && content !== '{}') {
+                const jsonObj = JSON.parse(content);
+                codeBlock.textContent = JSON.stringify(jsonObj, null, 2);
+            }
+        } catch (e) {
+            // Se non è JSON valido, lascia il testo come è
+            console.warn('Errore nella formattazione JSON:', e);
+        }
+    });
+});
+</script>
+{% endblock %}

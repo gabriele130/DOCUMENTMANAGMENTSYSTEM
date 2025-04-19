@@ -41,19 +41,46 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user, remember=remember)
+            user.last_login = datetime.datetime.utcnow()
+            db.session.commit()
+            
+            # Log del login riuscito per audit trail
+            from services.audit_service import AuditTrailService
+            AuditTrailService.log_login(
+                user_id=user.id,
+                success=True,
+                user_agent=request.headers.get('User-Agent')
+            )
+            
             next_page = request.args.get('next')
-            flash('Login successful!', 'success')
+            flash('Login effettuato con successo!', 'success')
             return redirect(next_page or url_for('dashboard'))
         else:
-            flash('Invalid username or password', 'danger')
+            # Log del tentativo di login fallito per audit trail
+            from services.audit_service import AuditTrailService
+            user_id = user.id if user else None
+            AuditTrailService.log_login(
+                user_id=user_id if user_id else 0,
+                success=False,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+            
+            flash('Username o password non validi', 'danger')
     
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
+    # Log del logout per audit trail
+    from services.audit_service import AuditTrailService
+    AuditTrailService.log_logout(
+        user_id=current_user.id
+    )
+    
     logout_user()
-    flash('You have been logged out.', 'info')
+    flash('Sei stato disconnesso.', 'info')
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -105,22 +132,25 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
     
-# Logging user activity
+# Logging user activity - Compatibilità con vecchio metodo
 def log_activity(user_id, document_id=None, action=None, details=None, ip_address=None):
-    """Log user activity"""
+    """
+    Log user activity (versione legacy per compatibilità)
+    Utilizza il servizio AuditTrailService per la registrazione avanzata
+    """
+    from services.audit_service import AuditTrailService
+    
     if not action:
         return
-        
-    activity = ActivityLog(
+    
+    # Utilizza il nuovo servizio di audit trail
+    return AuditTrailService.log_activity(
         user_id=user_id,
-        document_id=document_id,
         action=action,
+        document_id=document_id,
         details=details,
-        ip_address=ip_address or request.remote_addr
+        ip_address=ip_address
     )
-    db.session.add(activity)
-    db.session.commit()
-    return activity
 
 def get_document_preview(document):
     """Generate HTML preview for document"""
@@ -403,6 +433,16 @@ def view_document(document_id):
     
     # Check if user has permission to view this document
     if document.owner_id != current_user.id and current_user not in document.shared_with:
+        # Log accesso negato per audit
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="view",
+            document_id=document_id,
+            result="denied",
+            details=json.dumps({"reason": "permission_denied"})
+        )
+        
         flash('Non hai il permesso di visualizzare questo documento.', 'danger')
         return redirect(url_for('documents'))
     
@@ -437,6 +477,13 @@ def view_document(document_id):
                 'note': attachment_note
             })
     
+    # Log visualizzazione documento per audit trail
+    from services.audit_service import AuditTrailService
+    AuditTrailService.log_document_view(
+        user_id=current_user.id,
+        document_id=document_id
+    )
+    
     return render_template('view_document.html', 
                           document=document,
                           preview_html=preview_html,
@@ -451,8 +498,25 @@ def download_document(document_id):
     
     # Check if user has permission to download this document
     if document.owner_id != current_user.id and current_user not in document.shared_with:
-        flash('You do not have permission to download this document.', 'danger')
+        # Log accesso negato per audit
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="download",
+            document_id=document_id,
+            result="denied",
+            details=json.dumps({"reason": "permission_denied"})
+        )
+        
+        flash('Non hai il permesso di scaricare questo documento.', 'danger')
         return redirect(url_for('documents'))
+    
+    # Log del download per audit trail
+    from services.audit_service import AuditTrailService
+    AuditTrailService.log_document_download(
+        user_id=current_user.id,
+        document_id=document_id
+    )
     
     return send_file(document.file_path, 
                     download_name=document.original_filename,
