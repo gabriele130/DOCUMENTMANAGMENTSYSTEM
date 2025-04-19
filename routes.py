@@ -1059,6 +1059,14 @@ def admin_dashboard():
         'unread_notifications': Notification.query.filter_by(is_read=False).count()
     }
     
+    # Statistiche audit trail
+    activity_logs_count = ActivityLog.query.count()
+    security_incidents = ActivityLog.query.filter(
+        (ActivityLog.result == 'failure') | 
+        (ActivityLog.result == 'denied') |
+        (ActivityLog.security_level == 'critical')
+    ).count()
+    
     # Get recent users
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
     
@@ -1068,7 +1076,9 @@ def admin_dashboard():
                           workflow_count=workflow_count,
                           tag_count=tag_count,
                           recent_users=recent_users,
-                          notification_config=notification_config)
+                          notification_config=notification_config,
+                          activity_logs_count=activity_logs_count,
+                          security_incidents=security_incidents)
 
 @app.route('/admin/users')
 @login_required
@@ -1323,6 +1333,164 @@ def api_search_tags():
     } for tag in tags]
     
     return jsonify(results)
+
+# Audit trail routes
+@app.route('/activity-logs')
+@login_required
+@admin_required
+def activity_logs():
+    """Visualizza i log di attività del sistema con filtri avanzati"""
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+    
+    # Filtra per utente
+    user_id = request.args.get('user_id', None, type=int)
+    
+    # Filtra per azione e categoria
+    action = request.args.get('action', None)
+    category = request.args.get('category', None)
+    
+    # Filtra per risultato e livello di sicurezza
+    result = request.args.get('result', None)
+    security_level = request.args.get('security_level', None)
+    
+    # Filtra per data
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    
+    # Inizializza la query
+    query = ActivityLog.query
+    
+    # Applica i filtri se specificati
+    if user_id:
+        query = query.filter(ActivityLog.user_id == user_id)
+    
+    if action:
+        query = query.filter(ActivityLog.action == action)
+    
+    if category:
+        query = query.filter(ActivityLog.action_category == category)
+    
+    if result:
+        query = query.filter(ActivityLog.result == result)
+    
+    if security_level:
+        query = query.filter(ActivityLog.security_level == security_level)
+    
+    if start_date:
+        try:
+            start_date_obj = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(ActivityLog.created_at >= start_date_obj)
+        except ValueError:
+            flash('Formato data inizio non valido', 'warning')
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+            # Aggiungi un giorno per includere l'intera giornata
+            end_date_obj = end_date_obj + datetime.timedelta(days=1)
+            query = query.filter(ActivityLog.created_at <= end_date_obj)
+        except ValueError:
+            flash('Formato data fine non valido', 'warning')
+    
+    # Ordina per ID (o timestamp) in ordine decrescente
+    query = query.order_by(ActivityLog.id.desc())
+    
+    # Paginazione
+    pagination = query.paginate(page=page, per_page=per_page)
+    logs = pagination.items
+    
+    # Ottieni tutti gli utenti per il filtro
+    all_users = User.query.all()
+    
+    # Ottieni tutti i tipi di azioni e categorie per i filtri
+    action_types = db.session.query(ActivityLog.action).distinct().all()
+    action_types = [a[0] for a in action_types]
+    
+    categories = db.session.query(ActivityLog.action_category).distinct().all()
+    categories = [c[0] for c in categories]
+    
+    return render_template('activity_log.html', 
+                          logs=logs, 
+                          pagination=pagination,
+                          all_users=all_users,
+                          action_types=action_types,
+                          categories=categories)
+
+@app.route('/activity-logs/export')
+@login_required
+@admin_required
+def export_activity_logs():
+    """Esporta i log di attività in formato JSON o CSV"""
+    from services.audit_service import AuditTrailService
+    
+    format = request.args.get('format', 'json')
+    if format not in ['json', 'csv']:
+        format = 'json'
+    
+    # Ottieni gli stessi filtri della pagina di visualizzazione
+    user_id = request.args.get('user_id', None, type=int)
+    action = request.args.get('action', None)
+    start_date = request.args.get('start_date', None)
+    end_date = request.args.get('end_date', None)
+    
+    # Converti date in oggetti datetime se specificate
+    start_date_obj = None
+    end_date_obj = None
+    
+    if start_date:
+        try:
+            start_date_obj = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+        except ValueError:
+            pass
+    
+    if end_date:
+        try:
+            end_date_obj = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+            # Aggiungi un giorno per includere l'intera giornata
+            end_date_obj = end_date_obj + datetime.timedelta(days=1)
+        except ValueError:
+            pass
+    
+    # Utilizza il servizio per esportare i log
+    export_file = AuditTrailService.export_logs_to_file(
+        start_date=start_date_obj,
+        end_date=end_date_obj,
+        user_id=user_id,
+        action=action,
+        format=format
+    )
+    
+    # Determina il nome del file per il download
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"audit_logs_{timestamp}.{format}"
+    
+    return send_file(export_file, 
+                    download_name=filename,
+                    as_attachment=True)
+
+@app.route('/activity-logs/verify')
+@login_required
+@admin_required
+def verify_log_integrity():
+    """Verifica l'integrità di tutti i log di attività"""
+    from services.audit_service import AuditTrailService
+    
+    # Avvia la verifica di integrità
+    results = AuditTrailService.verify_log_integrity()
+    
+    # Prepara il messaggio di risultato
+    if results['tampered'] == 0:
+        flash(f"Verifica completata con successo: {results['verified']} record integri su {results['total']}.", 'success')
+    else:
+        flash(f"Attenzione! Trovati {results['tampered']} record potenzialmente manomessi su {results['total']}.", 'danger')
+        # Opzionalmente, mostra dettagli sui record manomessi
+        for log in results['tampered_logs']:
+            flash(f"Record #{log['id']} ({log['created_at']}) - Utente: {log['user_id']}, Azione: {log['action']}", 'warning')
+    
+    # Torna alla pagina dei log
+    return redirect(url_for('activity_logs'))
     
 @app.route('/documents/<int:document_id>/view-content')
 @login_required

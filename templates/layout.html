@@ -186,8 +186,8 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('activity_log') }}" {% if not current_user.is_admin() %}style="display:none"{% endif %}>
-                        <i class="bi bi-activity"></i> Log Attività
+                    <a class="nav-link" href="{{ url_for('activity_logs') }}" {% if not current_user.is_admin() %}style="display:none"{% endif %}>
+                        <i class="bi bi-shield-check"></i> Audit Trail
                     </a>
                 </li>
                 <li class="nav-item">
