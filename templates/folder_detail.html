@@ -40,6 +40,43 @@
         </div>
     </div>
 
+    <!-- Opzioni di ordinamento -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Ordinamento</h5>
+            <div class="btn-group">
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by=current_sort, sort_order='asc') }}" 
+                   class="btn btn-sm {{ 'btn-primary' if current_order == 'asc' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-sort-alpha-down"></i> Crescente
+                </a>
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by=current_sort, sort_order='desc') }}" 
+                   class="btn btn-sm {{ 'btn-primary' if current_order == 'desc' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-sort-alpha-up"></i> Decrescente
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by='name', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'name' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-font"></i> Nome
+                </a>
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by='created_at', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'created_at' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-calendar-alt"></i> Data creazione
+                </a>
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by='file_type', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'file_type' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-file"></i> Tipo file
+                </a>
+                <a href="{{ url_for('folder_detail', folder_id=folder.id, sort_by='file_size', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'file_size' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-hdd"></i> Dimensione
+                </a>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-3">
         <div class="col-md-9">
             <nav aria-label="breadcrumb">
@@ -154,11 +191,21 @@
                 <table class="table table-hover" id="documentsTable">
                     <thead>
                         <tr>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th>Dimensione</th>
-                            <th>Caricato da</th>
-                            <th>Data</th>
+                            <th class="sortable" data-sort="name">
+                                Nome <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable" data-sort="type">
+                                Tipo <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable" data-sort="size">
+                                Dimensione <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable" data-sort="owner">
+                                Caricato da <i class="fas fa-sort"></i>
+                            </th>
+                            <th class="sortable" data-sort="date">
+                                Data <i class="fas fa-sort"></i>
+                            </th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -236,6 +283,98 @@
                     }
                 });
             });
+        }
+        
+        // Ordinamento tabella documenti
+        const sortableHeaders = document.querySelectorAll('th.sortable');
+        if (sortableHeaders.length) {
+            sortableHeaders.forEach(header => {
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function() {
+                    const sortBy = this.getAttribute('data-sort');
+                    const currentSortIcon = this.querySelector('i.fas');
+                    
+                    // Rimuovi le classi di ordinamento da tutte le intestazioni
+                    sortableHeaders.forEach(h => {
+                        const icon = h.querySelector('i.fas');
+                        icon.className = 'fas fa-sort';
+                    });
+                    
+                    // Determina l'ordine
+                    let sortOrder = 'asc';
+                    if (currentSortIcon.classList.contains('fa-sort-up') || 
+                        currentSortIcon.classList.contains('fa-sort')) {
+                        sortOrder = 'desc';
+                        currentSortIcon.className = 'fas fa-sort-down';
+                    } else {
+                        currentSortIcon.className = 'fas fa-sort-up';
+                    }
+                    
+                    // Ordina la tabella
+                    sortTable(sortBy, sortOrder);
+                });
+            });
+        }
+        
+        function sortTable(sortBy, sortOrder) {
+            const tbody = documentsTable.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Aggiungi stile CSS alle intestazioni attive
+            document.querySelector(`th[data-sort="${sortBy}"] i.fas`).className = 
+                sortOrder === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            
+            rows.sort((a, b) => {
+                let valueA, valueB;
+                
+                // Seleziona la colonna appropriata in base al criterio
+                switch(sortBy) {
+                    case 'name':
+                        valueA = a.cells[0].textContent.trim().toLowerCase();
+                        valueB = b.cells[0].textContent.trim().toLowerCase();
+                        break;
+                    case 'type':
+                        valueA = a.cells[1].textContent.trim().toLowerCase();
+                        valueB = b.cells[1].textContent.trim().toLowerCase();
+                        break;
+                    case 'size':
+                        // Estrai i numeri dalla dimensione
+                        const sizeA = a.cells[2].textContent.trim();
+                        const sizeB = b.cells[2].textContent.trim();
+                        
+                        // Converti in KB per confronto
+                        valueA = parseFloat(sizeA.match(/\d+(\.\d+)?/)[0]);
+                        if (sizeA.includes('MB')) valueA *= 1024;
+                        
+                        valueB = parseFloat(sizeB.match(/\d+(\.\d+)?/)[0]);
+                        if (sizeB.includes('MB')) valueB *= 1024;
+                        break;
+                    case 'owner':
+                        valueA = a.cells[3].textContent.trim().toLowerCase();
+                        valueB = b.cells[3].textContent.trim().toLowerCase();
+                        break;
+                    case 'date':
+                        // Converti date in formato italiano (dd/mm/yyyy) in oggetti Date
+                        const datePartsA = a.cells[4].textContent.trim().split(/[\s/:]/).map(Number);
+                        const datePartsB = b.cells[4].textContent.trim().split(/[\s/:]/).map(Number);
+                        
+                        // Crea date in formato (mese/giorno/anno)
+                        valueA = new Date(datePartsA[2], datePartsA[1]-1, datePartsA[0], datePartsA[3], datePartsA[4]);
+                        valueB = new Date(datePartsB[2], datePartsB[1]-1, datePartsB[0], datePartsB[3], datePartsB[4]);
+                        break;
+                    default:
+                        valueA = a.cells[0].textContent.trim().toLowerCase();
+                        valueB = b.cells[0].textContent.trim().toLowerCase();
+                }
+                
+                // Confronta i valori
+                if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
+                if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            // Riattacca le righe alla tabella
+            rows.forEach(row => tbody.appendChild(row));
         }
     });
 </script>
