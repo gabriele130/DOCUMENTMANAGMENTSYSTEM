@@ -395,9 +395,6 @@ def view_document(document_id):
     # Get document versions
     versions = DocumentVersion.query.filter_by(document_id=document.id).order_by(DocumentVersion.version_number.desc()).all()
     
-    # Get document metadata
-    metadata = DocumentMetadata.query.filter_by(document_id=document.id).all()
-    
     # Get workflow information if assigned
     workflow_tasks = []
     if document.workflow_id:
@@ -407,7 +404,6 @@ def view_document(document_id):
                           document=document,
                           preview_html=preview_html,
                           versions=versions,
-                          metadata=metadata,
                           workflow_tasks=workflow_tasks)
 
 @app.route('/documents/<int:document_id>/download')
