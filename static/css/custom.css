@@ -12,11 +12,11 @@
     --custom-light: #f8f9fa;
     --custom-dark: #343a40;
     
-    --custom-sidebar-bg: #2b3035;
-    --custom-text-light: #f8f9fa;
+    --custom-sidebar-bg: #f8f9fa;
+    --custom-text-light: #212529;
     --custom-text-dark: #212529;
-    --custom-border-light: rgba(255, 255, 255, 0.1);
-    --custom-hover-bg: rgba(255, 255, 255, 0.05);
+    --custom-border-light: rgba(0, 0, 0, 0.1);
+    --custom-hover-bg: rgba(0, 0, 0, 0.05);
 }
 
 body {
@@ -51,35 +51,22 @@ body {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.1rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: #495057;
     font-weight: 600;
     padding-top: 1rem;
     padding-bottom: 0.5rem;
 }
 
-.sidebar-light .sidebar-heading {
-    color: #495057;
-}
-
 /* Migliorare la visibilità delle voci del menu */
 .sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.85);
+    color: #495057;
     padding: 0.5rem 1rem;
     border-radius: 0.25rem;
     margin-bottom: 0.25rem;
     transition: all 0.2s;
 }
 
-.sidebar-light .nav-link {
-    color: #495057;
-}
-
 .sidebar .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-}
-
-.sidebar-light .nav-link:hover {
     background-color: rgba(0, 0, 0, 0.05);
     color: #212529;
 }
@@ -162,14 +149,14 @@ body {
 
 /* Card generiche */
 .card {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     margin-bottom: 1.5rem;
 }
 
 .card-header {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.02);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     font-weight: 500;
 }
 
@@ -285,26 +272,26 @@ body {
 /* Drop area styling con migliore visibilità */
 #drop-area {
     min-height: 150px;
-    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border: 2px dashed rgba(0, 0, 0, 0.2);
     border-radius: 0.5rem;
     transition: all 0.3s ease;
     cursor: pointer;
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.02);
 }
 
 #drop-area:hover {
     border-color: var(--custom-primary);
-    background-color: rgba(74, 107, 255, 0.1);
+    background-color: rgba(74, 107, 255, 0.05);
 }
 
 #drop-area.highlight {
     border-color: var(--custom-primary);
-    background-color: rgba(74, 107, 255, 0.15);
+    background-color: rgba(74, 107, 255, 0.1);
 }
 
 .drag-text {
     padding: 1.5rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: #495057;
 }
 
 .drag-text i {
@@ -312,8 +299,8 @@ body {
 }
 
 .file-item {
-    background-color: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 0.5rem;
     padding: 1rem;
     margin-bottom: 0.75rem;
@@ -321,26 +308,26 @@ body {
 }
 
 .file-item:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 /* Tabelle con migliore visibilità */
 .table {
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .table th {
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: #212529;
     border-bottom-width: 2px;
 }
 
 .table td {
-    color: rgba(255, 255, 255, 0.8);
+    color: #495057;
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.03);
 }
 
 /* Tree view for folder structure */
@@ -432,11 +419,11 @@ body {
 /* Miglioramenti per notifiche e promemoria */
 .notification-list .dropdown-item {
     padding: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .notification-list .dropdown-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .notification-list .notification-unread {
@@ -490,23 +477,23 @@ body {
 
 /* Migliorare la visibilità delle form */
 .form-control, .form-select {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: var(--bs-body-color);
+    background-color: #fff;
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #212529;
 }
 
 .form-control:focus, .form-select:focus {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: #fff;
     border-color: var(--custom-primary);
     box-shadow: 0 0 0 0.2rem rgba(74, 107, 255, 0.25);
 }
 
 .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .form-text {
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.6);
 }
 
 /* Utility per troncamento testo */

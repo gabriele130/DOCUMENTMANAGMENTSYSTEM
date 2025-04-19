@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="it" data-bs-theme="dark" id="htmlRoot">
+<html lang="it" data-bs-theme="light" id="htmlRoot">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sistema di Gestione Documenti{% endblock %}</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet" id="themeLink">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <!-- Custom CSS -->
@@ -15,19 +15,15 @@
 <body>
     {% if current_user.is_authenticated %}
     <!-- Top Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-light-subtle">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
         <div class="container-fluid">
-            <button id="sidebarToggler" class="btn btn-outline-light d-md-none me-2">
+            <button id="sidebarToggler" class="btn btn-outline-primary d-md-none me-2">
                 <i class="bi bi-list"></i>
             </button>
             <a class="navbar-brand" href="{{ url_for('dashboard') }}">
                 <i class="bi bi-folder2-open"></i> AI-DMS
             </a>
             <div class="d-flex ms-auto">
-                <button id="themeToggleBtn" class="btn btn-sm btn-outline-light me-2">
-                    <i class="bi bi-sun-fill" id="lightIcon"></i>
-                    <i class="bi bi-moon-fill d-none" id="darkIcon"></i>
-                </button>
                 <div class="dropdown me-3">
                     <a href="#" class="nav-link position-relative" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-bell"></i>
