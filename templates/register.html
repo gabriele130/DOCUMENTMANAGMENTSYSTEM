@@ -6,7 +6,10 @@
 <div class="auth-container">
     <div class="auth-card card shadow">
         <div class="auth-header">
-            <h1 class="h4 mb-2"><i class="bi bi-folder2-open"></i> AI-DMS</h1>
+            <div class="logo-container mb-2">
+                <i class="fas fa-folder-open fa-2x"></i>
+            </div>
+            <h1 class="h4 mb-2">AI-DMS</h1>
             <p class="text-muted">Sistema di Gestione Documenti con Intelligenza Artificiale</p>
         </div>
         
@@ -22,25 +25,31 @@
                 {% endif %}
             {% endwith %}
             
-            <h2 class="h5 mb-4">Crea un Account</h2>
+            <h2 class="h5 mb-4 text-center">Crea il tuo Account</h2>
             
             <form method="POST" action="{{ url_for('register') }}">
                 {{ form.csrf_token }}
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="first_name" class="form-label">Nome</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Inserisci il nome">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Inserisci il nome">
+                        </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="last_name" class="form-label">Cognome</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Inserisci il cognome">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Inserisci il cognome">
+                        </div>
                     </div>
                 </div>
                 
                 <div class="mb-3">
                     <label for="username" class="form-label">Nome Utente*</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
                         <input type="text" class="form-control" id="username" name="username" placeholder="Scegli un nome utente" required>
                     </div>
                 </div>
@@ -48,7 +57,7 @@
                 <div class="mb-3">
                     <label for="email" class="form-label">Indirizzo Email*</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                         <input type="email" class="form-control" id="email" name="email" placeholder="Inserisci la tua email" required>
                     </div>
                 </div>
@@ -56,22 +65,34 @@
                 <div class="mb-3">
                     <label for="password" class="form-label">Password*</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
                         <input type="password" class="form-control" id="password" name="password" placeholder="Crea una password" required>
                     </div>
-                    <div class="form-text">La password deve contenere almeno 8 caratteri.</div>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        La password deve contenere almeno 8 caratteri.
+                    </div>
                 </div>
                 
                 <div class="mb-4">
                     <label for="confirm_password" class="form-label">Conferma Password*</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
                         <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Conferma la tua password" required>
                     </div>
                 </div>
                 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">Registrati</button>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+                    <label class="form-check-label" for="terms">
+                        Accetto i <a href="#" class="text-decoration-none">Termini di Servizio</a> e la <a href="#" class="text-decoration-none">Privacy Policy</a>
+                    </label>
+                </div>
+                
+                <div class="d-grid mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Registrati
+                    </button>
                 </div>
             </form>
         </div>

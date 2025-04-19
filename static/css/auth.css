@@ -7,6 +7,20 @@
     justify-content: center;
     padding: 2rem;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .auth-card {
@@ -17,12 +31,26 @@
     overflow: hidden;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
     border: none;
+    position: relative;
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translatey(0px);
+    }
+    50% {
+        transform: translatey(-10px);
+    }
+    100% {
+        transform: translatey(0px);
+    }
 }
 
 .auth-header {
     text-align: center;
     padding: 2rem 2rem 1rem;
-    background: linear-gradient(to right, #4a6bff, #6b8eff);
+    background: linear-gradient(135deg, #4a6bff, #6b8eff);
     color: white;
     position: relative;
     overflow: hidden;
@@ -39,11 +67,39 @@
     z-index: 1;
 }
 
+.auth-header .logo-container {
+    position: relative;
+    z-index: 2;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.1);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
 .auth-header h1 {
     position: relative;
     z-index: 2;
     margin-bottom: 0.5rem;
     font-weight: 700;
+    letter-spacing: 1px;
 }
 
 .auth-header p {
@@ -51,6 +107,7 @@
     z-index: 2;
     opacity: 0.9;
     margin-bottom: 0;
+    font-size: 0.9rem;
 }
 
 .auth-body {

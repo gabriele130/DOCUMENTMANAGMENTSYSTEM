@@ -6,7 +6,10 @@
 <div class="auth-container">
     <div class="auth-card card shadow">
         <div class="auth-header">
-            <h1 class="h4 mb-2"><i class="bi bi-folder2-open"></i> AI-DMS</h1>
+            <div class="logo-container mb-2">
+                <i class="fas fa-folder-open fa-2x"></i>
+            </div>
+            <h1 class="h4 mb-2">AI-DMS</h1>
             <p class="text-muted">Sistema di Gestione Documenti con Intelligenza Artificiale</p>
         </div>
         
@@ -22,14 +25,14 @@
                 {% endif %}
             {% endwith %}
             
-            <h2 class="h5 mb-4">Accedi</h2>
+            <h2 class="h5 mb-4 text-center">Accedi al tuo account</h2>
             
             <form method="POST" action="{{ url_for('login') }}">
                 {{ form.csrf_token }}
-                <div class="mb-3">
+                <div class="mb-4">
                     <label for="username" class="form-label">Nome Utente</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
                         <input type="text" class="form-control" id="username" name="username" placeholder="Inserisci il tuo nome utente" required autofocus>
                     </div>
                 </div>
@@ -37,18 +40,25 @@
                 <div class="mb-4">
                     <label for="password" class="form-label">Password</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
                         <input type="password" class="form-control" id="password" name="password" placeholder="Inserisci la tua password" required>
                     </div>
                 </div>
                 
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                    <label class="form-check-label" for="remember">Ricordami</label>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Ricordami</label>
+                    </div>
+                    <div>
+                        <a href="#" class="small text-decoration-none">Password dimenticata?</a>
+                    </div>
                 </div>
                 
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg">Accedi</button>
+                <div class="d-grid mb-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                    </button>
                 </div>
             </form>
         </div>
