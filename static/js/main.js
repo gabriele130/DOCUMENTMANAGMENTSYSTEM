@@ -6,7 +6,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
     setupEventListeners();
-    // Notification count disabled temporarily
+    // Attiva il contatore delle notifiche
+    updateNotificationCount();
 });
 
 /**
@@ -103,8 +104,8 @@ function setupEventListeners() {
         themeToggleBtn.addEventListener('click', toggleTheme);
     }
     
-    // Setup notification refresh - disabled temporarily
-    // setInterval(updateNotificationCount, 60000); // Update every minute
+    // Setup notification refresh ogni minuto
+    setInterval(updateNotificationCount, 60000); // Update every minute
 }
 
 /**
