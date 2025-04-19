@@ -206,6 +206,45 @@ def remove_company_user(company_id, user_id):
     
     return redirect(url_for('company_users', company_id=company.id))
 
+# Folder structure helper function
+def get_folder_tree(company_id, current_folder_id=None):
+    """Helper function to get complete folder structure for a company"""
+    # Get all root folders for the company
+    root_folders = Folder.query.filter_by(company_id=company_id, parent_id=None).all()
+    
+    # Function to recursively build the tree
+    def build_tree(folders, level=0):
+        result = []
+        for folder in folders:
+            # Determine if this folder is in the path of the current folder
+            is_active = False
+            if current_folder_id:
+                current = Folder.query.get(current_folder_id)
+                parent_chain = []
+                while current:
+                    parent_chain.append(current.id)
+                    current = current.parent
+                is_active = folder.id in parent_chain
+            
+            # Add this folder to the result
+            folder_data = {
+                'id': folder.id,
+                'name': folder.name,
+                'level': level,
+                'is_active': is_active,
+                'children': []
+            }
+            
+            # Recursively add children
+            children = Folder.query.filter_by(parent_id=folder.id).all()
+            if children:
+                folder_data['children'] = build_tree(children, level + 1)
+                
+            result.append(folder_data)
+        return result
+    
+    return build_tree(root_folders)
+
 # Folder structure routes
 @app.route('/folders/<int:folder_id>')
 @login_required
@@ -237,6 +276,9 @@ def folder_detail(folder_id):
         breadcrumbs.insert(0, current)
         current = current.parent
     
+    # Get complete folder structure for dropdown navigation
+    folder_tree = get_folder_tree(company.id, folder.id)
+    
     # Log the view activity
     log_activity(
         user_id=current_user.id,
@@ -253,7 +295,8 @@ def folder_detail(folder_id):
                           company=company,
                           subfolders=subfolders,
                           documents=documents,
-                          breadcrumbs=breadcrumbs)
+                          breadcrumbs=breadcrumbs,
+                          folder_tree=folder_tree)
 
 @app.route('/folders/create/<int:parent_id>', methods=['GET', 'POST'])
 @login_required
