@@ -82,18 +82,7 @@
             </div>
         </div>
         
-        {% if document.content_text %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Testo Estratto</h5>
-            </div>
-            <div class="card-body">
-                <div class="extracted-text p-3" style="max-height: 300px; overflow-y: auto;">
-                    {{ document.content_text|nl2br }}
-                </div>
-            </div>
-        </div>
-        {% endif %}
+
     </div>
     
     <!-- Document Info Column -->
@@ -155,26 +144,7 @@
             </div>
         </div>
         
-        <!-- Document metadata -->
-        {% if metadata %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Metadati Documento</h5>
-            </div>
-            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
-                <table class="table table-sm">
-                    <tbody>
-                        {% for data in metadata %}
-                        <tr>
-                            <td class="text-muted small" style="width: 40%;">{{ data.key }}</td>
-                            <td class="small text-truncate">{{ data.value }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
+
         
         <!-- Document versions -->
         {% if versions %}
