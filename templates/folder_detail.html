@@ -41,7 +41,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-12">
+        <div class="col-md-9">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
@@ -53,6 +53,51 @@
                     <li class="breadcrumb-item active" aria-current="page">{{ folder.name }}</li>
                 </ol>
             </nav>
+        </div>
+        <div class="col-md-3">
+            <div class="dropdown w-100">
+                <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" id="folderNavigationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-folder-open me-1"></i> Naviga cartelle
+                </button>
+                <ul class="dropdown-menu w-100" aria-labelledby="folderNavigationDropdown" style="max-height: 400px; overflow-y: auto;">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('company_detail', company_id=company.id) }}">
+                            <i class="fas fa-building me-1"></i><strong>{{ company.name }}</strong>
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for root_folder in folder_tree %}
+                        <li>
+                            <a class="dropdown-item {% if root_folder.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=root_folder.id) }}">
+                                <i class="fas fa-folder{% if root_folder.is_active %}-open text-warning{% endif %} me-1"></i>
+                                {{ root_folder.name }}
+                            </a>
+                        </li>
+                        
+                        {% if root_folder.children %}
+                            {% for child in root_folder.children %}
+                                <li>
+                                    <a class="dropdown-item {% if child.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=child.id) }}" style="padding-left: {{ 1.5 + child.level }}rem;">
+                                        <i class="fas fa-folder{% if child.is_active %}-open text-warning{% endif %} me-1"></i>
+                                        {{ child.name }}
+                                    </a>
+                                </li>
+                                
+                                {% if child.children %}
+                                    {% for grandchild in child.children %}
+                                        <li>
+                                            <a class="dropdown-item {% if grandchild.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=grandchild.id) }}" style="padding-left: {{ 1.5 + grandchild.level }}rem;">
+                                                <i class="fas fa-folder{% if grandchild.is_active %}-open text-warning{% endif %} me-1"></i>
+                                                {{ grandchild.name }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
     </div>
 

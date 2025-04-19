@@ -85,10 +85,14 @@ def company_detail(company_id):
         is_archived=False
     ).order_by(Document.created_at.desc()).limit(10).all()
     
+    # Get complete folder structure for dropdown navigation
+    folder_tree = get_folder_tree(company.id)
+    
     return render_template('company_detail.html', 
                           company=company, 
                           root_folders=root_folders,
-                          recent_documents=recent_documents)
+                          recent_documents=recent_documents,
+                          folder_tree=folder_tree)
 
 @app.route('/companies/<int:company_id>/update', methods=['GET', 'POST'])
 @login_required
