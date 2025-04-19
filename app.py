@@ -74,6 +74,27 @@ def inject_csrf_form():
 from routes import *
 from company_routes import *
 
+# Import e configura il servizio promemoria
+with app.app_context():
+    from services.reminder_service import check_reminders
+    
+    # Configura il job scheduler per verificare i promemoria ogni ora
+    @scheduler.scheduled_job(IntervalTrigger(minutes=60))
+    def scheduled_reminder_check():
+        with app.app_context():
+            app.logger.info("Esecuzione controllo promemoria schedulato")
+            try:
+                check_reminders()
+            except Exception as e:
+                app.logger.error(f"Errore durante il controllo dei promemoria: {str(e)}")
+    
+    # Avvia lo scheduler
+    try:
+        scheduler.start()
+        app.logger.info("Scheduler avviato con successo")
+    except Exception as e:
+        app.logger.error(f"Errore avvio scheduler: {str(e)}")
+
 # Filtri personalizzati
 @app.template_filter('nl2br')
 def nl2br_filter(text):

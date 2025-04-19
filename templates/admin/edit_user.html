@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block title %}Modifica Utente - Document Management System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Modifica Utente</h1>
+        <p class="text-muted">Modifica i dettagli dell'utente</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Informazioni Utente</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('admin_edit_user', user_id=user.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}">
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">Cognome</label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Nuova Password <small class="text-muted">(lasciare vuoto per non modificarla)</small></label>
+                        <input type="password" class="form-control" id="new_password" name="new_password">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Ruolo</label>
+                        <select class="form-select" id="role" name="role">
+                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>Utente</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Amministratore</option>
+                            <option value="reviewer" {% if user.role == 'reviewer' %}selected{% endif %}>Revisore</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">Annulla</a>
+                        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

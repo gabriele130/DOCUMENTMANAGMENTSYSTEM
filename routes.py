@@ -948,6 +948,17 @@ def admin_dashboard():
     workflow_count = Workflow.query.count()
     tag_count = Tag.query.count()
     
+    # Controlla la configurazione delle notifiche
+    notification_config = {
+        'sendgrid_configured': bool(os.environ.get('SENDGRID_API_KEY')),
+        'from_email': os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@documentms.com'),
+        'reminder_count': Reminder.query.filter_by(is_completed=False).count(),
+        'upcoming_reminders': Reminder.query.filter(
+            Reminder.is_completed == False,
+            Reminder.due_date >= datetime.datetime.now()
+        ).order_by(Reminder.due_date).limit(5).all()
+    }
+    
     # Get recent users
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
     
@@ -956,7 +967,8 @@ def admin_dashboard():
                           document_count=document_count,
                           workflow_count=workflow_count,
                           tag_count=tag_count,
-                          recent_users=recent_users)
+                          recent_users=recent_users,
+                          notification_config=notification_config)
 
 @app.route('/admin/users')
 @login_required
@@ -1060,6 +1072,22 @@ def admin_delete_user(user_id):
 def get_unread_notification_count():
     count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
     return jsonify({'count': count})
+    
+@app.route('/api/reminders/check', methods=['POST'])
+@login_required
+def manual_reminder_check():
+    """Endpoint per eseguire manualmente la verifica dei promemoria"""
+    if current_user.role != 'admin':
+        return jsonify({'success': False, 'message': 'Accesso non autorizzato'}), 403
+    
+    try:
+        from services.reminder_service import check_reminders
+        with app.app_context():
+            count = check_reminders()
+        return jsonify({'success': True, 'message': f'Verifica completata. Generate {count} notifiche.'})
+    except Exception as e:
+        app.logger.error(f"Errore durante la verifica manuale dei promemoria: {str(e)}")
+        return jsonify({'success': False, 'message': f'Errore: {str(e)}'}), 500
 
 @app.route('/api/documents/preview/<int:document_id>')
 @login_required
