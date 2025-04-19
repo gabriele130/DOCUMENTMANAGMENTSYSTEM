@@ -7,6 +7,7 @@ import os
 import sys
 from app import app, db
 from models import ActivityLog
+from sqlalchemy import text
 
 # Definizione delle nuove colonne da aggiungere
 NEW_COLUMNS = [
@@ -23,17 +24,18 @@ NEW_COLUMNS = [
 
 def create_column_if_not_exists(column_name, column_type):
     """Aggiunge una colonna se non esiste già nella tabella."""
-    query = f"""
+    # Usa text() per dichiarare esplicitamente le query SQL
+    query = text(f"""
     SELECT column_name 
     FROM information_schema.columns 
     WHERE table_name='activity_log' AND column_name='{column_name}';
-    """
+    """)
     
     result = db.session.execute(query).fetchone()
     
     if not result:
         print(f"Aggiunta colonna {column_name}...")
-        alter_query = f"ALTER TABLE activity_log ADD COLUMN {column_name} {column_type};"
+        alter_query = text(f"ALTER TABLE activity_log ADD COLUMN {column_name} {column_type};")
         db.session.execute(alter_query)
         return True
     else:
@@ -57,9 +59,9 @@ def update_record_hashes():
             log.security_level = 'standard'
         
         # Imposta la categoria dell'azione
-        if log.action in ['view', 'download', 'print']:
+        if log.action in ['view', 'download', 'print', 'view_content', 'view_folder']:
             log.action_category = 'ACCESS'
-        elif log.action in ['upload', 'create', 'update', 'delete', 'archive', 'unarchive']:
+        elif log.action in ['upload', 'create', 'update', 'delete', 'archive', 'unarchive', 'create_folder', 'create_reminder']:
             log.action_category = 'CRUD'
         elif log.action in ['share', 'unshare', 'login', 'logout', 'password_change']:
             log.action_category = 'SECURITY'
@@ -93,13 +95,14 @@ def main():
         
         if columns_added > 0:
             print(f"Aggiunte {columns_added} nuove colonne.")
-            
-            # Aggiorna gli hash e i metadati
-            update_record_hashes()
-            
-            print("Migrazione completata con successo!")
         else:
-            print("La tabella è già aggiornata. Migrazione non necessaria.")
+            print("La tabella è già aggiornata con tutte le colonne necessarie.")
+            
+        # Aggiorna gli hash e i metadati
+        print("Aggiornamento delle categorie e degli hash dei log...")
+        update_record_hashes()
+        
+        print("Migrazione completata con successo!")
 
 if __name__ == "__main__":
     main()
