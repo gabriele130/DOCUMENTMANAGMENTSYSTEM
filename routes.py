@@ -880,6 +880,7 @@ def notifications():
 
 @app.route('/notifications/mark_read/<int:notification_id>', methods=['POST'])
 @login_required
+@csrf.exempt
 def mark_notification_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     
@@ -896,7 +897,7 @@ def mark_notification_read(notification_id):
 def mark_all_notifications_read():
     Notification.query.filter_by(user_id=current_user.id).update({'is_read': True})
     db.session.commit()
-    flash('All notifications marked as read', 'success')
+    flash('Tutte le notifiche contrassegnate come lette', 'success')
     return redirect(url_for('notifications'))
 
 # User settings and profile routes
