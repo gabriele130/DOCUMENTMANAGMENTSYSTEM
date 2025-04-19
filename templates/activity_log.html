@@ -1,48 +1,60 @@
-{% extends 'layout.html' %}
+{% extends "layout.html" %}
 
-{% block title %}Registro Attività{% endblock %}
+{% block title %}Audit Trail - Sistema di Gestione Documentale{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2 mb-0">
-            <i class="bi bi-shield-check me-2 text-primary"></i>
-            Registro Attività di Sistema
-        </h1>
-        
-        <div class="d-flex">
-            <a href="{{ url_for('export_activity_logs', format='json') }}" class="btn btn-outline-primary btn-sm ms-2">
-                <i class="bi bi-download me-1"></i> Esporta JSON
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="h3 mb-0">Audit Trail</h1>
+        <p class="text-muted">Registro completo delle attività del sistema in conformità con ISO 27001, GDPR e eIDAS</p>
+    </div>
+    <div class="col-auto">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('activity_logs') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise"></i> Aggiorna
             </a>
-            <a href="{{ url_for('export_activity_logs', format='csv') }}" class="btn btn-outline-secondary btn-sm ms-2">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Esporta CSV
+            <a href="{{ url_for('verify_log_integrity') }}" class="btn btn-outline-success">
+                <i class="bi bi-shield-check"></i> Verifica Integrità
             </a>
-            <a href="{{ url_for('verify_log_integrity') }}" class="btn btn-outline-success btn-sm ms-2">
-                <i class="bi bi-shield-lock me-1"></i> Verifica Integrità
-            </a>
+            <div class="btn-group" role="group">
+                <button id="exportDropdown" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download"></i> Esporta
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('export_activity_logs', format='json') }}">JSON</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_activity_logs', format='csv') }}">CSV</a></li>
+                </ul>
+            </div>
         </div>
     </div>
-    
-    <div class="card mb-4 border-0 shadow-sm">
-        <div class="card-header bg-white">
-            <h5 class="mb-0">Filtri</h5>
-        </div>
+</div>
+
+<!-- Filtri -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Filtri</h5>
+        <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+            <i class="bi bi-arrows-expand"></i> Mostra/Nascondi
+        </button>
+    </div>
+    <div class="collapse show" id="filtersCollapse">
         <div class="card-body">
-            <form method="GET" action="{{ url_for('activity_logs') }}" class="row g-3">
-                <div class="col-md-3">
-                    <label for="user" class="form-label">Utente</label>
-                    <select class="form-select" name="user_id" id="user">
+            <form method="get" action="{{ url_for('activity_logs') }}" class="row g-3">
+                <div class="col-md-4">
+                    <label for="user_id" class="form-label">Utente</label>
+                    <select class="form-select" id="user_id" name="user_id">
                         <option value="">Tutti gli utenti</option>
                         {% for user in all_users %}
                         <option value="{{ user.id }}" {% if request.args.get('user_id')|int == user.id %}selected{% endif %}>
-                            {{ user.username }}
+                            {{ user.username }} ({{ user.first_name }} {{ user.last_name }})
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                
+                <div class="col-md-4">
                     <label for="action" class="form-label">Azione</label>
-                    <select class="form-select" name="action" id="action">
+                    <select class="form-select" id="action" name="action">
                         <option value="">Tutte le azioni</option>
                         {% for action_type in action_types %}
                         <option value="{{ action_type }}" {% if request.args.get('action') == action_type %}selected{% endif %}>
@@ -51,9 +63,10 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
+                
+                <div class="col-md-4">
                     <label for="category" class="form-label">Categoria</label>
-                    <select class="form-select" name="category" id="category">
+                    <select class="form-select" id="category" name="category">
                         <option value="">Tutte le categorie</option>
                         {% for category in categories %}
                         <option value="{{ category }}" {% if request.args.get('category') == category %}selected{% endif %}>
@@ -62,70 +75,70 @@
                         {% endfor %}
                     </select>
                 </div>
+                
                 <div class="col-md-3">
                     <label for="result" class="form-label">Risultato</label>
-                    <select class="form-select" name="result" id="result">
+                    <select class="form-select" id="result" name="result">
                         <option value="">Tutti i risultati</option>
                         <option value="success" {% if request.args.get('result') == 'success' %}selected{% endif %}>Successo</option>
                         <option value="failure" {% if request.args.get('result') == 'failure' %}selected{% endif %}>Fallimento</option>
-                        <option value="denied" {% if request.args.get('result') == 'denied' %}selected{% endif %}>Negato</option>
+                        <option value="denied" {% if request.args.get('result') == 'denied' %}selected{% endif %}>Accesso negato</option>
                     </select>
                 </div>
+                
+                <div class="col-md-3">
+                    <label for="security_level" class="form-label">Livello di Sicurezza</label>
+                    <select class="form-select" id="security_level" name="security_level">
+                        <option value="">Tutti i livelli</option>
+                        <option value="standard" {% if request.args.get('security_level') == 'standard' %}selected{% endif %}>Standard</option>
+                        <option value="sensitive" {% if request.args.get('security_level') == 'sensitive' %}selected{% endif %}>Sensibile</option>
+                        <option value="critical" {% if request.args.get('security_level') == 'critical' %}selected{% endif %}>Critico</option>
+                    </select>
+                </div>
+                
                 <div class="col-md-3">
                     <label for="start_date" class="form-label">Data Inizio</label>
                     <input type="date" class="form-control" id="start_date" name="start_date" value="{{ request.args.get('start_date', '') }}">
                 </div>
+                
                 <div class="col-md-3">
                     <label for="end_date" class="form-label">Data Fine</label>
                     <input type="date" class="form-control" id="end_date" name="end_date" value="{{ request.args.get('end_date', '') }}">
                 </div>
-                <div class="col-md-3">
-                    <label for="security_level" class="form-label">Livello Sicurezza</label>
-                    <select class="form-select" name="security_level" id="security_level">
-                        <option value="">Tutti i livelli</option>
-                        <option value="standard" {% if request.args.get('security_level') == 'standard' %}selected{% endif %}>Standard</option>
-                        <option value="sensitive" {% if request.args.get('security_level') == 'sensitive' %}selected{% endif %}>Sensitive</option>
-                        <option value="critical" {% if request.args.get('security_level') == 'critical' %}selected{% endif %}>Critical</option>
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-funnel me-1"></i> Filtra
-                    </button>
+                
+                <div class="col-12 text-end mt-3">
+                    <a href="{{ url_for('activity_logs') }}" class="btn btn-outline-secondary me-2">Reimposta</a>
+                    <button type="submit" class="btn btn-primary">Applica Filtri</button>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-    <div class="alert alert-info d-flex align-items-center" role="alert">
-        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-        <div>
-            Registro di audit trail conforme a ISO 27001, GDPR ed eIDAS con verifica di integrità.
-            Sono visualizzati {{ logs|length }} record di attività.
-        </div>
+<!-- Risultati -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Log di Attività</h5>
     </div>
-    
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Timestamp</th>
-                            <th>Utente</th>
-                            <th>Azione</th>
-                            <th>Categoria</th>
-                            <th>Documento</th>
-                            <th>Risultato</th>
-                            <th>IP</th>
-                            <th>Sicurezza</th>
-                            <th>Dettagli</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Timestamp</th>
+                        <th>Utente</th>
+                        <th>Azione</th>
+                        <th>Categoria</th>
+                        <th>Risultato</th>
+                        <th>Sicurezza</th>
+                        <th>Dettagli</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if logs %}
                         {% for log in logs %}
-                        <tr class="{% if log.security_level == 'critical' %}table-danger{% elif log.security_level == 'sensitive' %}table-warning{% endif %}">
+                        <tr>
                             <td>{{ log.id }}</td>
                             <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                             <td>
@@ -135,170 +148,118 @@
                                     <span class="text-muted">Sistema</span>
                                 {% endif %}
                             </td>
+                            <td>{{ log.action }}</td>
                             <td>
-                                <span class="badge 
-                                    {% if log.action in ['delete', 'permission_change', 'user_creation', 'user_deletion'] %}
-                                        bg-danger
-                                    {% elif log.action in ['login', 'logout', 'password_change', 'share', 'unshare'] %}
-                                        bg-warning
-                                    {% elif log.action in ['view', 'download', 'print'] %}
-                                        bg-info
-                                    {% else %}
-                                        bg-primary
-                                    {% endif %}">
-                                    {{ log.action }}
+                                <span class="badge bg-{{ 'primary' if log.action_category == 'ACCESS' else 'success' if log.action_category == 'CRUD' else 'warning' if log.action_category == 'SECURITY' else 'danger' if log.action_category == 'ADMIN' else 'secondary' }}">
+                                    {{ log.action_category }}
                                 </span>
                             </td>
                             <td>
-                                <small class="badge bg-secondary">{{ log.action_category }}</small>
-                            </td>
-                            <td>
-                                {% if log.document %}
-                                <a href="{{ url_for('view_document', document_id=log.document.id) }}" class="text-decoration-none">
-                                    {{ log.document.title or log.document.original_filename }}
-                                </a>
-                                {% else %}
-                                <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge 
-                                    {% if log.result == 'success' %}
-                                        bg-success
-                                    {% elif log.result == 'failure' %}
-                                        bg-danger
-                                    {% elif log.result == 'denied' %}
-                                        bg-warning
-                                    {% else %}
-                                        bg-secondary
-                                    {% endif %}">
+                                <span class="badge bg-{{ 'success' if log.result == 'success' else 'danger' if log.result == 'failure' else 'warning' if log.result == 'denied' else 'secondary' }}">
                                     {{ log.result }}
                                 </span>
                             </td>
                             <td>
-                                <small class="text-muted">{{ log.ip_address or '-' }}</small>
-                            </td>
-                            <td>
-                                <small class="badge 
-                                    {% if log.security_level == 'critical' %}
-                                        bg-danger
-                                    {% elif log.security_level == 'sensitive' %}
-                                        bg-warning
-                                    {% else %}
-                                        bg-secondary
-                                    {% endif %}">
+                                <span class="badge bg-{{ 'info' if log.security_level == 'standard' else 'warning' if log.security_level == 'sensitive' else 'danger' if log.security_level == 'critical' else 'secondary' }}">
                                     {{ log.security_level }}
-                                </small>
+                                </span>
                             </td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#logDetailsModal{{ log.id }}">
-                                    <i class="bi bi-eye"></i>
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#logModal{{ log.id }}">
+                                    <i class="bi bi-info-circle"></i> Dettagli
                                 </button>
                                 
-                                <!-- Modal per i dettagli -->
-                                <div class="modal fade" id="logDetailsModal{{ log.id }}" tabindex="-1" aria-labelledby="logDetailsModalLabel{{ log.id }}" aria-hidden="true">
+                                <!-- Modal per dettagli log -->
+                                <div class="modal fade" id="logModal{{ log.id }}" tabindex="-1" aria-labelledby="logModalLabel{{ log.id }}" aria-hidden="true">
                                     <div class="modal-dialog modal-lg">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title" id="logDetailsModalLabel{{ log.id }}">
-                                                    Dettagli Attività #{{ log.id }}
-                                                </h5>
+                                                <h5 class="modal-title" id="logModalLabel{{ log.id }}">Dettagli Log #{{ log.id }}</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <div class="row">
                                                     <div class="col-md-6">
-                                                        <h6 class="fw-bold">Informazioni di Base</h6>
+                                                        <h6>Informazioni Generali</h6>
                                                         <table class="table table-sm">
                                                             <tr>
-                                                                <th scope="row">ID:</th>
+                                                                <th>ID</th>
                                                                 <td>{{ log.id }}</td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Timestamp:</th>
+                                                                <th>Timestamp</th>
                                                                 <td>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Utente:</th>
-                                                                <td>{{ log.user.username if log.user else 'Sistema' }}</td>
+                                                                <th>Utente</th>
+                                                                <td>
+                                                                    {% if log.user %}
+                                                                        {{ log.user.username }} ({{ log.user.first_name }} {{ log.user.last_name }})
+                                                                    {% else %}
+                                                                        <span class="text-muted">Sistema</span>
+                                                                    {% endif %}
+                                                                </td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Azione:</th>
+                                                                <th>Azione</th>
                                                                 <td>{{ log.action }}</td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Categoria:</th>
+                                                                <th>Categoria</th>
                                                                 <td>{{ log.action_category }}</td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Risultato:</th>
+                                                                <th>Risultato</th>
                                                                 <td>{{ log.result }}</td>
                                                             </tr>
                                                             <tr>
-                                                                <th scope="row">Integrità:</th>
+                                                                <th>Livello di Sicurezza</th>
+                                                                <td>{{ log.security_level }}</td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6>Informazioni di Contesto</h6>
+                                                        <table class="table table-sm">
+                                                            <tr>
+                                                                <th>IP</th>
+                                                                <td>{{ log.ip_address }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>User Agent</th>
+                                                                <td class="text-wrap">{{ log.user_agent }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Documento</th>
                                                                 <td>
-                                                                    {% if log.verify_integrity() %}
-                                                                    <span class="text-success">
-                                                                        <i class="bi bi-shield-check me-1"></i> Verificata
-                                                                    </span>
+                                                                    {% if log.document_id %}
+                                                                        <a href="{{ url_for('view_document', document_id=log.document_id) }}">
+                                                                            Documento #{{ log.document_id }}
+                                                                        </a>
                                                                     {% else %}
-                                                                    <span class="text-danger">
-                                                                        <i class="bi bi-shield-exclamation me-1"></i> Compromessa
-                                                                    </span>
+                                                                        <span class="text-muted">N/A</span>
                                                                     {% endif %}
                                                                 </td>
                                                             </tr>
                                                         </table>
                                                     </div>
-                                                    <div class="col-md-6">
-                                                        <h6 class="fw-bold">Informazioni Dispositivo</h6>
-                                                        <table class="table table-sm">
-                                                            <tr>
-                                                                <th scope="row">IP:</th>
-                                                                <td>{{ log.ip_address or '-' }}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th scope="row">User Agent:</th>
-                                                                <td>
-                                                                    <small>{{ log.user_agent or '-' }}</small>
-                                                                </td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th scope="row">Device Info:</th>
-                                                                <td>{{ log.device_info or '-' }}</td>
-                                                            </tr>
-                                                            <tr>
-                                                                <th scope="row">Geolocation:</th>
-                                                                <td>{{ log.geolocation or '-' }}</td>
-                                                            </tr>
-                                                        </table>
-                                                    </div>
                                                 </div>
                                                 
-                                                <div class="row mt-3">
-                                                    <div class="col-md-12">
-                                                        <h6 class="fw-bold">Dettagli Tecnici</h6>
-                                                        
-                                                        <div class="card bg-light mb-3">
-                                                            <div class="card-header">
-                                                                <strong>Dettagli</strong>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <pre class="mb-0"><code>{{ log.details or '{}' }}</code></pre>
-                                                            </div>
-                                                        </div>
-                                                        
-                                                        <div class="card bg-light">
-                                                            <div class="card-header">
-                                                                <strong>Metadati Contestuali</strong>
-                                                            </div>
-                                                            <div class="card-body">
-                                                                <pre class="mb-0"><code>{{ log.context_metadata or '{}' }}</code></pre>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                {% if log.context_metadata %}
+                                                <h6>Metadati</h6>
+                                                <pre class="bg-dark text-light p-3 rounded">{{ log.context_metadata }}</pre>
+                                                {% endif %}
+                                                
+                                                {% if log.details %}
+                                                <h6>Dettagli</h6>
+                                                <div class="alert alert-secondary">
+                                                    {{ log.details }}
+                                                </div>
+                                                {% endif %}
+                                                
+                                                <h6>Hash di Integrità</h6>
+                                                <div class="alert alert-info">
+                                                    <small class="text-monospace">{{ log.integrity_hash }}</small>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
@@ -309,89 +270,77 @@
                                 </div>
                             </td>
                         </tr>
-                        {% else %}
+                        {% endfor %}
+                    {% else %}
                         <tr>
-                            <td colspan="10" class="text-center py-4">
-                                <div class="alert alert-info mb-0">
-                                    <i class="bi bi-info-circle me-2"></i>
-                                    Nessun record di attività trovato con i criteri di ricerca specificati.
-                                </div>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-search h3 mb-3 d-block"></i>
+                                <p class="mb-0">Nessun log di attività trovato con i filtri selezionati.</p>
                             </td>
                         </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
-    
-    {% if pagination.pages > 1 %}
-    <nav aria-label="Paginazione" class="mt-4">
-        <ul class="pagination justify-content-center">
-            {% if pagination.has_prev %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('activity_logs', page=pagination.prev_num, **request.args) }}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
-            </li>
-            {% endif %}
-            
-            {% for page in pagination.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
-                {% if page %}
-                    {% if page == pagination.page %}
-                    <li class="page-item active">
-                        <span class="page-link">{{ page }}</span>
-                    </li>
-                    {% else %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('activity_logs', page=page, **request.args) }}">{{ page }}</a>
-                    </li>
-                    {% endif %}
+    <div class="card-footer">
+        <!-- Paginazione -->
+        {% if pagination.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('activity_logs', page=pagination.prev_num, **request.args) }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
                 {% else %}
                 <li class="page-item disabled">
-                    <span class="page-link">…</span>
+                    <a class="page-link" href="#" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
                 </li>
                 {% endif %}
-            {% endfor %}
-            
-            {% if pagination.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('activity_logs', page=pagination.next_num, **request.args) }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-            {% else %}
-            <li class="page-item disabled">
-                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
+                
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <li class="page-item {{ 'active' if page == pagination.page else '' }}">
+                            <a class="page-link" href="{{ url_for('activity_logs', page=page, **request.args) }}">{{ page }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#">...</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('activity_logs', page=pagination.next_num, **request.args) }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link" href="#" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Formatta JSON nei dettagli
-    document.querySelectorAll('pre code').forEach(function(codeBlock) {
-        try {
-            // Prova a parsare il contenuto come JSON
-            const content = codeBlock.textContent;
-            if (content && content.trim() !== '' && content !== '{}') {
-                const jsonObj = JSON.parse(content);
-                codeBlock.textContent = JSON.stringify(jsonObj, null, 2);
-            }
-        } catch (e) {
-            // Se non è JSON valido, lascia il testo come è
-            console.warn('Errore nella formattazione JSON:', e);
-        }
-    });
-});
-</script>
+<div class="alert alert-info mt-4">
+    <h5><i class="bi bi-info-circle me-2"></i> Conformità ISO 27001, GDPR ed eIDAS</h5>
+    <p>Questo registro delle attività è conforme alle normative sulla sicurezza delle informazioni e sulla protezione dei dati:</p>
+    <ul>
+        <li><strong>ISO 27001</strong>: Tracciamento e registrazione degli eventi rilevanti per la sicurezza delle informazioni</li>
+        <li><strong>GDPR</strong>: Documentazione completa delle attività di trattamento dati e degli accessi</li>
+        <li><strong>eIDAS</strong>: Integrità e non ripudio garantiti tramite hash crittografici</li>
+    </ul>
+    <p>L'integrità di ogni record è garantita da una funzione di hash crittografica che impedisce modifiche non autorizzate ai log.</p>
+</div>
 {% endblock %}

@@ -178,35 +178,52 @@ function handleSearch(event) {
  * Update the notification count in the navbar and load notifications in dropdown
  */
 function updateNotificationCount() {
+    // Controllo se l'utente è autenticato - cerca elementi che esistono solo se autenticati
+    const sidebar = document.querySelector('.sidebar');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const notificationList = document.querySelector('.notification-list');
+    
+    // Se questi elementi non esistono, probabilmente l'utente non è autenticato
+    if (!sidebar || !notificationBadge) {
+        return; // Esci dalla funzione
+    }
+    
     fetch('/api/notifications/count')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Se la risposta non è OK (es. 302 redirect a login)
+                throw new Error(`Risposta non valida: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            const notificationBadge = document.getElementById('notificationBadge');
-            const notificationList = document.querySelector('.notification-list');
-            
-            if (notificationBadge) {
-                if (data.count > 0) {
-                    notificationBadge.textContent = data.count;
-                    notificationBadge.classList.remove('d-none');
-                    
-                    // Carica le notifiche solo se ci sono notifiche non lette
-                    fetchNotifications(notificationList);
-                } else {
-                    notificationBadge.classList.add('d-none');
-                    
-                    // Se non ci sono notifiche non lette, mostra messaggio predefinito
-                    if (notificationList) {
-                        notificationList.innerHTML = `
-                            <div class="p-3 text-center text-muted">
-                                <i class="bi bi-check2-circle"></i>
-                                <p class="mb-0 small">Nessuna nuova notifica</p>
-                            </div>
-                        `;
-                    }
+            if (data.count > 0) {
+                notificationBadge.textContent = data.count;
+                notificationBadge.classList.remove('d-none');
+                
+                // Carica le notifiche solo se ci sono notifiche non lette
+                fetchNotifications(notificationList);
+            } else {
+                notificationBadge.classList.add('d-none');
+                
+                // Se non ci sono notifiche non lette, mostra messaggio predefinito
+                if (notificationList) {
+                    notificationList.innerHTML = `
+                        <div class="p-3 text-center text-muted">
+                            <i class="bi bi-check2-circle"></i>
+                            <p class="mb-0 small">Nessuna nuova notifica</p>
+                        </div>
+                    `;
                 }
             }
         })
-        .catch(error => console.error('Error fetching notification count:', error));
+        .catch(error => {
+            console.log('Errore nel recupero delle notifiche:', error.message);
+            // Nascondi badge se c'è un errore
+            if (notificationBadge) {
+                notificationBadge.classList.add('d-none');
+            }
+        });
 }
 
 /**
