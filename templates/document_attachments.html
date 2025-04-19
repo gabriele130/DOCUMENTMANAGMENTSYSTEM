@@ -1,0 +1,302 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestione Allegati - {{ document.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('documents') }}">Documenti</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('view_document', document_id=document.id) }}">{{ document.original_filename }}</a></li>
+            <li class="breadcrumb-item active">Gestione Allegati</li>
+        </ol>
+    </nav>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paperclip me-2"></i> Gestione Allegati per "{{ document.title or document.original_filename }}"
+                    </h5>
+                    <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Torna al documento
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <!-- Dettagli del documento principale -->
+                            <div class="mb-4">
+                                <h6>Documento principale:</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="document-icon me-3">
+                                        {% if document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                            <i class="fas fa-file-image fa-2x text-info"></i>
+                                        {% elif document.file_type == 'pdf' %}
+                                            <i class="fas fa-file-pdf fa-2x text-danger"></i>
+                                        {% elif document.file_type in ['doc', 'docx'] %}
+                                            <i class="fas fa-file-word fa-2x text-primary"></i>
+                                        {% elif document.file_type in ['xls', 'xlsx'] %}
+                                            <i class="fas fa-file-excel fa-2x text-success"></i>
+                                        {% else %}
+                                            <i class="fas fa-file fa-2x text-secondary"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">{{ document.title or document.original_filename }}</h5>
+                                        <p class="text-muted mb-0 small">
+                                            {{ document.file_type.upper() }} | {{ (document.file_size / 1024)|round|int }} KB | 
+                                            Caricato da {{ document.owner.username }} il {{ document.created_at.strftime('%d/%m/%Y') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Tab con opzioni per allegare documenti -->
+                            <ul class="nav nav-tabs" id="attachmentTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing" 
+                                            type="button" role="tab" aria-controls="existing" aria-selected="true">
+                                        <i class="fas fa-link me-1"></i> Collega documenti esistenti
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" 
+                                            type="button" role="tab" aria-controls="upload" aria-selected="false">
+                                        <i class="fas fa-upload me-1"></i> Carica nuovo documento
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="attachmentTabsContent">
+                                <!-- Tab per allegare documenti esistenti -->
+                                <div class="tab-pane fade show active" id="existing" role="tabpanel" aria-labelledby="existing-tab">
+                                    {% if available_documents %}
+                                        <div class="mb-4">
+                                            <p>Seleziona un documento da allegare a "{{ document.title or document.original_filename }}":</p>
+                                            
+                                            <!-- Filtro per tipo di documento -->
+                                            <div class="mb-3">
+                                                <select class="form-select" id="document-type-filter">
+                                                    <option value="all">Tutti i tipi di documento</option>
+                                                    {% for doc_type in document_types %}
+                                                        <option value="{{ doc_type }}">{{ doc_type }} ({{ document_types[doc_type]|length }})</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            
+                                            <!-- Input di ricerca -->
+                                            <div class="mb-3">
+                                                <input type="text" class="form-control" id="document-search" placeholder="Cerca per nome...">
+                                            </div>
+                                            
+                                            <!-- Lista documenti disponibili -->
+                                            <div class="list-group document-list" style="max-height: 400px; overflow-y: auto;">
+                                                {% for doc in available_documents %}
+                                                    <div class="list-group-item list-group-item-action document-item" data-type="{{ doc.file_type.upper() }}" data-title="{{ doc.title or doc.original_filename }}">
+                                                        <div class="d-flex w-100 justify-content-between align-items-center">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="document-icon me-3">
+                                                                    {% if doc.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                                                        <i class="fas fa-file-image text-info"></i>
+                                                                    {% elif doc.file_type == 'pdf' %}
+                                                                        <i class="fas fa-file-pdf text-danger"></i>
+                                                                    {% elif doc.file_type in ['doc', 'docx'] %}
+                                                                        <i class="fas fa-file-word text-primary"></i>
+                                                                    {% elif doc.file_type in ['xls', 'xlsx'] %}
+                                                                        <i class="fas fa-file-excel text-success"></i>
+                                                                    {% else %}
+                                                                        <i class="fas fa-file text-secondary"></i>
+                                                                    {% endif %}
+                                                                </div>
+                                                                <div>
+                                                                    <h6 class="mb-1">{{ doc.title or doc.original_filename }}</h6>
+                                                                    <p class="text-muted mb-0 small">
+                                                                        {{ doc.file_type.upper() }} | {{ (doc.file_size / 1024)|round|int }} KB | 
+                                                                        Caricato il {{ doc.created_at.strftime('%d/%m/%Y') }}
+                                                                    </p>
+                                                                    {% if doc.folder %}
+                                                                    <small class="text-muted">
+                                                                        <i class="fas fa-folder me-1"></i> {{ doc.folder.name }}
+                                                                    </small>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-primary attach-btn" data-bs-toggle="modal" data-bs-target="#attachModal" data-id="{{ doc.id }}" data-title="{{ doc.title or doc.original_filename }}">
+                                                                <i class="fas fa-paperclip"></i> Allega
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Non ci sono documenti disponibili da allegare. Carica un nuovo documento usando la scheda "Carica nuovo documento".
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Tab per caricare un nuovo documento -->
+                                <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                                    <form action="{{ url_for('upload_attachment', document_id=document.id) }}" method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                                        {{ form.csrf_token }}
+                                        <div class="mb-3">
+                                            <label for="file" class="form-label">File <span class="text-danger">*</span></label>
+                                            <input type="file" class="form-control" id="file" name="file" required>
+                                            <div class="form-text">
+                                                Formati consentiti: PDF, DOC, DOCX, XLS, XLSX, TXT, JPG, JPEG, PNG, GIF
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="title" class="form-label">Titolo</label>
+                                            <input type="text" class="form-control" id="title" name="title" placeholder="Titolo del documento">
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="description" class="form-label">Descrizione</label>
+                                            <textarea class="form-control" id="description" name="description" rows="2" placeholder="Descrizione opzionale"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="attachment_type" class="form-label">Tipo di allegato <span class="text-danger">*</span></label>
+                                            <select class="form-select" id="attachment_type" name="attachment_type" required>
+                                                {% for type in attachment_types %}
+                                                    <option value="{{ type.value }}">{{ type.label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="attachment_note" class="form-label">Nota sull'allegato</label>
+                                            <textarea class="form-control" id="attachment_note" name="attachment_note" rows="2" placeholder="Aggiungi una nota opzionale sull'allegato"></textarea>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="tags" class="form-label">Tag</label>
+                                            <select class="form-select" id="tags" name="tags" multiple data-placeholder="Seleziona i tag">
+                                                {% for tag in tags %}
+                                                    <option value="{{ tag.id }}" style="background-color: {{ tag.color }}20;">{{ tag.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="text-end">
+                                            <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-secondary me-2">Annulla</a>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-upload me-1"></i> Carica e allega
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per confermare l'allegato -->
+<div class="modal fade" id="attachModal" tabindex="-1" aria-labelledby="attachModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="attachModalLabel">Allega documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="attachForm" method="POST">
+                {{ form.csrf_token }}
+                <div class="modal-body">
+                    <p>Stai per allegare il documento <strong id="attachDocTitle"></strong> a <strong>{{ document.title or document.original_filename }}</strong>.</p>
+                    
+                    <div class="mb-3">
+                        <label for="modal_attachment_type" class="form-label">Tipo di allegato</label>
+                        <select class="form-select" id="modal_attachment_type" name="attachment_type">
+                            {% for type in attachment_types %}
+                                <option value="{{ type.value }}">{{ type.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_attachment_note" class="form-label">Nota</label>
+                        <textarea class="form-control" id="modal_attachment_note" name="attachment_note" rows="2" placeholder="Aggiungi una nota opzionale per questo allegato"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paperclip me-1"></i> Allega documento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestione filtro per tipo documento
+    const typeFilter = document.getElementById('document-type-filter');
+    if (typeFilter) {
+        typeFilter.addEventListener('change', function() {
+            const selectedType = this.value;
+            const items = document.querySelectorAll('.document-item');
+            
+            items.forEach(item => {
+                if (selectedType === 'all' || item.dataset.type === selectedType) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Gestione ricerca documenti
+    const searchInput = document.getElementById('document-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const items = document.querySelectorAll('.document-item');
+            
+            items.forEach(item => {
+                const title = item.dataset.title.toLowerCase();
+                if (title.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // Gestione modale per allegare documenti
+    const attachModal = document.getElementById('attachModal');
+    if (attachModal) {
+        attachModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const docId = button.getAttribute('data-id');
+            const docTitle = button.getAttribute('data-title');
+            
+            // Imposta il titolo nel modale
+            document.getElementById('attachDocTitle').textContent = docTitle;
+            
+            // Configura l'azione del form
+            const form = document.getElementById('attachForm');
+            form.action = "{{ url_for('attach_existing_document', document_id=document.id, attachment_id=0) }}".replace('0', docId);
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1250,3 +1250,307 @@ def view_document_content(document_id):
     # Per altri tipi, reindirizza al download
     flash(f'Visualizzazione diretta non supportata per i file {document.file_type.upper()}. Il file verrà scaricato.', 'info')
     return redirect(url_for('download_document', document_id=document.id))
+
+
+# Gestione allegati ai documenti
+@app.route('/documents/<int:document_id>/attachments')
+@login_required
+def document_attachments(document_id):
+    """Gestisci gli allegati di un documento"""
+    document = Document.query.get_or_404(document_id)
+    
+    # Verifica autorizzazioni
+    if document.owner_id != current_user.id and current_user not in document.shared_with:
+        if document.folder_id:
+            if not current_user.has_permission(document.folder_id, AccessLevel.READ):
+                flash('Non hai i permessi per gestire gli allegati di questo documento.', 'danger')
+                return redirect(url_for('documents'))
+        else:
+            flash('Non hai i permessi per gestire gli allegati di questo documento.', 'danger')
+            return redirect(url_for('documents'))
+    
+    # Ottieni tutti i documenti disponibili che l'utente può allegare (escluso il documento corrente)
+    # 1. Documenti di proprietà dell'utente
+    available_documents = Document.query.filter(
+        Document.id != document_id,
+        Document.owner_id == current_user.id,
+        Document.is_archived == False
+    ).all()
+    
+    # 2. Documenti condivisi con l'utente
+    shared_docs = Document.query.filter(
+        Document.id != document_id,
+        Document.shared_with.any(id=current_user.id),
+        Document.is_archived == False
+    ).all()
+    
+    for doc in shared_docs:
+        if doc not in available_documents:
+            available_documents.append(doc)
+    
+    # 3. Documenti in cartelle a cui l'utente ha accesso
+    if not current_user.is_admin():
+        for permission in current_user.permissions:
+            if permission.access_level >= AccessLevel.READ:
+                folder_docs = Document.query.filter(
+                    Document.id != document_id,
+                    Document.folder_id == permission.folder_id,
+                    Document.is_archived == False
+                ).all()
+                
+                for doc in folder_docs:
+                    if doc not in available_documents:
+                        available_documents.append(doc)
+    else:
+        # L'admin vede tutti i documenti
+        admin_docs = Document.query.filter(
+            Document.id != document_id,
+            Document.is_archived == False
+        ).all()
+        
+        for doc in admin_docs:
+            if doc not in available_documents:
+                available_documents.append(doc)
+    
+    # Organizza i documenti per tipo
+    document_types = {}
+    for doc in available_documents:
+        doc_type = doc.file_type.upper()
+        if doc_type not in document_types:
+            document_types[doc_type] = []
+        document_types[doc_type].append(doc)
+    
+    # Ottieni i tipi di allegato disponibili
+    attachment_types = [
+        {'value': 'amendment', 'label': 'Modifica'},
+        {'value': 'supplement', 'label': 'Integrazione'},
+        {'value': 'related', 'label': 'Documento correlato'},
+        {'value': 'attachment', 'label': 'Allegato generico'}
+    ]
+    
+    # Tag disponibili per i nuovi documenti
+    tags = Tag.query.all()
+    
+    return render_template(
+        'document_attachments.html',
+        document=document,
+        document_types=document_types,
+        attachment_types=attachment_types,
+        available_documents=available_documents,
+        tags=tags,
+        form=EmptyForm()
+    )
+
+@app.route('/documents/<int:document_id>/attach/<int:attachment_id>', methods=['POST'])
+@login_required
+def attach_existing_document(document_id, attachment_id):
+    """Allega un documento esistente ad un altro documento"""
+    document = Document.query.get_or_404(document_id)
+    attachment = Document.query.get_or_404(attachment_id)
+    form = EmptyForm()
+    
+    if form.validate_on_submit():
+        # Verifica autorizzazioni
+        if document.owner_id != current_user.id and not current_user.is_admin():
+            flash('Non hai i permessi per allegare documenti a questo documento.', 'danger')
+            return redirect(url_for('view_document', document_id=document_id))
+        
+        # Verifica se il documento è già allegato
+        if attachment in document.attachments:
+            flash('Questo documento è già allegato.', 'warning')
+            return redirect(url_for('document_attachments', document_id=document_id))
+        
+        # Ottieni tipo e nota dal form
+        attachment_type = request.form.get('attachment_type', 'attachment')
+        attachment_note = request.form.get('attachment_note', '')
+        
+        # Aggiungi l'allegato
+        stmt = document_attachment.insert().values(
+            parent_document_id=document.id,
+            attached_document_id=attachment.id,
+            attachment_type=attachment_type,
+            attachment_note=attachment_note,
+            created_at=datetime.datetime.utcnow()
+        )
+        db.session.execute(stmt)
+        db.session.commit()
+        
+        # Log attività
+        log_activity(current_user.id, document.id, 'attach_document', 
+                     details=json.dumps({
+                         "attached_document_id": attachment.id,
+                         "attachment_type": attachment_type,
+                         "filename": attachment.original_filename
+                     }))
+        
+        flash(f'Documento "{attachment.original_filename}" allegato con successo.', 'success')
+        return redirect(url_for('view_document', document_id=document_id))
+    
+    flash('Errore nella validazione del form.', 'danger')
+    return redirect(url_for('document_attachments', document_id=document_id))
+
+@app.route('/documents/<int:document_id>/upload-attachment', methods=['POST'])
+@login_required
+def upload_attachment(document_id):
+    """Carica un nuovo documento e lo allega ad un documento esistente"""
+    document = Document.query.get_or_404(document_id)
+    
+    # Verifica autorizzazioni
+    if document.owner_id != current_user.id and not current_user.is_admin():
+        flash('Non hai i permessi per allegare documenti a questo documento.', 'danger')
+        return redirect(url_for('view_document', document_id=document_id))
+    
+    # Verifica file
+    if 'file' not in request.files:
+        flash('Nessun file selezionato.', 'danger')
+        return redirect(url_for('document_attachments', document_id=document_id))
+    
+    file = request.files['file']
+    if file.filename == '':
+        flash('Nessun file selezionato.', 'danger')
+        return redirect(url_for('document_attachments', document_id=document_id))
+    
+    # Verifica estensione permessa
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    allowed_extensions = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'jpg', 'jpeg', 'png', 'gif'}
+    
+    if file_ext not in allowed_extensions:
+        flash(f'Tipo di file non consentito. Estensioni permesse: {", ".join(allowed_extensions)}', 'danger')
+        return redirect(url_for('document_attachments', document_id=document_id))
+    
+    # Ottieni dati dal form
+    title = request.form.get('title', '')
+    description = request.form.get('description', '')
+    attachment_type = request.form.get('attachment_type', 'attachment')
+    attachment_note = request.form.get('attachment_note', '')
+    
+    try:
+        # Salva il file
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time())
+        unique_filename = f"{timestamp}_{filename}"
+        
+        # Crea directory se non esiste
+        upload_dir = os.path.join(app.root_path, 'uploads')
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+        
+        # Crea nuovo documento
+        file_size = os.path.getsize(file_path)
+        
+        new_attachment = Document(
+            filename=unique_filename,
+            original_filename=filename,
+            file_path=file_path,
+            file_type=file_ext,
+            file_size=file_size,
+            title=title if title else f"Allegato a {document.original_filename}",
+            description=description,
+            owner_id=current_user.id,
+            company_id=document.company_id,
+            folder_id=document.folder_id
+        )
+        
+        db.session.add(new_attachment)
+        db.session.flush()  # Per ottenere l'ID
+        
+        # Aggiungi tag selezionati
+        if 'tags' in request.form:
+            tag_ids = request.form.getlist('tags')
+            for tag_id in tag_ids:
+                tag = Tag.query.get(tag_id)
+                if tag:
+                    new_attachment.tags.append(tag)
+        
+        # Associa al documento principale
+        stmt = document_attachment.insert().values(
+            parent_document_id=document.id,
+            attached_document_id=new_attachment.id,
+            attachment_type=attachment_type,
+            attachment_note=attachment_note,
+            created_at=datetime.datetime.utcnow()
+        )
+        
+        db.session.execute(stmt)
+        db.session.commit()
+        
+        # Log attività
+        log_activity(current_user.id, new_attachment.id, 'upload', details="Upload nuovo allegato")
+        log_activity(current_user.id, document.id, 'attach_new_document', 
+                     details=json.dumps({
+                         "attached_document_id": new_attachment.id,
+                         "attachment_type": attachment_type,
+                         "filename": new_attachment.original_filename
+                     }))
+        
+        flash(f'Documento allegato con successo.', 'success')
+        
+        # Elabora il documento in background
+        try:
+            # Estrai testo con OCR se applicabile
+            new_attachment.content_text = extract_text_from_document(file_path, file_ext)
+            
+            # Classifica il documento
+            new_attachment.classification = classify_document(new_attachment.content_text or '', file_ext)
+            
+            # Estrai metadati
+            metadata_dict = extract_document_metadata(file_path, file_ext)
+            for key, value in metadata_dict.items():
+                metadata = DocumentMetadata(
+                    document_id=new_attachment.id,
+                    key=key,
+                    value=str(value)
+                )
+                db.session.add(metadata)
+            
+            db.session.commit()
+        except Exception as e:
+            app.logger.error(f"Errore durante l'elaborazione dell'allegato: {str(e)}")
+        
+        return redirect(url_for('view_document', document_id=document_id))
+    
+    except Exception as e:
+        app.logger.error(f"Errore durante il caricamento dell'allegato: {str(e)}")
+        flash(f'Errore durante il caricamento del file: {str(e)}', 'danger')
+        return redirect(url_for('document_attachments', document_id=document_id))
+
+@app.route('/documents/<int:document_id>/detach/<int:attachment_id>', methods=['POST'])
+@login_required
+def detach_document(document_id, attachment_id):
+    """Rimuovi un allegato da un documento"""
+    document = Document.query.get_or_404(document_id)
+    attachment = Document.query.get_or_404(attachment_id)
+    form = EmptyForm()
+    
+    if form.validate_on_submit():
+        # Verifica autorizzazioni
+        if document.owner_id != current_user.id and not current_user.is_admin():
+            flash('Non hai i permessi per rimuovere allegati da questo documento.', 'danger')
+            return redirect(url_for('view_document', document_id=document_id))
+        
+        # Verifica se il documento è effettivamente allegato
+        if attachment not in document.attachments:
+            flash('Questo documento non è allegato al documento principale.', 'warning')
+            return redirect(url_for('view_document', document_id=document_id))
+        
+        # Rimuovi l'allegato
+        stmt = document_attachment.delete().where(
+            document_attachment.c.parent_document_id == document.id,
+            document_attachment.c.attached_document_id == attachment.id
+        )
+        db.session.execute(stmt)
+        db.session.commit()
+        
+        # Log attività
+        log_activity(current_user.id, document.id, 'detach_document', 
+                     details=json.dumps({
+                         "detached_document_id": attachment.id,
+                         "filename": attachment.original_filename
+                     }))
+        
+        flash(f'Documento "{attachment.original_filename}" rimosso dagli allegati.', 'success')
+    
+    return redirect(url_for('view_document', document_id=document_id))
