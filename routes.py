@@ -6,7 +6,7 @@ from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.utils import secure_filename
-from app import app, db, EmptyForm
+from app import app, db, EmptyForm, csrf
 from models import (User, Document, DocumentVersion, DocumentMetadata, Tag, 
                     Workflow, WorkflowTask, SearchHistory, Notification,
                     Company, Folder, Permission, Reminder, ActivityLog, AccessLevel)
@@ -950,13 +950,13 @@ def admin_dashboard():
     
     # Controlla la configurazione delle notifiche
     notification_config = {
-        'sendgrid_configured': bool(os.environ.get('SENDGRID_API_KEY')),
-        'from_email': os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@documentms.com'),
         'reminder_count': Reminder.query.filter_by(is_completed=False).count(),
         'upcoming_reminders': Reminder.query.filter(
             Reminder.is_completed == False,
             Reminder.due_date >= datetime.datetime.now()
-        ).order_by(Reminder.due_date).limit(5).all()
+        ).order_by(Reminder.due_date).limit(5).all(),
+        'notification_count': Notification.query.count(),
+        'unread_notifications': Notification.query.filter_by(is_read=False).count()
     }
     
     # Get recent users
@@ -1075,6 +1075,7 @@ def get_unread_notification_count():
     
 @app.route('/api/reminders/check', methods=['POST'])
 @login_required
+@csrf.exempt
 def manual_reminder_check():
     """Endpoint per eseguire manualmente la verifica dei promemoria"""
     if current_user.role != 'admin':

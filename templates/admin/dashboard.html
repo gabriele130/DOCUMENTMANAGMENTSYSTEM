@@ -186,27 +186,21 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h6>Stato Configurazione</h6>
+                        <h6>Stato Sistema Notifiche</h6>
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <tbody>
                                     <tr>
-                                        <td>SendGrid API Key</td>
-                                        <td>
-                                            {% if notification_config.sendgrid_configured %}
-                                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Configurata</span>
-                                            {% else %}
-                                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Non configurata</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>Email mittente</td>
-                                        <td>{{ notification_config.from_email }}</td>
-                                    </tr>
-                                    <tr>
                                         <td>Promemoria attivi</td>
                                         <td>{{ notification_config.reminder_count }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Notifiche totali</td>
+                                        <td>{{ notification_config.notification_count }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Notifiche non lette</td>
+                                        <td>{{ notification_config.unread_notifications }}</td>
                                     </tr>
                                     <tr>
                                         <td>Scheduler</td>
@@ -216,16 +210,9 @@
                             </table>
                         </div>
                         
-                        {% if not notification_config.sendgrid_configured %}
-                        <div class="alert alert-warning mt-3">
-                            <i class="bi bi-exclamation-triangle"></i> La chiave API SendGrid non è configurata. Le notifiche email non verranno inviate.
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#configureApiKeyModal">
-                                    Configura SendGrid API Key
-                                </button>
-                            </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle"></i> Le notifiche vengono generate automaticamente e visualizzate all'interno dell'applicazione.
                         </div>
-                        {% endif %}
                     </div>
                     
                     <div class="col-md-6">
@@ -321,34 +308,7 @@
     </div>
 </div>
 
-<!-- Modal for configuring API key -->
-<div class="modal fade" id="configureApiKeyModal" tabindex="-1" aria-labelledby="configureApiKeyModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="configureApiKeyModalLabel">Configura SendGrid API Key</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Per ottenere una SendGrid API Key:</p>
-                <ol>
-                    <li>Registrati su <a href="https://sendgrid.com" target="_blank">SendGrid</a></li>
-                    <li>Vai su Settings → API Keys</li>
-                    <li>Crea una nuova API Key con permessi per inviare email</li>
-                </ol>
-                
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> Aggiungi la chiave API come variabile d'ambiente con il nome <code>SENDGRID_API_KEY</code> e, opzionalmente, configura l'email mittente come <code>SENDGRID_FROM_EMAIL</code>.
-                </div>
-                
-                <p>Dopo aver configurato la chiave API, riavvia l'applicazione per applicare le modifiche.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- JavaScript to handle the manual reminder check -->
 <script>
@@ -365,8 +325,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch('/api/reminders/check', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ form.csrf_token._value() }}'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({})
             })
