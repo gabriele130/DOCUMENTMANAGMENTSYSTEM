@@ -24,4 +24,5 @@ dependencies = [
     "sendgrid>=6.11.0",
     "markupsafe>=3.0.2",
     "apscheduler>=3.11.0",
+    "twilio>=9.5.2",
 ]

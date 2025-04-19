@@ -12,10 +12,15 @@ def check_reminders():
     Questa funzione dovrebbe essere eseguita periodicamente
     """
     logger.info("Verifica promemoria in corso...")
-    today = datetime.datetime.now().date()
+    now = datetime.datetime.now()
+    today = now.date()
+    
+    # Log per debug
+    logger.info(f"Data odierna: {today}, ora: {now.strftime('%H:%M:%S')}")
     
     # Ottieni tutti i promemoria attivi (non completati)
     reminders = Reminder.query.filter_by(is_completed=False).all()
+    logger.info(f"Trovati {len(reminders)} promemoria attivi")
     notifications_count = 0
     
     for reminder in reminders:
@@ -25,13 +30,18 @@ def check_reminders():
         else:
             due_date = reminder.due_date
         
+        logger.info(f"Promemoria ID: {reminder.id}, Titolo: {reminder.title}, Scadenza: {due_date}, Giorni di notifica: {reminder.notify_days_before}")
+        
         # Calcola i giorni mancanti alla scadenza
         days_until_due = (due_date - today).days
+        logger.info(f"Giorni mancanti alla scadenza: {days_until_due}")
         
         # Verifica promemoria principale
         if days_until_due == reminder.notify_days_before:
+            logger.info(f"Generazione notifica per promemoria ID: {reminder.id} (mancano {days_until_due} giorni)")
             notifications_created = process_reminder_notification(reminder)
             notifications_count += notifications_created
+            logger.info(f"Generate {notifications_created} notifiche")
         
         # Verifica notifiche aggiuntive 
         if reminder.extra_notifications:
@@ -49,21 +59,25 @@ def check_reminders():
         
         # Verifica promemoria scaduti (il giorno stesso della scadenza)
         if days_until_due == 0:
+            logger.info(f"Generazione notifica per promemoria in scadenza oggi ID: {reminder.id}")
             notifications_created = process_reminder_notification(
                 reminder, 
                 "Scade oggi!"
             )
             notifications_count += notifications_created
+            logger.info(f"Generate {notifications_created} notifiche di scadenza")
         
         # Verifica promemoria in ritardo (dopo la data di scadenza)
         if days_until_due < 0:
             # Notifica solo se la scadenza è recente (max 7 giorni)
             if days_until_due > -7:
+                logger.info(f"Generazione notifica per promemoria in ritardo ID: {reminder.id} (in ritardo di {abs(days_until_due)} giorni)")
                 notifications_created = process_reminder_notification(
                     reminder, 
                     f"In ritardo di {abs(days_until_due)} giorni!"
                 )
                 notifications_count += notifications_created
+                logger.info(f"Generate {notifications_created} notifiche di ritardo")
     
     logger.info(f"Verifica promemoria completata: generate {notifications_count} notifiche")
     return notifications_count

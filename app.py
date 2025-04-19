@@ -78,13 +78,14 @@ from company_routes import *
 with app.app_context():
     from services.reminder_service import check_reminders
     
-    # Configura il job scheduler per verificare i promemoria ogni ora
-    @scheduler.scheduled_job(IntervalTrigger(minutes=60))
+    # Configura il job scheduler per verificare i promemoria ogni 5 minuti
+    @scheduler.scheduled_job(IntervalTrigger(minutes=5))
     def scheduled_reminder_check():
         with app.app_context():
             app.logger.info("Esecuzione controllo promemoria schedulato")
             try:
-                check_reminders()
+                count = check_reminders()
+                app.logger.info(f"Controllo promemoria completato: generate {count} notifiche")
             except Exception as e:
                 app.logger.error(f"Errore durante il controllo dei promemoria: {str(e)}")
     
@@ -92,6 +93,15 @@ with app.app_context():
     try:
         scheduler.start()
         app.logger.info("Scheduler avviato con successo")
+        
+        # Esegui subito un controllo iniziale all'avvio
+        try:
+            app.logger.info("Esecuzione controllo promemoria iniziale")
+            count = check_reminders()
+            app.logger.info(f"Controllo promemoria iniziale completato: generate {count} notifiche")
+        except Exception as e:
+            app.logger.error(f"Errore durante il controllo iniziale dei promemoria: {str(e)}")
+            
     except Exception as e:
         app.logger.error(f"Errore avvio scheduler: {str(e)}")
 
