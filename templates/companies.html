@@ -13,6 +13,35 @@
         {% endif %}
     </div>
 
+    <!-- Opzioni di ordinamento -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Ordinamento</h5>
+            <div class="btn-group">
+                <a href="{{ url_for('companies', sort_by=current_sort, sort_order='asc') }}" 
+                   class="btn btn-sm {{ 'btn-primary' if current_order == 'asc' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-sort-alpha-down"></i> Crescente
+                </a>
+                <a href="{{ url_for('companies', sort_by=current_sort, sort_order='desc') }}" 
+                   class="btn btn-sm {{ 'btn-primary' if current_order == 'desc' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-sort-alpha-up"></i> Decrescente
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('companies', sort_by='name', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'name' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-font"></i> Nome
+                </a>
+                <a href="{{ url_for('companies', sort_by='created_at', sort_order=current_order) }}" 
+                   class="btn {{ 'btn-primary' if current_sort == 'created_at' else 'btn-outline-secondary' }}">
+                    <i class="fas fa-calendar-alt"></i> Data creazione
+                </a>
+            </div>
+        </div>
+    </div>
+
     {% if companies %}
     <div class="row row-cols-1 row-cols-md-3 g-4">
         {% for company in companies %}

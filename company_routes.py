@@ -294,11 +294,44 @@ def folder_detail(folder_id):
         flash('You do not have permission to view this folder', 'danger')
         return redirect(url_for('company_detail', company_id=company.id))
     
-    # Get subfolders
-    subfolders = folder.children
+    # Get sort parameters
+    sort_by = request.args.get('sort_by', 'name')
+    sort_order = request.args.get('sort_order', 'asc')
     
-    # Get documents in this folder
-    documents = Document.query.filter_by(folder_id=folder.id, is_archived=False).all()
+    # Get subfolders with sorting
+    if sort_by == 'name':
+        sort_field = Folder.name
+    elif sort_by == 'created_at':
+        sort_field = Folder.created_at
+    else:
+        sort_field = Folder.name  # Default
+    
+    if sort_order == 'asc':
+        sort_field = sort_field.asc()
+    else:
+        sort_field = sort_field.desc()
+    
+    # Get subfolders with sorting
+    subfolders = Folder.query.filter_by(parent_id=folder.id).order_by(sort_field).all()
+    
+    # Get documents in this folder with sorting
+    if sort_by == 'name' or sort_by == 'title':
+        doc_sort_field = Document.title
+    elif sort_by == 'created_at':
+        doc_sort_field = Document.created_at
+    elif sort_by == 'file_type':
+        doc_sort_field = Document.file_type
+    elif sort_by == 'file_size':
+        doc_sort_field = Document.file_size
+    else:
+        doc_sort_field = Document.title  # Default
+    
+    if sort_order == 'asc':
+        doc_sort_field = doc_sort_field.asc()
+    else:
+        doc_sort_field = doc_sort_field.desc()
+    
+    documents = Document.query.filter_by(folder_id=folder.id, is_archived=False).order_by(doc_sort_field).all()
     
     # Get folder breadcrumbs
     breadcrumbs = []
@@ -327,7 +360,9 @@ def folder_detail(folder_id):
                           subfolders=subfolders,
                           documents=documents,
                           breadcrumbs=breadcrumbs,
-                          folder_tree=folder_tree)
+                          folder_tree=folder_tree,
+                          current_sort=sort_by,
+                          current_order=sort_order)
 
 @app.route('/folders/create/<int:parent_id>', methods=['GET', 'POST'])
 @login_required

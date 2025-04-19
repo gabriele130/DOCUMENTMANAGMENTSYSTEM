@@ -20,12 +20,14 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Ordinamento</h5>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm {{ 'btn-primary' if current_order == 'asc' else 'btn-outline-secondary' }}" id="sortAsc">
+            <a href="{{ url_for('documents', sort_by=current_sort, sort_order='asc') }}" 
+               class="btn btn-sm {{ 'btn-primary' if current_order == 'asc' else 'btn-outline-secondary' }}" id="sortAsc">
                 <i class="bi bi-sort-alpha-down"></i> Crescente
-            </button>
-            <button type="button" class="btn btn-sm {{ 'btn-primary' if current_order == 'desc' else 'btn-outline-secondary' }}" id="sortDesc">
+            </a>
+            <a href="{{ url_for('documents', sort_by=current_sort, sort_order='desc') }}" 
+               class="btn btn-sm {{ 'btn-primary' if current_order == 'desc' else 'btn-outline-secondary' }}" id="sortDesc">
                 <i class="bi bi-sort-alpha-up"></i> Decrescente
-            </button>
+            </a>
         </div>
     </div>
     <div class="card-body">
@@ -325,4 +327,68 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+
+<script>
+// Funzione per ordinare la lista dei documenti condivisi
+document.addEventListener('DOMContentLoaded', function() {
+    // Ordina i documenti condivisi quando viene selezionata la tab condivisi
+    document.getElementById('shared-documents-tab').addEventListener('click', function() {
+        sortSharedDocuments('{{ current_sort }}', '{{ current_order }}');
+    });
+    
+    // Ordina i documenti condivisi all'avvio se la tab è attiva
+    if (document.querySelector('#shared-documents.active')) {
+        sortSharedDocuments('{{ current_sort }}', '{{ current_order }}');
+    }
+});
+
+function sortSharedDocuments(sortBy, sortOrder) {
+    var sharedDocumentsContainer = document.querySelector('#shared-documents .row');
+    if (!sharedDocumentsContainer) return;
+    
+    var items = Array.from(sharedDocumentsContainer.querySelectorAll('.document-item'));
+    
+    items.sort(function(a, b) {
+        var valueA, valueB;
+        
+        switch(sortBy) {
+            case 'title':
+                valueA = a.querySelector('.card-title').innerText.toLowerCase();
+                valueB = b.querySelector('.card-title').innerText.toLowerCase();
+                break;
+            case 'file_type':
+                valueA = a.querySelector('.bi[class*="bi-file-earmark"]').className;
+                valueB = b.querySelector('.bi[class*="bi-file-earmark"]').className;
+                break;
+            case 'file_size':
+                valueA = parseInt(a.querySelector('.bi-hdd').parentNode.innerText.match(/\d+/)[0]);
+                valueB = parseInt(b.querySelector('.bi-hdd').parentNode.innerText.match(/\d+/)[0]);
+                break;
+            case 'classification':
+                valueA = a.querySelector('.badge.bg-secondary').innerText.toLowerCase();
+                valueB = b.querySelector('.badge.bg-secondary').innerText.toLowerCase();
+                break;
+            case 'created_at':
+            default:
+                valueA = new Date(a.dataset.date);
+                valueB = new Date(b.dataset.date);
+                break;
+        }
+        
+        var comparison = 0;
+        if (valueA > valueB) {
+            comparison = 1;
+        } else if (valueA < valueB) {
+            comparison = -1;
+        }
+        
+        return sortOrder === 'desc' ? comparison * -1 : comparison;
+    });
+    
+    // Rimuovi tutti gli elementi e riaggiungili nell'ordine corretto
+    items.forEach(function(item) {
+        sharedDocumentsContainer.appendChild(item);
+    });
+}
+</script>
 {% endblock %}
