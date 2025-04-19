@@ -135,15 +135,33 @@ def process_reminder_notification(reminder, suffix=""):
     if suffix:
         message += f" - {suffix}"
     
+    # Determina il tipo di notifica in base al suffisso
+    notification_type = "reminder"
+    if "scade oggi" in suffix.lower():
+        notification_type = "deadline"
+    elif "in ritardo" in suffix.lower():
+        notification_type = "overdue"
+    
+    # Verifica se ci sono già notifiche per questo promemoria oggi
+    today = datetime.datetime.now().date()
+    today_start = datetime.datetime.combine(today, datetime.time.min)
+    today_end = datetime.datetime.combine(today, datetime.time.max)
+    
     # Crea una notifica per ogni utente
     for user in notify_users:
-        # Determina il tipo di notifica in base al suffisso
-        notification_type = "reminder"
-        if "scade oggi" in suffix.lower():
-            notification_type = "deadline"
-        elif "in ritardo" in suffix.lower():
-            notification_type = "overdue"
+        # Controlla se l'utente ha già ricevuto una notifica simile oggi
+        existing_notifications = Notification.query.filter(
+            Notification.user_id == user.id,
+            Notification.message == message,
+            Notification.notification_type == notification_type,
+            Notification.created_at.between(today_start, today_end)
+        ).first()
         
+        if existing_notifications:
+            logger.info(f"Notifica già esistente per l'utente {user.id} sul promemoria {reminder.id} di oggi - skip")
+            continue
+        
+        # Crea una nuova notifica
         notification = Notification(
             user_id=user.id,
             message=message,
