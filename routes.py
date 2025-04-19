@@ -894,6 +894,7 @@ def mark_notification_read(notification_id):
 
 @app.route('/notifications/mark_all_read', methods=['POST'])
 @login_required
+@csrf.exempt
 def mark_all_notifications_read():
     Notification.query.filter_by(user_id=current_user.id).update({'is_read': True})
     db.session.commit()
