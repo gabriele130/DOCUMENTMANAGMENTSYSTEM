@@ -256,8 +256,34 @@ def dashboard():
 @app.route('/documents')
 @login_required
 def documents():
-    # Get all documents owned by the user or shared with them
-    owned_documents = Document.query.filter_by(owner_id=current_user.id, is_archived=False).all()
+    # Get sort parameters
+    sort_by = request.args.get('sort_by', 'created_at')
+    sort_order = request.args.get('sort_order', 'desc')
+    
+    # Validate and apply sorting
+    valid_sort_fields = {
+        'title': Document.title,
+        'created_at': Document.created_at,
+        'file_type': Document.file_type,
+        'file_size': Document.file_size,
+        'classification': Document.classification
+    }
+    
+    sort_field = valid_sort_fields.get(sort_by, Document.created_at)
+    
+    if sort_order == 'asc':
+        sort_field = sort_field.asc()
+    else:
+        sort_field = sort_field.desc()
+    
+    # Get all documents owned by the user or shared with them with sorting applied
+    owned_documents = Document.query.filter_by(
+        owner_id=current_user.id, 
+        is_archived=False
+    ).order_by(sort_field).all()
+    
+    # Note: We can't directly sort shared_documents as it's a relationship attribute
+    # We'll sort it in the template with JavaScript
     shared_documents = current_user.shared_documents
     
     # Get all tags for filtering
@@ -266,7 +292,9 @@ def documents():
     return render_template('documents.html', 
                           owned_documents=owned_documents,
                           shared_documents=shared_documents,
-                          tags=all_tags)
+                          tags=all_tags,
+                          current_sort=sort_by,
+                          current_order=sort_order)
 
 @app.route('/documents/upload', methods=['GET', 'POST'])
 @login_required

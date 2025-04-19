@@ -5,13 +5,52 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
-        <h1 class="h3 mb-0">Documents</h1>
-        <p class="text-muted">Manage your documents</p>
+        <h1 class="h3 mb-0">Documenti</h1>
+        <p class="text-muted">Gestisci i tuoi documenti</p>
     </div>
     <div class="col-md-4 text-md-end">
         <a href="{{ url_for('upload_document') }}" class="btn btn-primary">
-            <i class="bi bi-cloud-upload"></i> Upload Document
+            <i class="bi bi-cloud-upload"></i> Carica Documento
         </a>
+    </div>
+</div>
+
+<!-- Opzioni di ordinamento -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Ordinamento</h5>
+        <div class="btn-group">
+            <button type="button" class="btn btn-sm {{ 'btn-primary' if current_order == 'asc' else 'btn-outline-secondary' }}" id="sortAsc">
+                <i class="bi bi-sort-alpha-down"></i> Crescente
+            </button>
+            <button type="button" class="btn btn-sm {{ 'btn-primary' if current_order == 'desc' else 'btn-outline-secondary' }}" id="sortDesc">
+                <i class="bi bi-sort-alpha-up"></i> Decrescente
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('documents', sort_by='title', sort_order=current_order) }}" 
+               class="btn {{ 'btn-primary' if current_sort == 'title' else 'btn-outline-secondary' }}">
+                <i class="bi bi-sort-alpha-down"></i> Titolo
+            </a>
+            <a href="{{ url_for('documents', sort_by='created_at', sort_order=current_order) }}" 
+               class="btn {{ 'btn-primary' if current_sort == 'created_at' else 'btn-outline-secondary' }}">
+                <i class="bi bi-calendar3"></i> Data caricamento
+            </a>
+            <a href="{{ url_for('documents', sort_by='file_type', sort_order=current_order) }}" 
+               class="btn {{ 'btn-primary' if current_sort == 'file_type' else 'btn-outline-secondary' }}">
+                <i class="bi bi-file-earmark"></i> Tipo file
+            </a>
+            <a href="{{ url_for('documents', sort_by='file_size', sort_order=current_order) }}" 
+               class="btn {{ 'btn-primary' if current_sort == 'file_size' else 'btn-outline-secondary' }}">
+                <i class="bi bi-hdd"></i> Dimensione
+            </a>
+            <a href="{{ url_for('documents', sort_by='classification', sort_order=current_order) }}" 
+               class="btn {{ 'btn-primary' if current_sort == 'classification' else 'btn-outline-secondary' }}">
+                <i class="bi bi-tags"></i> Classificazione
+            </a>
+        </div>
     </div>
 </div>
 

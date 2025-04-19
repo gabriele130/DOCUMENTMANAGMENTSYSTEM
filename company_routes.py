@@ -14,12 +14,39 @@ from routes import log_activity, admin_required
 @login_required
 def companies():
     """List all companies the user has access to"""
-    if current_user.is_admin():
-        companies = Company.query.all()
-    else:
-        companies = current_user.companies
+    # Get sort parameters
+    sort_by = request.args.get('sort_by', 'name')
+    sort_order = request.args.get('sort_order', 'asc')
     
-    return render_template('companies.html', companies=companies)
+    # Validate and apply sorting
+    valid_sort_fields = {
+        'name': Company.name,
+        'created_at': Company.created_at
+    }
+    
+    sort_field = valid_sort_fields.get(sort_by, Company.name)
+    
+    if sort_order == 'asc':
+        sort_field = sort_field.asc()
+    else:
+        sort_field = sort_field.desc()
+    
+    # Get all companies the user has access to with sorting applied
+    if current_user.is_admin():
+        companies = Company.query.order_by(sort_field).all()
+    else:
+        # Per gli utenti normali, dobbiamo filtrare manualmente le aziende associate
+        # e poi ordinarle in Python perché non possiamo facilmente ordinare la relazione many-to-many
+        companies = sorted(
+            current_user.companies,
+            key=lambda c: getattr(c, sort_by),
+            reverse=(sort_order == 'desc')
+        )
+    
+    return render_template('companies.html', 
+                          companies=companies,
+                          current_sort=sort_by,
+                          current_order=sort_order)
 
 @app.route('/companies/create', methods=['GET', 'POST'])
 @login_required
