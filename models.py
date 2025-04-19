@@ -139,6 +139,15 @@ class Permission(db.Model):
     def __repr__(self):
         return f'<Permission {self.user_id} on {self.folder_id} level={self.access_level}>'
 
+# Tabella di associazione per i documenti allegati
+document_attachment = db.Table('document_attachment',
+    db.Column('parent_document_id', db.Integer, db.ForeignKey('document.id'), primary_key=True),
+    db.Column('attached_document_id', db.Integer, db.ForeignKey('document.id'), primary_key=True),
+    db.Column('attachment_type', db.String(50), default='attachment'), # tipo: 'amendment', 'supplement', 'attachment'
+    db.Column('created_at', db.DateTime, default=datetime.datetime.utcnow),
+    db.Column('attachment_note', db.Text)
+)
+
 class Document(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
@@ -172,6 +181,15 @@ class Document(db.Model):
     shared_with = relationship('User', secondary=document_user, back_populates='shared_documents')
     reminders = relationship('Reminder', back_populates='document', cascade='all, delete-orphan')
     activity_logs = relationship('ActivityLog', back_populates='document')
+    
+    # Allegati e documenti collegati
+    attachments = relationship(
+        'Document', 
+        secondary=document_attachment,
+        primaryjoin=(id == document_attachment.c.parent_document_id),
+        secondaryjoin=(id == document_attachment.c.attached_document_id),
+        backref=backref('attached_to', lazy='dynamic')
+    )
     
     # Status flags
     is_archived = db.Column(db.Boolean, default=False)
