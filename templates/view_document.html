@@ -29,6 +29,12 @@
             <a href="{{ url_for('add_document_reminder', document_id=document.id) }}" class="btn btn-warning">
                 <i class="bi bi-calendar-plus"></i> Promemoria
             </a>
+            <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-success">
+                <i class="bi bi-paperclip"></i> Allegati 
+                {% if document.attachments %}
+                <span class="badge bg-light text-dark ms-1">{{ document.attachments|length }}</span>
+                {% endif %}
+            </a>
             {% if document.owner_id == current_user.id %}
             <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-secondary">
                 <i class="bi bi-pencil"></i> Modifica
@@ -172,6 +178,80 @@
         {% endif %}
         
         <!-- Document workflow status -->
+        <!-- Documenti allegati -->
+        {% if attachments_info %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-paperclip me-2"></i> Documenti Allegati
+                </h5>
+                <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus-lg"></i> Gestisci allegati
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for item in attachments_info %}
+                    <div class="list-group-item bg-transparent p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="document-icon me-3">
+                                    {% if item.document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                        <i class="bi bi-file-image text-info"></i>
+                                    {% elif item.document.file_type == 'pdf' %}
+                                        <i class="bi bi-file-pdf text-danger"></i>
+                                    {% elif item.document.file_type in ['doc', 'docx'] %}
+                                        <i class="bi bi-file-word text-primary"></i>
+                                    {% elif item.document.file_type in ['xls', 'xlsx'] %}
+                                        <i class="bi bi-file-excel text-success"></i>
+                                    {% else %}
+                                        <i class="bi bi-file-text text-secondary"></i>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ item.document.title or item.document.original_filename }}</h6>
+                                    <div class="d-flex">
+                                        <span class="badge bg-light text-dark me-2">{{ item.document.file_type.upper() }}</span>
+                                        <small class="text-muted">{{ (item.document.file_size / 1024)|round|int }} KB</small>
+                                        {% if item.type == 'amendment' %}
+                                            <span class="badge bg-primary ms-2">Modifica</span>
+                                        {% elif item.type == 'supplement' %}
+                                            <span class="badge bg-info ms-2">Integrazione</span>
+                                        {% elif item.type == 'related' %}
+                                            <span class="badge bg-secondary ms-2">Correlato</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark ms-2">Allegato</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <a href="{{ url_for('view_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('download_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                {% if document.owner_id == current_user.id %}
+                                <form action="{{ url_for('detach_document', document_id=document.id, attachment_id=item.document.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Sei sicuro di voler rimuovere questo allegato?');">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if item.note %}
+                        <p class="mt-2 mb-0 small text-muted fst-italic">{{ item.note }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         {% if workflow_tasks %}
         <div class="card mb-4">
             <div class="card-header">

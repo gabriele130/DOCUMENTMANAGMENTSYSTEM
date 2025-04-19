@@ -386,7 +386,7 @@ def view_document(document_id):
     
     # Check if user has permission to view this document
     if document.owner_id != current_user.id and current_user not in document.shared_with:
-        flash('You do not have permission to view this document.', 'danger')
+        flash('Non hai il permesso di visualizzare questo documento.', 'danger')
         return redirect(url_for('documents'))
     
     # Get document preview if available
@@ -400,11 +400,32 @@ def view_document(document_id):
     if document.workflow_id:
         workflow_tasks = WorkflowTask.query.filter_by(workflow_id=document.workflow_id).order_by(WorkflowTask.order).all()
     
+    # Recupera informazioni dettagliate sugli allegati
+    attachments_info = []
+    if document.attachments:
+        for attachment in document.attachments:
+            # Recupera i metadati dell'allegato dalla tabella di relazione
+            attachment_metadata = db.session.execute(
+                "SELECT attachment_type, attachment_note FROM document_attachment "
+                "WHERE parent_document_id = :parent_id AND attached_document_id = :attachment_id",
+                {"parent_id": document.id, "attachment_id": attachment.id}
+            ).fetchone()
+            
+            attachment_type = attachment_metadata[0] if attachment_metadata else 'attachment'
+            attachment_note = attachment_metadata[1] if attachment_metadata else ''
+            
+            attachments_info.append({
+                'document': attachment,
+                'type': attachment_type,
+                'note': attachment_note
+            })
+    
     return render_template('view_document.html', 
                           document=document,
                           preview_html=preview_html,
                           versions=versions,
-                          workflow_tasks=workflow_tasks)
+                          workflow_tasks=workflow_tasks,
+                          attachments_info=attachments_info)
 
 @app.route('/documents/<int:document_id>/download')
 @login_required
