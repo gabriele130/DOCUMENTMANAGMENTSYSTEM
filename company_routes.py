@@ -103,10 +103,29 @@ def company_detail(company_id):
         flash('You do not have access to this company', 'danger')
         return redirect(url_for('companies'))
     
-    # Get root folders for the company
-    root_folders = Folder.query.filter_by(company_id=company.id, parent_id=None).all()
+    # Get sort parameters
+    sort_by = request.args.get('sort_by', 'name')
+    sort_order = request.args.get('sort_order', 'asc')
     
-    # Get recent documents
+    # Get root folders with sorting
+    if sort_by == 'name':
+        sort_field = Folder.name
+    elif sort_by == 'created_at':
+        sort_field = Folder.created_at
+    elif sort_by == 'description':
+        sort_field = Folder.description
+    else:
+        sort_field = Folder.name  # Default
+    
+    if sort_order == 'asc':
+        sort_field = sort_field.asc()
+    else:
+        sort_field = sort_field.desc()
+    
+    # Get root folders for the company with sorting
+    root_folders = Folder.query.filter_by(company_id=company.id, parent_id=None).order_by(sort_field).all()
+    
+    # Get recent documents - always sorted by date (most recent first)
     recent_documents = Document.query.filter_by(
         company_id=company.id, 
         is_archived=False
@@ -115,11 +134,23 @@ def company_detail(company_id):
     # Get complete folder structure for dropdown navigation
     folder_tree = get_folder_tree(company.id)
     
+    # Log activity
+    log_activity(
+        user_id=current_user.id,
+        action="view_company",
+        details=json.dumps({
+            "company_id": company.id,
+            "company_name": company.name
+        })
+    )
+    
     return render_template('company_detail.html', 
                           company=company, 
                           root_folders=root_folders,
                           recent_documents=recent_documents,
-                          folder_tree=folder_tree)
+                          folder_tree=folder_tree,
+                          current_sort=sort_by,
+                          current_order=sort_order)
 
 @app.route('/companies/<int:company_id>/update', methods=['GET', 'POST'])
 @login_required
