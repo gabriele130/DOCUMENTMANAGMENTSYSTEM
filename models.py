@@ -406,19 +406,52 @@ class Notification(db.Model):
         return f'<Notification {self.id} for User {self.user_id}>'
 
 class ActivityLog(db.Model):
-    """Activity log for tracking user actions"""
+    """Activity log for tracking user actions with enhanced security for ISO 27001, GDPR, eIDAS compliance"""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     user = relationship('User', back_populates='activity_logs')
     document_id = db.Column(db.Integer, db.ForeignKey('document.id'), nullable=True)
     document = relationship('Document', back_populates='activity_logs')
-    action = db.Column(db.String(50), nullable=False)  # view, upload, update, delete, share, etc.
+    
+    # Enhanced action tracking - more specific categories
+    action = db.Column(db.String(50), nullable=False)  # view, upload, update, delete, share, print, download, etc.
+    action_category = db.Column(db.String(50))  # CRUD, ACCESS, ADMIN, SECURITY
+    
+    # Enhanced details
     details = db.Column(db.Text)  # JSON with action-specific details
+    context_metadata = db.Column(db.Text)  # JSON with contextual metadata (document version, size, etc.)
+    result = db.Column(db.String(20))  # success, failure, denied
+    
+    # Enhanced device and location tracking
     ip_address = db.Column(db.String(50))
+    user_agent = db.Column(db.String(256))  # Browser/client info
+    device_info = db.Column(db.String(256))  # Device type/OS
+    geolocation = db.Column(db.String(150), nullable=True)  # Optional geolocation data if available
+    
+    # Enhanced temporal data for audit trails
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    
+    # Integrity assurance
+    record_hash = db.Column(db.String(256), nullable=True)  # Hash of log entry for tamper detection
+    
+    # Security classification for the log entry itself
+    security_level = db.Column(db.String(20), default='standard')  # standard, sensitive, critical
+    
+    # Verification of log integrity
+    verified = db.Column(db.Boolean, default=False)
     
     def __repr__(self):
         return f'<ActivityLog {self.action} by {self.user_id} on {self.document_id}>'
+    
+    def calculate_hash(self):
+        """Calculate a hash of the log entry to detect tampering"""
+        from hashlib import sha256
+        data = f"{self.user_id}:{self.document_id}:{self.action}:{self.details}:{self.context_metadata}:{self.ip_address}:{self.created_at}"
+        return sha256(data.encode()).hexdigest()
+        
+    def verify_integrity(self):
+        """Verify that the log entry has not been tampered with"""
+        return self.record_hash == self.calculate_hash()
 
 @login_manager.user_loader
 def load_user(user_id):
