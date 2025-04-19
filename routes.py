@@ -1072,6 +1072,25 @@ def admin_delete_user(user_id):
 def get_unread_notification_count():
     count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
     return jsonify({'count': count})
+
+@app.route('/api/notifications/recent')
+@login_required
+def get_recent_notifications():
+    """Ottieni le notifiche recenti non lette per il dropdown"""
+    notifications = Notification.query.filter_by(
+        user_id=current_user.id, 
+        is_read=False
+    ).order_by(Notification.created_at.desc()).limit(5).all()
+    
+    result = [{
+        'id': n.id,
+        'message': n.message,
+        'link': n.link,
+        'notification_type': n.notification_type,
+        'created_at': n.created_at.strftime('%Y-%m-%dT%H:%M:%S')
+    } for n in notifications]
+    
+    return jsonify({'notifications': result})
     
 @app.route('/api/reminders/check', methods=['POST'])
 @login_required

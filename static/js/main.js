@@ -197,23 +197,142 @@ function handleSearch(event) {
 }
 
 /**
- * Update the notification count in the navbar
+ * Update the notification count in the navbar and load notifications in dropdown
  */
 function updateNotificationCount() {
     fetch('/api/notifications/count')
         .then(response => response.json())
         .then(data => {
             const notificationBadge = document.getElementById('notificationBadge');
+            const notificationList = document.querySelector('.notification-list');
+            
             if (notificationBadge) {
                 if (data.count > 0) {
                     notificationBadge.textContent = data.count;
                     notificationBadge.classList.remove('d-none');
+                    
+                    // Carica le notifiche solo se ci sono notifiche non lette
+                    fetchNotifications(notificationList);
                 } else {
                     notificationBadge.classList.add('d-none');
+                    
+                    // Se non ci sono notifiche non lette, mostra messaggio predefinito
+                    if (notificationList) {
+                        notificationList.innerHTML = `
+                            <div class="p-3 text-center text-muted">
+                                <i class="bi bi-check2-circle"></i>
+                                <p class="mb-0 small">Nessuna nuova notifica</p>
+                            </div>
+                        `;
+                    }
                 }
             }
         })
         .catch(error => console.error('Error fetching notification count:', error));
+}
+
+/**
+ * Fetch and display notifications in dropdown
+ */
+function fetchNotifications(container) {
+    if (!container) return;
+    
+    // Fetch recent unread notifications (max 5)
+    fetch('/api/notifications/recent')
+        .then(response => response.json())
+        .then(data => {
+            if (data.notifications && data.notifications.length > 0) {
+                let html = '';
+                
+                data.notifications.forEach(notification => {
+                    const date = new Date(notification.created_at);
+                    const formattedDate = date.toLocaleDateString('it-IT', {
+                        day: '2-digit', 
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    html += `
+                        <div class="notification-item p-2 border-bottom" data-id="${notification.id}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="notification-dot me-2">
+                                    <i class="bi bi-circle-fill text-danger" style="font-size: 0.5rem;"></i>
+                                </span>
+                                <div class="notification-content flex-grow-1">
+                                    <p class="mb-1 small">${notification.message}</p>
+                                    <small class="text-muted">${formattedDate}</small>
+                                </div>
+                                <button class="btn btn-sm mark-read-btn" data-id="${notification.id}" 
+                                    onclick="markNotificationRead(${notification.id}, event)">
+                                    <i class="bi bi-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                container.innerHTML = html;
+                
+                // Add event listener for clicking on notification to mark as read
+                document.querySelectorAll('.notification-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const id = this.dataset.id;
+                        if (id) {
+                            markNotificationRead(id);
+                        }
+                    });
+                });
+            } else {
+                container.innerHTML = `
+                    <div class="p-3 text-center text-muted">
+                        <i class="bi bi-check2-circle"></i>
+                        <p class="mb-0 small">Nessuna nuova notifica</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching notifications:', error);
+            container.innerHTML = `
+                <div class="p-3 text-center text-danger">
+                    <i class="bi bi-exclamation-circle"></i>
+                    <p class="mb-0 small">Errore durante il caricamento delle notifiche</p>
+                </div>
+            `;
+        });
+}
+
+/**
+ * Mark a notification as read
+ */
+function markNotificationRead(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    fetch(`/notifications/mark_read/${id}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            const item = document.querySelector(`.notification-item[data-id="${id}"]`);
+            if (item) {
+                item.querySelector('.notification-dot i').classList.remove('text-danger');
+                item.querySelector('.notification-dot i').classList.add('text-secondary');
+                item.querySelector('.mark-read-btn').classList.add('d-none');
+            }
+            
+            // Update notification count
+            updateNotificationCount();
+        }
+    })
+    .catch(error => console.error('Error marking notification as read:', error));
 }
 
 /**
