@@ -11,6 +11,7 @@
     <div class="col-md-4 text-md-end">
         {% if notifications %}
         <form action="{{ url_for('mark_all_notifications_read') }}" method="POST">
+            {{ form.hidden_tag() }}
             <button type="submit" class="btn btn-outline-primary">
                 <i class="bi bi-check-all"></i> Segna tutte come lette
             </button>
