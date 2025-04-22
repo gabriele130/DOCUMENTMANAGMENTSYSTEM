@@ -566,6 +566,14 @@ def update_document(document_id):
         return redirect(url_for('documents'))
     
     if request.method == 'POST':
+        if not form.validate_on_submit():
+            flash('Errore di validazione del form. Riprova.', 'danger')
+            all_tags = Tag.query.all()
+            expiry_date = None
+            if document.expiry_date:
+                expiry_date = document.expiry_date.strftime('%Y-%m-%d')
+            return render_template('update_document.html', document=document, tags=all_tags, expiry_date=expiry_date, form=form)
+            
         # Update document metadata
         document.title = request.form.get('title', document.title)
         document.description = request.form.get('description', document.description)
