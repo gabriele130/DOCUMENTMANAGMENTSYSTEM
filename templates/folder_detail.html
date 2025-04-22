@@ -83,9 +83,10 @@
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
                     <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company.id) }}">{{ company.name }}</a></li>
                     {% for crumb in breadcrumbs[:-1] %}
-                        {% if crumb.name != company.name %}
+                        {% if loop.first %}
+                            <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">{{ company.name }}</a></li>
+                        {% else %}
                             <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=crumb.id) }}">{{ crumb.name }}</a></li>
                         {% endif %}
                     {% endfor %}

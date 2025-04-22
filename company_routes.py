@@ -96,15 +96,45 @@ def create_company():
 @app.route('/companies/<int:company_id>')
 @login_required
 def company_detail(company_id):
-    """View company details and structure"""
+    """Redirect to the folder structure view for a company"""
     company = Company.query.get_or_404(company_id)
     
     # Check if user has access to this company
     if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
+        flash('Non hai accesso a questa azienda', 'danger')
         return redirect(url_for('companies'))
     
-    # Get sort parameters
+    # Log activity
+    log_activity(
+        user_id=current_user.id,
+        action="view_company",
+        details=json.dumps({
+            "company_id": company.id,
+            "company_name": company.name
+        })
+    )
+    
+    # Find first folder if exists, otherwise create one
+    root_folder = Folder.query.filter_by(company_id=company.id, parent_id=None).first()
+    
+    if root_folder:
+        # Redirect to the folder detail view if a root folder exists
+        return redirect(url_for('folder_detail', folder_id=root_folder.id))
+    else:
+        # Create a main folder for the company if none exists
+        main_folder = Folder(
+            name="Cartella Principale",
+            description=f"Cartella principale per {company.name}",
+            company_id=company.id,
+            created_by_id=current_user.id
+        )
+        db.session.add(main_folder)
+        db.session.commit()
+        
+        # Redirect to the new folder
+        return redirect(url_for('folder_detail', folder_id=main_folder.id))
+    
+    # This code will never be reached, but kept as fallback
     sort_by = request.args.get('sort_by', 'name')
     sort_order = request.args.get('sort_order', 'asc')
     
@@ -134,16 +164,6 @@ def company_detail(company_id):
     
     # Get complete folder structure for dropdown navigation
     folder_tree = get_folder_tree(company.id)
-    
-    # Log activity
-    log_activity(
-        user_id=current_user.id,
-        action="view_company",
-        details=json.dumps({
-            "company_id": company.id,
-            "company_name": company.name
-        })
-    )
     
     return render_template('company_detail.html', 
                           company=company, 
