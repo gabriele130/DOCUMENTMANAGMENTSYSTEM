@@ -336,6 +336,7 @@
                             {{ user.full_name }}
                         </div>
                         <form action="{{ url_for('unshare_document', document_id=document.id, user_id=user.id) }}" method="POST" class="d-inline">
+                            {{ form.hidden_tag() }}
                             <button type="submit" class="btn btn-sm btn-outline-danger">
                                 <i class="bi bi-x-circle"></i> Rimuovi
                             </button>
@@ -359,6 +360,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="shareDocumentForm" action="{{ url_for('share_document', document_id=document.id) }}" method="POST">
+                {{ form.hidden_tag() }}
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="userSearch" class="form-label">Cerca Utenti</label>

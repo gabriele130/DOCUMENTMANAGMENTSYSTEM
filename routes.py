@@ -512,12 +512,16 @@ def view_document(document_id):
         document_id=document_id
     )
     
+    # Create empty form for CSRF token
+    form = EmptyForm()
+    
     return render_template('view_document.html', 
                           document=document,
                           preview_html=preview_html,
                           versions=versions,
                           workflow_tasks=workflow_tasks,
-                          attachments_info=attachments_info)
+                          attachments_info=attachments_info,
+                          form=form)
 
 @app.route('/documents/<int:document_id>/download')
 @login_required
