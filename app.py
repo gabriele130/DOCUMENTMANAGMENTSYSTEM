@@ -65,10 +65,19 @@ with app.app_context():
     import models
     db.create_all()
 
-# Create a context processor to add form to all templates
+# Create a context processor to add form and other common data to all templates
 @app.context_processor
-def inject_csrf_form():
-    return {'form': EmptyForm()}
+def inject_context_data():
+    # Import here to avoid circular imports
+    from models import Company
+    
+    # Get all companies for the dropdown menu
+    all_companies = Company.query.order_by(Company.name).all()
+    
+    return {
+        'form': EmptyForm(),
+        'all_companies': all_companies
+    }
 
 # Import routes after initializing everything
 from routes import *

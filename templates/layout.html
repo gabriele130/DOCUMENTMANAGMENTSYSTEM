@@ -95,9 +95,9 @@
                     </button>
                     <ul class="dropdown-menu" style="width: 250px;" aria-labelledby="companyDropdown">
                         <li><a class="dropdown-item" href="{{ url_for('companies') }}">Tutte le aziende</a></li>
-                        {% if current_user.companies %}
+                        {% if all_companies %}
                             <li><hr class="dropdown-divider"></li>
-                            {% for company in current_user.companies|sort(attribute='name') %}
+                            {% for company in all_companies %}
                             <li>
                                 <a class="dropdown-item text-wrap" href="{{ url_for('company_detail', company_id=company.id) }}" style="white-space: normal; min-width: 200px;">
                                     <i class="bi bi-building"></i> {{ company.name }}
