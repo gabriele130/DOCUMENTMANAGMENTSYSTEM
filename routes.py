@@ -709,16 +709,33 @@ def unshare_document(document_id, user_id):
 @app.route('/documents/<int:document_id>/archive', methods=['POST'])
 @login_required
 def archive_document(document_id):
-    document = Document.query.get_or_404(document_id)
+    form = EmptyForm()
+    if form.validate_on_submit():
+        document = Document.query.get_or_404(document_id)
+        
+        # Check if user has permission to archive this document
+        if document.owner_id != current_user.id:
+            flash('Non hai i permessi per archiviare questo documento.', 'danger')
+            return redirect(url_for('documents'))
+        
+        document.is_archived = True
+        db.session.commit()
+        
+        # Log activity
+        log_activity(
+            user_id=current_user.id,
+            action="archive_document",
+            document_id=document.id,
+            details=json.dumps({
+                "document_id": document.id,
+                "document_title": document.title or document.original_filename
+            })
+        )
+        
+        flash('Documento archiviato con successo', 'success')
+    else:
+        flash('Errore durante l\'archiviazione del documento. Riprova.', 'danger')
     
-    # Check if user has permission to archive this document
-    if document.owner_id != current_user.id:
-        flash('You do not have permission to archive this document.', 'danger')
-        return redirect(url_for('documents'))
-    
-    document.is_archived = True
-    db.session.commit()
-    flash('Document archived', 'success')
     return redirect(url_for('documents'))
 
 @app.route('/documents/archived')
@@ -731,17 +748,93 @@ def archived_documents():
 @app.route('/documents/<int:document_id>/unarchive', methods=['POST'])
 @login_required
 def unarchive_document(document_id):
-    document = Document.query.get_or_404(document_id)
+    form = EmptyForm()
+    if form.validate_on_submit():
+        document = Document.query.get_or_404(document_id)
+        
+        # Check if user has permission to unarchive this document
+        if document.owner_id != current_user.id:
+            flash('You do not have permission to unarchive this document.', 'danger')
+            return redirect(url_for('archived_documents'))
+        
+        document.is_archived = False
+        db.session.commit()
+        
+        # Log activity
+        log_activity(
+            user_id=current_user.id,
+            action="unarchive_document",
+            document_id=document.id,
+            details=json.dumps({
+                "document_id": document.id,
+                "document_title": document.title or document.original_filename
+            })
+        )
+        
+        flash('Documento ripristinato', 'success')
+    else:
+        flash('Errore durante il ripristino del documento. Riprova.', 'danger')
     
-    # Check if user has permission to unarchive this document
-    if document.owner_id != current_user.id:
-        flash('You do not have permission to unarchive this document.', 'danger')
-        return redirect(url_for('archived_documents'))
-    
-    document.is_archived = False
-    db.session.commit()
-    flash('Document unarchived', 'success')
     return redirect(url_for('archived_documents'))
+
+@app.route('/documents/<int:document_id>/delete', methods=['POST'])
+@login_required
+def delete_document_permanently(document_id):
+    form = EmptyForm()
+    if form.validate_on_submit():
+        document = Document.query.get_or_404(document_id)
+        
+        # Check if user has permission to delete this document
+        if document.owner_id != current_user.id and not current_user.is_admin():
+            flash('Non hai i permessi per eliminare questo documento.', 'danger')
+            return redirect(url_for('archived_documents'))
+        
+        # Store document info for activity log
+        doc_info = {
+            "document_id": document.id,
+            "document_title": document.title or document.original_filename,
+            "original_filename": document.original_filename,
+            "file_type": document.file_type,
+            "uploaded_date": document.created_at.isoformat()
+        }
+        
+        # Remove the file from disk
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                app.logger.error(f"Error deleting file {file_path}: {str(e)}")
+        
+        # Remove document versions
+        for version in document.versions:
+            version_path = os.path.join(app.config['UPLOAD_FOLDER'], version.filename)
+            if os.path.exists(version_path):
+                try:
+                    os.remove(version_path)
+                except Exception as e:
+                    app.logger.error(f"Error deleting version file {version_path}: {str(e)}")
+        
+        # Log activity before deletion
+        log_activity(
+            user_id=current_user.id,
+            action="delete_document_permanently",
+            details=json.dumps(doc_info)
+        )
+        
+        # Delete the document from database
+        db.session.delete(document)
+        db.session.commit()
+        
+        flash('Documento eliminato definitivamente', 'success')
+    else:
+        flash('Errore durante l\'eliminazione del documento. Riprova.', 'danger')
+    
+    # Redirect based on where the document was deleted from
+    referrer = request.referrer
+    if referrer and 'archived_documents' in referrer:
+        return redirect(url_for('archived_documents'))
+    return redirect(url_for('documents'))
 
 # Search routes
 @app.route('/search')
