@@ -85,7 +85,9 @@
                     <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
                     <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company.id) }}">{{ company.name }}</a></li>
                     {% for crumb in breadcrumbs[:-1] %}
-                        <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=crumb.id) }}">{{ crumb.name }}</a></li>
+                        {% if crumb.name != company.name %}
+                            <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=crumb.id) }}">{{ crumb.name }}</a></li>
+                        {% endif %}
                     {% endfor %}
                     <li class="breadcrumb-item active" aria-current="page">{{ folder.name }}</li>
                 </ol>
