@@ -239,7 +239,7 @@
                                     {{ (kb_size / 1024)|round(1, 'common') }} MB
                                 {% endif %}
                             </td>
-                            <td>{{ document.owner.username }}</td>
+                            <td>{{ document.owner.full_name }}</td>
                             <td>{{ document.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                             <td>
                                 <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm" title="Visualizza">

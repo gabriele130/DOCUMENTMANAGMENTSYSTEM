@@ -110,7 +110,7 @@
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                         <span>Caricato Da</span>
-                        <span>{{ document.owner.username }}</span>
+                        <span>{{ document.owner.full_name }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                         <span>Caricato Il</span>
@@ -166,7 +166,7 @@
                             <h6 class="mb-0">Versione {{ version.version_number }}</h6>
                             <span class="badge bg-secondary">{{ version.created_at.strftime('%d/%m/%Y') }}</span>
                         </div>
-                        <p class="text-muted small mb-2">Da {{ version.created_by.username }}</p>
+                        <p class="text-muted small mb-2">Da {{ version.created_by.full_name }}</p>
                         {% if version.change_summary %}
                         <p class="mb-0 small">{{ version.change_summary }}</p>
                         {% endif %}
@@ -292,7 +292,7 @@
                                     {% endif %}
                                 </span>
                             </div>
-                            <p class="mb-1 small text-muted">Assegnato a: {{ task.assigned_to.username if task.assigned_to else 'Non assegnato' }}</p>
+                            <p class="mb-1 small text-muted">Assegnato a: {{ task.assigned_to.full_name if task.assigned_to else 'Non assegnato' }}</p>
                             {% if task.due_date %}
                             <p class="mb-1 small text-muted">Scadenza: {{ task.due_date.strftime('%d/%m/%Y') }}</p>
                             {% endif %}
@@ -333,10 +333,7 @@
                     <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                         <div>
                             <i class="bi bi-person-circle me-2"></i>
-                            {{ user.username }}
-                            {% if user.first_name or user.last_name %}
-                            <span class="text-muted small">({{ user.first_name }} {{ user.last_name }})</span>
-                            {% endif %}
+                            {{ user.full_name }}
                         </div>
                         <form action="{{ url_for('unshare_document', document_id=document.id, user_id=user.id) }}" method="POST" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-outline-danger">

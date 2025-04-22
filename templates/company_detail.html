@@ -194,7 +194,7 @@
                                         <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ document.owner.username }}</td>
+                                    <td>{{ document.owner.full_name }}</td>
                                     <td>{{ document.created_at.strftime('%d/%m/%Y') }}</td>
                                     <td>
                                         <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
@@ -226,7 +226,7 @@
                 </div>
                 <div class="card-body">
                     <p><strong>Creato il:</strong> {{ company.created_at.strftime('%d/%m/%Y') }}</p>
-                    <p><strong>Creato da:</strong> {{ company.created_by.username }}</p>
+                    <p><strong>Creato da:</strong> {{ company.created_by.full_name }}</p>
                     <p><strong>Utenti:</strong> {{ company.users|length }}</p>
                     
                     <hr>

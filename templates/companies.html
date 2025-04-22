@@ -52,7 +52,7 @@
                     <p class="card-text">{{ company.description or 'Nessuna descrizione' }}</p>
                     <p class="card-text text-muted">
                         <small>Creato il {{ company.created_at.strftime('%d/%m/%Y') }} da 
-                        {{ company.created_by.username }}</small>
+                        {{ company.created_by.full_name }}</small>
                     </p>
                 </div>
                 <div class="card-footer bg-transparent">
