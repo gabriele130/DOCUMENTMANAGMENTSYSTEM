@@ -97,7 +97,7 @@
                         <li><a class="dropdown-item" href="{{ url_for('companies') }}">Tutte le aziende</a></li>
                         {% if current_user.companies %}
                             <li><hr class="dropdown-divider"></li>
-                            {% for company in current_user.companies %}
+                            {% for company in current_user.companies|sort(attribute='name') %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('company_detail', company_id=company.id) }}">
                                     <i class="bi bi-building"></i> {{ company.name }}
