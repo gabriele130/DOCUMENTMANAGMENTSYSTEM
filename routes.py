@@ -558,10 +558,11 @@ def download_document(document_id):
 @login_required
 def update_document(document_id):
     document = Document.query.get_or_404(document_id)
+    form = EmptyForm()
     
     # Check if user has permission to update this document
     if document.owner_id != current_user.id:
-        flash('You do not have permission to update this document.', 'danger')
+        flash('Non hai i permessi per modificare questo documento.', 'danger')
         return redirect(url_for('documents'))
     
     if request.method == 'POST':
@@ -656,16 +657,22 @@ def update_document(document_id):
     return render_template('update_document.html', 
                           document=document,
                           tags=all_tags,
-                          expiry_date=expiry_date)
+                          expiry_date=expiry_date,
+                          form=form)
 
 @app.route('/documents/<int:document_id>/share', methods=['POST'])
 @login_required
 def share_document(document_id):
+    form = EmptyForm()
+    if not form.validate_on_submit():
+        flash('Errore di validazione del form. Riprova.', 'danger')
+        return redirect(url_for('view_document', document_id=document_id))
+        
     document = Document.query.get_or_404(document_id)
     
     # Check if user has permission to share this document
     if document.owner_id != current_user.id:
-        flash('You do not have permission to share this document.', 'danger')
+        flash('Non hai i permessi per condividere questo documento.', 'danger')
         return redirect(url_for('documents'))
     
     # Get users to share with
@@ -694,19 +701,24 @@ def share_document(document_id):
 @app.route('/documents/<int:document_id>/unshare/<int:user_id>', methods=['POST'])
 @login_required
 def unshare_document(document_id, user_id):
+    form = EmptyForm()
+    if not form.validate_on_submit():
+        flash('Errore di validazione del form. Riprova.', 'danger')
+        return redirect(url_for('view_document', document_id=document_id))
+        
     document = Document.query.get_or_404(document_id)
     user = User.query.get_or_404(user_id)
     
     # Check if current user is the owner
     if document.owner_id != current_user.id:
-        flash('You do not have permission to unshare this document.', 'danger')
+        flash('Non hai i permessi per rimuovere questa condivisione.', 'danger')
         return redirect(url_for('documents'))
     
     # Remove user from shared list
     if user in document.shared_with:
         document.shared_with.remove(user)
         db.session.commit()
-        flash(f'Document no longer shared with {user.username}', 'success')
+        flash(f'Documento non più condiviso con {user.full_name}', 'success')
     
     return redirect(url_for('view_document', document_id=document.id))
 

@@ -18,6 +18,7 @@
             </div>
             <div class="card-body">
                 <form action="{{ url_for('update_document', document_id=document.id) }}" method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
                         <input type="text" class="form-control" id="title" name="title" value="{{ document.title or '' }}" placeholder="Document title">
