@@ -166,11 +166,25 @@
                             <p class="card-text">{{ subfolder.description or 'Nessuna descrizione' }}</p>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">Creata il {{ subfolder.created_at.strftime('%d/%m/%Y') }}</small>
-                                <a href="{{ url_for('folder_detail', folder_id=subfolder.id) }}" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-folder-open"></i> Apri
-                                </a>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('folder_detail', folder_id=subfolder.id) }}" class="btn btn-sm btn-primary" title="Apri">
+                                        <i class="fas fa-folder-open"></i>
+                                    </a>
+                                    {% if current_user.has_permission(subfolder.id, 3) or current_user.is_admin() %}
+                                    <a href="{{ url_for('update_folder', folder_id=subfolder.id) }}" class="btn btn-sm btn-outline-secondary" title="Modifica">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('folder_permissions', folder_id=subfolder.id) }}" class="btn btn-sm btn-outline-secondary" title="Permessi">
+                                        <i class="fas fa-lock"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-outline-danger" title="Elimina" 
+                                       onclick="prepareDeleteModal('{{ subfolder.id }}', '{{ subfolder.name }}'); return false;">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -298,6 +312,29 @@
 
 {% block scripts %}
 <script>
+    // Funzione per preparare il modal di eliminazione per qualsiasi cartella
+    function prepareDeleteModal(folderId, folderName) {
+        const modal = document.getElementById('deleteModal');
+        const modalTitle = modal.querySelector('.modal-title');
+        const modalBody = modal.querySelector('.modal-body');
+        const modalForm = modal.querySelector('form');
+        
+        // Aggiorna il testo del modal con il nome della cartella
+        modalBody.innerHTML = `
+            <p>Sei sicuro di voler eliminare la cartella <strong>${folderName}</strong>?</p>
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Attenzione: Questa azione eliminerà anche tutti i documenti e le sottocartelle contenuti. L'operazione non può essere annullata.
+            </div>
+        `;
+        
+        // Aggiorna l'action del form per puntare alla cartella corretta
+        modalForm.action = `/folder/${folderId}/delete`;
+        
+        // Mostra il modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Ricerca documenti
         const documentSearch = document.getElementById('documentSearch');
@@ -412,5 +449,4 @@
         }
     });
 </script>
-{% endblock %}
 {% endblock %}
