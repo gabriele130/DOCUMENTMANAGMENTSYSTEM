@@ -1,0 +1,38 @@
+{% extends 'layout.html' %}
+
+{% block title %}Modifica Azienda{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h2 class="mb-0">Modifica Azienda</h2>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('update_company', company_id=company.id) }}">
+                        {{ form.hidden_tag() if form }}
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nome Azienda *</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ company.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrizione</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ company.description or '' }}</textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('company_detail', company_id=company.id) }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> Indietro
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Aggiorna Azienda
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
