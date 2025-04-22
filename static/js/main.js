@@ -423,8 +423,8 @@ function confirmAction(title, message, confirmCallback, cancelCallback = null) {
                     <p>${message}</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmButton">Confirm</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-danger" id="confirmButton">Conferma</button>
                 </div>
             </div>
         </div>
