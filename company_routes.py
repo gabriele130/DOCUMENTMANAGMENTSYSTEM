@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from app import app, db, EmptyForm
 from models import (User, Document, Company, Folder, Permission, ActivityLog, AccessLevel, 
                    Reminder, Tag, DocumentMetadata)
+import shutil
 from routes import log_activity, admin_required
 
 # Company management routes

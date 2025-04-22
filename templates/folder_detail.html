@@ -34,6 +34,12 @@
                             <i class="fas fa-lock"></i> Gestisci permessi
                         </a>
                     </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash"></i> Elimina cartella
+                        </a>
+                    </li>
                 </ul>
             </div>
             {% endif %}
@@ -85,7 +91,7 @@
                     <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">Aziende</a></li>
                     {% for crumb in breadcrumbs[:-1] %}
                         {% if loop.first %}
-                            <li class="breadcrumb-item"><a href="{{ url_for('companies') }}">{{ company.name }}</a></li>
+                            <li class="breadcrumb-item"><a href="{{ url_for('company_detail', company_id=company.id) }}">{{ company.name }}</a></li>
                         {% else %}
                             <li class="breadcrumb-item"><a href="{{ url_for('folder_detail', folder_id=crumb.id) }}">{{ crumb.name }}</a></li>
                         {% endif %}
@@ -261,6 +267,31 @@
                 {% endif %}
             </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal di conferma eliminazione cartella -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Conferma eliminazione</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sei sicuro di voler eliminare la cartella <strong>{{ folder.name }}</strong>?</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Attenzione: Questa azione eliminerà anche tutti i documenti e le sottocartelle contenuti. L'operazione non può essere annullata.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <form action="{{ url_for('delete_folder', folder_id=folder.id) }}" method="POST">
+                    {{ form.hidden_tag() }}
+                    <button type="submit" class="btn btn-danger">Elimina</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
