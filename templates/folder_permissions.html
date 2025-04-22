@@ -43,7 +43,7 @@
                             <tbody>
                                 {% for permission in permissions %}
                                 <tr>
-                                    <td>{{ permission.user.username }}</td>
+                                    <td>{{ permission.user.full_name }}</td>
                                     <td>
                                         {% if permission.access_level == access_levels.READ %}
                                         <span class="badge bg-info">Lettura</span>
@@ -57,7 +57,7 @@
                                         <span class="badge bg-secondary">Nessuno</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ permission.created_by.username }}</td>
+                                    <td>{{ permission.created_by.full_name }}</td>
                                     <td>{{ permission.created_at.strftime('%d/%m/%Y') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
@@ -79,7 +79,7 @@
                                                     </div>
                                                     <form action="{{ url_for('update_permission', permission_id=permission.id) }}" method="POST">
                                                         <div class="modal-body">
-                                                            <p>Modifica i permessi per <strong>{{ permission.user.username }}</strong>:</p>
+                                                            <p>Modifica i permessi per <strong>{{ permission.user.full_name }}</strong>:</p>
                                                             <div class="mb-3">
                                                                 <label for="access_level" class="form-label">Livello di accesso</label>
                                                                 <select class="form-select" id="access_level" name="access_level">
@@ -116,7 +116,7 @@
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body">
-                                                        <p>Sei sicuro di voler rimuovere i permessi per <strong>{{ permission.user.username }}</strong>?</p>
+                                                        <p>Sei sicuro di voler rimuovere i permessi per <strong>{{ permission.user.full_name }}</strong>?</p>
                                                         <p class="text-danger">Questa azione è irreversibile e rimuoverà tutti i permessi di questo utente sulla cartella.</p>
                                                     </div>
                                                     <div class="modal-footer">
@@ -156,7 +156,7 @@
                             <select class="form-select" id="user_id" name="user_id" required>
                                 <option value="" selected disabled>Seleziona un utente...</option>
                                 {% for user in available_users %}
-                                <option value="{{ user.id }}">{{ user.username }}</option>
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -208,7 +208,7 @@
                 <div class="card-body">
                     <p><strong>Percorso:</strong> {{ folder.get_path() }}</p>
                     <p><strong>Azienda:</strong> {{ folder.company.name }}</p>
-                    <p><strong>Creato da:</strong> {{ folder.created_by.username }}</p>
+                    <p><strong>Creato da:</strong> {{ folder.created_by.full_name }}</p>
                     <p><strong>Creato il:</strong> {{ folder.created_at.strftime('%d/%m/%Y') }}</p>
                 </div>
             </div>

@@ -458,11 +458,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     let html = '<div class="list-group">';
                     users.forEach(user => {
-                        const fullName = user.full_name ? ` (${user.full_name})` : '';
                         html += `
                             <label class="list-group-item">
                                 <input class="form-check-input me-1" type="checkbox" name="users" value="${user.id}">
-                                <strong>${user.username}</strong>${fullName} - ${user.email}
+                                <strong>${user.full_name}</strong> - ${user.email}
                             </label>
                         `;
                     });

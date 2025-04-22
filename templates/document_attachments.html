@@ -48,7 +48,7 @@
                                         <h5 class="mb-1">{{ document.title or document.original_filename }}</h5>
                                         <p class="text-muted mb-0 small">
                                             {{ document.file_type.upper() }} | {{ (document.file_size / 1024)|round|int }} KB | 
-                                            Caricato da {{ document.owner.username }} il {{ document.created_at.strftime('%d/%m/%Y') }}
+                                            Caricato da {{ document.owner.full_name }} il {{ document.created_at.strftime('%d/%m/%Y') }}
                                         </p>
                                     </div>
                                 </div>
