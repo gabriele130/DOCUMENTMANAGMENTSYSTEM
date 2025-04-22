@@ -164,7 +164,7 @@
                             </p>
                             {% if document.expiry_date %}
                             <p class="card-text small text-muted mb-1">
-                                <i class="bi bi-clock"></i> Expires: {{ document.expiry_date.strftime('%b %d, %Y') }}
+                                <i class="bi bi-clock"></i> Scadenza: {{ document.expiry_date.strftime('%b %d, %Y') }}
                             </p>
                             {% endif %}
                         </div>
@@ -182,7 +182,7 @@
                     <div class="card-footer bg-transparent">
                         <div class="btn-group w-100" onclick="event.stopPropagation()">
                             <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-eye"></i> View
+                                <i class="bi bi-eye"></i> Visualizza
                             </a>
                             {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
                             <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-outline-info btn-sm" target="_blank">
@@ -190,7 +190,7 @@
                             </a>
                             {% endif %}
                             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download"></i> Download
+                                <i class="bi bi-download"></i> Scarica
                             </a>
                             <form action="{{ url_for('archive_document', document_id=document.id) }}" method="POST" class="d-inline">
                                 {{ form.hidden_tag() }}
@@ -265,7 +265,7 @@
                             </p>
                             {% if document.expiry_date %}
                             <p class="card-text small text-muted mb-1">
-                                <i class="bi bi-clock"></i> Expires: {{ document.expiry_date.strftime('%b %d, %Y') }}
+                                <i class="bi bi-clock"></i> Scadenza: {{ document.expiry_date.strftime('%b %d, %Y') }}
                             </p>
                             {% endif %}
                         </div>
@@ -283,7 +283,7 @@
                     <div class="card-footer bg-transparent">
                         <div class="btn-group w-100" onclick="event.stopPropagation()">
                             <a href="{{ url_for('view_document', document_id=document.id) }}" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-eye"></i> View
+                                <i class="bi bi-eye"></i> Visualizza
                             </a>
                             {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
                             <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-outline-info btn-sm" target="_blank">
@@ -291,7 +291,7 @@
                             </a>
                             {% endif %}
                             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download"></i> Download
+                                <i class="bi bi-download"></i> Scarica
                             </a>
                         </div>
                     </div>
@@ -314,14 +314,14 @@
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="documentPreviewModalLabel">Document Preview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title" id="documentPreviewModalLabel">Anteprima Documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
             </div>
             <div class="modal-body">
                 <div id="documentPreviewContainer"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
             </div>
         </div>
     </div>
