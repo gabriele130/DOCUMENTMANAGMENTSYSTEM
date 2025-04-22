@@ -1031,7 +1031,8 @@ def complete_task(task_id):
 @login_required
 def manage_tags():
     tags = Tag.query.all()
-    return render_template('manage_tags.html', tags=tags)
+    form = EmptyForm()
+    return render_template('manage_tags.html', tags=tags, form=form)
 
 @app.route('/tags/create', methods=['POST'])
 @login_required
