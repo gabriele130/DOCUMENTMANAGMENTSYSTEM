@@ -95,6 +95,18 @@ class User(UserMixin, db.Model):
     notifications = relationship('Notification', back_populates='user', cascade='all, delete-orphan')
     activity_logs = relationship('ActivityLog', back_populates='user')
     
+    @property
+    def full_name(self):
+        """Ritorna il nome completo dell'utente (Nome Cognome)"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.last_name:
+            return self.last_name
+        else:
+            return self.username
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
