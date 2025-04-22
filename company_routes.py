@@ -842,7 +842,8 @@ def upload_document_to_folder(folder_id):
     from models import Tag
     tags = Tag.query.all()
     
-    return render_template('upload_to_folder.html', folder=folder, tags=tags)
+    form = EmptyForm()
+    return render_template('upload_to_folder.html', folder=folder, tags=tags, form=form)
 
 # Reminder management routes
 @app.route('/reminders')
