@@ -180,7 +180,8 @@ def update_company(company_id):
         flash('Company updated successfully', 'success')
         return redirect(url_for('company_detail', company_id=company.id))
         
-    return render_template('update_company.html', company=company)
+    form = EmptyForm()
+    return render_template('update_company.html', company=company, form=form)
 
 @app.route('/companies/<int:company_id>/users')
 @login_required
