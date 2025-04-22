@@ -116,17 +116,17 @@ function setupDocumentActions() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const documentId = this.dataset.documentId;
-            const documentName = this.dataset.documentName || 'this document';
+            const documentName = this.dataset.documentName || 'questo documento';
             
             confirmAction(
-                'Archive Document',
-                `Are you sure you want to archive "${documentName}"? It will be moved to the archive section.`,
+                'Archivia Documento',
+                `Sei sicuro di voler archiviare "${documentName}"? Sarà spostato nella sezione archivio.`,
                 () => {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `/documents/${documentId}/archive`;
-                    document.body.appendChild(form);
-                    form.submit();
+                    // Trova il form associato a questo pulsante e invialo
+                    const parentForm = this.closest('form');
+                    if (parentForm) {
+                        parentForm.submit();
+                    }
                 }
             );
         });
@@ -139,11 +139,33 @@ function setupDocumentActions() {
             e.preventDefault();
             const documentId = this.dataset.documentId;
             
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/documents/${documentId}/unarchive`;
-            document.body.appendChild(form);
-            form.submit();
+            // Trova il form associato a questo pulsante e invialo
+            const parentForm = this.closest('form');
+            if (parentForm) {
+                parentForm.submit();
+            }
+        });
+    });
+    
+    // Setup delete buttons for permanent deletion
+    const deleteButtons = document.querySelectorAll('.btn-delete-document');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const documentId = this.dataset.documentId;
+            const documentName = this.dataset.documentName || 'questo documento';
+            
+            confirmAction(
+                'Elimina Definitivamente',
+                `ATTENZIONE: Stai per eliminare definitivamente "${documentName}". Questa azione non può essere annullata. Sei sicuro di voler procedere?`,
+                () => {
+                    // Trova il form associato a questo pulsante e invialo
+                    const parentForm = this.closest('form');
+                    if (parentForm) {
+                        parentForm.submit();
+                    }
+                }
+            );
         });
     });
 }

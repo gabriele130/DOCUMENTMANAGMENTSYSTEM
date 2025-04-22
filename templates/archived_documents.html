@@ -72,8 +72,15 @@
                                     <i class="bi bi-eye"></i> Visualizza
                                 </a>
                                 <form action="{{ url_for('unarchive_document', document_id=document.id) }}" method="POST" class="d-inline">
+                                    {{ form.hidden_tag() }}
                                     <button type="submit" class="btn btn-sm btn-outline-success btn-unarchive-document" data-document-id="{{ document.id }}">
                                         <i class="bi bi-arrow-up-circle"></i> Ripristina
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('delete_document_permanently', document_id=document.id) }}" method="POST" class="d-inline delete-document-form">
+                                    {{ form.hidden_tag() }}
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-document" data-document-id="{{ document.id }}" data-document-name="{{ document.title or document.original_filename }}">
+                                        <i class="bi bi-trash"></i> Elimina
                                     </button>
                                 </form>
                             </div>
