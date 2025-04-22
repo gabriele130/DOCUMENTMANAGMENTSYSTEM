@@ -90,7 +90,8 @@ def create_company():
         flash('Company created successfully', 'success')
         return redirect(url_for('company_detail', company_id=company.id))
         
-    return render_template('create_company.html')
+    form = EmptyForm()
+    return render_template('create_company.html', form=form)
 
 @app.route('/companies/<int:company_id>')
 @login_required
