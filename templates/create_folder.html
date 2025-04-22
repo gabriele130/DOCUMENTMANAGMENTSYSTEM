@@ -30,6 +30,7 @@
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('create_folder', parent_id=parent.id) }}">
+                        {{ form.hidden_tag() }}
                         <div class="mb-3">
                             <label for="name" class="form-label">Nome Cartella *</label>
                             <input type="text" class="form-control" id="name" name="name" required>

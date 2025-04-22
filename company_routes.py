@@ -474,7 +474,8 @@ def create_folder(parent_id):
         flash('Folder created successfully', 'success')
         return redirect(url_for('folder_detail', folder_id=folder.id))
         
-    return render_template('create_folder.html', parent=parent_folder)
+    form = EmptyForm()
+    return render_template('create_folder.html', parent=parent_folder, form=form)
 
 @app.route('/folders/<int:folder_id>/update', methods=['GET', 'POST'])
 @login_required
@@ -536,7 +537,8 @@ def update_folder(folder_id):
         flash('Folder updated successfully', 'success')
         return redirect(url_for('folder_detail', folder_id=folder.id))
         
-    return render_template('update_folder.html', folder=folder)
+    form = EmptyForm()
+    return render_template('update_folder.html', folder=folder, form=form)
 
 @app.route('/folders/<int:folder_id>/permissions')
 @login_required
