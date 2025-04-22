@@ -408,6 +408,9 @@ def folder_detail(folder_id):
         })
     )
     
+    # Crea un form vuoto per il CSRF token
+    form = EmptyForm()
+    
     return render_template('folder_detail.html', 
                           folder=folder,
                           company=company,
@@ -416,7 +419,8 @@ def folder_detail(folder_id):
                           breadcrumbs=breadcrumbs,
                           folder_tree=folder_tree,
                           current_sort=sort_by,
-                          current_order=sort_order)
+                          current_order=sort_order,
+                          form=form)
 
 @app.route('/folders/create/<int:parent_id>', methods=['GET', 'POST'])
 @login_required
@@ -718,6 +722,87 @@ def delete_permission(permission_id):
     return redirect(url_for('folder_permissions', folder_id=folder.id))
 
 # Upload document to folder
+@app.route('/folders/<int:folder_id>/delete', methods=['POST'])
+@login_required
+def delete_folder(folder_id):
+    """Elimina una cartella e tutto il suo contenuto"""
+    folder = Folder.query.get_or_404(folder_id)
+    
+    # Controllo dell'accesso - solo admin o utenti con accesso MANAGE possono eliminare
+    if not (current_user.is_admin() or current_user.has_permission(folder.id, AccessLevel.MANAGE)):
+        flash('Non hai i permessi per eliminare questa cartella', 'danger')
+        return redirect(url_for('folder_detail', folder_id=folder.id))
+    
+    # Non permettere di eliminare cartelle root (senza parent)
+    if folder.parent_id is None:
+        flash('Non è possibile eliminare una cartella principale', 'danger')
+        return redirect(url_for('folder_detail', folder_id=folder.id))
+    
+    company_id = folder.company_id
+    parent_folder_id = folder.parent_id
+    folder_name = folder.name
+    
+    # Registrazione dell'attività prima dell'eliminazione
+    log_activity(
+        user_id=current_user.id,
+        action="delete_folder",
+        details=json.dumps({
+            "folder_id": folder.id,
+            "folder_name": folder.name,
+            "company_id": folder.company_id,
+            "company_name": folder.company.name,
+            "parent_folder_id": folder.parent_id
+        })
+    )
+    
+    # Eliminazione delle sottocartelle in modo ricorsivo
+    # (cascading delete è configurato nel modello ma gestiamo documenti e file manualmente)
+    
+    # Raccogliamo tutti i documenti da eliminare
+    documents_to_delete = []
+    folders_to_process = [folder]
+    
+    while folders_to_process:
+        current_folder = folders_to_process.pop()
+        
+        # Aggiungi i documenti di questa cartella alla lista
+        documents_to_delete.extend(current_folder.documents)
+        
+        # Aggiungi sottocartelle alla lista da processare
+        subfolders = Folder.query.filter_by(parent_id=current_folder.id).all()
+        folders_to_process.extend(subfolders)
+    
+    # Eliminazione dei documenti e dei loro file fisici
+    for document in documents_to_delete:
+        # Eliminare il file fisico
+        if os.path.exists(document.file_path):
+            try:
+                os.remove(document.file_path)
+            except Exception as e:
+                print(f"Errore nell'eliminazione del file {document.file_path}: {e}")
+        
+        # Rimuovere le versioni dei documenti
+        for version in document.versions:
+            if os.path.exists(version.file_path):
+                try:
+                    os.remove(version.file_path)
+                except Exception as e:
+                    print(f"Errore nell'eliminazione della versione {version.file_path}: {e}")
+    
+    # Ora eliminiamo la cartella dal database
+    # CASCADE delete gestirà automaticamente l'eliminazione delle
+    # sottocartelle, permessi, documenti e metadati associati
+    db.session.delete(folder)
+    db.session.commit()
+    
+    flash(f'Cartella "{folder_name}" eliminata con successo', 'success')
+    
+    # Reindirizza alla cartella superiore
+    if parent_folder_id:
+        return redirect(url_for('folder_detail', folder_id=parent_folder_id))
+    else:
+        return redirect(url_for('company_detail', company_id=company_id))
+
 @app.route('/folders/<int:folder_id>/upload', methods=['GET', 'POST'])
 @login_required
 def upload_document_to_folder(folder_id):
