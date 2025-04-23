@@ -5,63 +5,36 @@ import re
 # Semplice sistema di classificazione dei documenti senza API di IA
 def classify_document_with_ai(text, file_type):
     """
-    Classifica un documento in base al suo contenuto e al tipo di file.
-    Implementazione di base senza API di OpenAI.
+    Identifica solo il tipo di file senza classificare il contenuto.
     
     Args:
-        text: Il testo contenuto nel documento
+        text: Il testo contenuto nel documento (non utilizzato)
         file_type: L'estensione del file o il tipo MIME
         
     Returns:
-        Una stringa che classifica il documento (es. "Fattura", "Contratto", ecc.)
+        Una stringa che identifica il tipo di file (es. "Documento PDF", "Documento Word", ecc.)
     """
-    logging.info(f"Classificazione documento con tipo file: {file_type}")
+    logging.info(f"Identificazione tipo di file: {file_type}")
     
-    # Classifica in base al tipo di file
-    if not text:
-        logging.warning("Nessun testo da classificare")
-        return "Non Classificato"
-        
-    # Converti in minuscolo per un confronto più facile
-    text_lower = text.lower() if text else ""
-    
-    # Dizionario di parole chiave per ogni tipo di documento
-    # È una classificazione semplice basata sulla frequenza delle parole
-    keywords = {
-        "Fattura": ["fattura", "pagamento", "iva", "importo", "totale", "euro", "scadenza", "pagare"],
-        "Contratto": ["contratto", "accordo", "parti", "clausole", "stipulato", "firma", "sottoscritto"],
-        "Curriculum": ["curriculum", "vitae", "cv", "esperienza", "formazione", "competenze", "professionale"],
-        "Relazione": ["relazione", "report", "analisi", "studio", "ricerca", "risultati", "conclusioni"],
-        "Modulo": ["modulo", "compilare", "richiesta", "dati", "firma", "autorizzazione"],
-        "Lettera": ["gentile", "cordiali saluti", "egregio", "in riferimento", "le comunico"],
-        "Memo": ["memo", "promemoria", "nota", "ricorda", "reminder"],
-        "Presentazione": ["presentazione", "slide", "diapositiva"],
-        "Manuale": ["manuale", "istruzioni", "guida", "procedura", "passo", "utilizzo"],
-    }
-    
-    # Conta le corrispondenze delle parole chiave
-    counts = {}
-    for doc_type, words in keywords.items():
-        count = sum(1 for word in words if word in text_lower)
-        counts[doc_type] = count
-    
-    # Seleziona il tipo con più corrispondenze
-    if counts:
-        max_type = max(counts.items(), key=lambda x: x[1])
-        if max_type[1] > 0:  # Se è stata trovata almeno una parola chiave
-            return max_type[0]
-    
-    # Classificazione basata sul tipo di file
+    # Classificazione basata solo sul tipo di file
     if "pdf" in file_type.lower():
         return "Documento PDF"
     elif "doc" in file_type.lower() or "word" in file_type.lower():
         return "Documento Word"
     elif "xls" in file_type.lower() or "excel" in file_type.lower() or "spreadsheet" in file_type.lower():
         return "Foglio di Calcolo"
-    elif "jpg" in file_type.lower() or "png" in file_type.lower() or "image" in file_type.lower():
+    elif "jpg" in file_type.lower() or "jpeg" in file_type.lower() or "png" in file_type.lower() or "image" in file_type.lower():
         return "Immagine"
     elif "txt" in file_type.lower():
         return "Documento di Testo"
+    elif "ppt" in file_type.lower() or "presentation" in file_type.lower():
+        return "Presentazione"
+    elif "zip" in file_type.lower() or "rar" in file_type.lower() or "7z" in file_type.lower():
+        return "Archivio"
+    elif "mp4" in file_type.lower() or "mov" in file_type.lower() or "avi" in file_type.lower() or "video" in file_type.lower():
+        return "Video"
+    elif "mp3" in file_type.lower() or "wav" in file_type.lower() or "audio" in file_type.lower():
+        return "Audio"
     
     return "Documento Generico"
 

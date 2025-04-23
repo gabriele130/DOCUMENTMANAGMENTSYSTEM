@@ -5,20 +5,20 @@ logger = logging.getLogger(__name__)
 
 def classify_document(text, file_type):
     """
-    Classify a document using OpenAI's API based on its content and type.
+    Identifica solo il tipo di file senza classificare il contenuto.
     
     Args:
-        text: The text content of the document
-        file_type: The file extension or mimetype
+        text: Il testo contenuto nel documento (non utilizzato)
+        file_type: L'estensione del file o il tipo MIME
         
     Returns:
-        A string classification of the document (e.g., "Invoice", "Contract", etc.)
+        Una stringa che identifica il tipo di file (es. "Documento PDF", "Documento Word", ecc.)
     """
     try:
         return classify_document_with_ai(text, file_type)
     except Exception as e:
-        logger.error(f"Document classification failed: {str(e)}")
-        return "Unclassified Document"
+        logger.error(f"Identificazione tipo di file fallita: {str(e)}")
+        return "Documento Generico"
 
 def extract_data_from_document(text, document_type):
     """
