@@ -543,6 +543,24 @@ def download_document(document_id):
         flash('Non hai il permesso di scaricare questo documento.', 'danger')
         return redirect(url_for('documents'))
     
+    # Controlla che il file esista
+    if not os.path.exists(document.file_path):
+        # Log dell'errore
+        app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
+        flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+        
+        # Log del problema per audit trail
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="download",
+            document_id=document_id,
+            result="failure",
+            details=json.dumps({"reason": "file_not_found", "path": document.file_path})
+        )
+        
+        return redirect(url_for('view_document', document_id=document.id))
+    
     # Log del download per audit trail
     from services.audit_service import AuditTrailService
     AuditTrailService.log_document_download(
@@ -1646,18 +1664,48 @@ def view_document_content(document_id):
     
     # Verifica autorizzazioni
     if document.owner_id != current_user.id and current_user not in document.shared_with:
+        # Log accesso negato per audit
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="view_content",
+            document_id=document_id,
+            result="denied",
+            details=json.dumps({"reason": "permission_denied"})
+        )
+        
         flash('Non hai il permesso di visualizzare questo documento.', 'danger')
         return redirect(url_for('documents'))
     
     # Controlla che il file esista
     if not os.path.exists(document.file_path):
-        flash('File non trovato nel sistema.', 'danger')
+        # Log dell'errore
+        app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
+        flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+        
+        # Log del problema per audit trail
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="view_content",
+            document_id=document_id,
+            result="failure",
+            details=json.dumps({"reason": "file_not_found", "path": document.file_path})
+        )
+        
         return redirect(url_for('view_document', document_id=document.id))
     
     # Per immagini, PDF e altri tipi supportati dal browser, visualizzali direttamente
     if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg']:
         # Log activity
-        log_activity(current_user.id, document_id, 'view_content', 'Visualizzazione contenuto documento')
+        from services.audit_service import AuditTrailService
+        AuditTrailService.log_activity(
+            user_id=current_user.id,
+            action="view_content",
+            document_id=document_id,
+            result="success",
+            details=json.dumps({"file_type": document.file_type})
+        )
         
         # Invia il file al browser (ma non come download)
         return send_file(document.file_path,
