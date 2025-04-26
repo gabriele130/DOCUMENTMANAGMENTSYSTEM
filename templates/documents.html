@@ -192,12 +192,12 @@
                             <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm">
                                 <i class="bi bi-download"></i> Scarica
                             </a>
-                            <form action="{{ url_for('archive_document', document_id=document.id) }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('delete_document', document_id=document.id) }}" method="POST" class="d-inline">
                                 {{ form.hidden_tag() }}
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-archive-document" 
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-document" 
                                     data-document-id="{{ document.id }}" 
                                     data-document-name="{{ document.title or document.original_filename }}">
-                                    <i class="bi bi-archive"></i> Archivia
+                                    <i class="bi bi-trash"></i> Elimina
                                 </button>
                             </form>
                         </div>

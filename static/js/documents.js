@@ -110,42 +110,8 @@ function updateFilterStatus() {
  * Setup document action buttons (view, download, share, etc.)
  */
 function setupDocumentActions() {
-    // Setup archive buttons
-    const archiveButtons = document.querySelectorAll('.btn-archive-document');
-    archiveButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const documentId = this.dataset.documentId;
-            const documentName = this.dataset.documentName || 'questo documento';
-            
-            confirmAction(
-                'Archivia Documento',
-                `Sei sicuro di voler archiviare "${documentName}"? Sarà spostato nella sezione archivio.`,
-                () => {
-                    // Trova il form associato a questo pulsante e invialo
-                    const parentForm = this.closest('form');
-                    if (parentForm) {
-                        parentForm.submit();
-                    }
-                }
-            );
-        });
-    });
-    
-    // Setup unarchive buttons if on archive page
-    const unarchiveButtons = document.querySelectorAll('.btn-unarchive-document');
-    unarchiveButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const documentId = this.dataset.documentId;
-            
-            // Trova il form associato a questo pulsante e invialo
-            const parentForm = this.closest('form');
-            if (parentForm) {
-                parentForm.submit();
-            }
-        });
-    });
+    // Non ci sono più pulsanti per l'archiviazione
+    // La funzionalità è stata sostituita dall'eliminazione permanente
     
     // Setup delete buttons for permanent deletion
     const deleteButtons = document.querySelectorAll('.btn-delete-document');
