@@ -278,14 +278,13 @@ def documents():
     
     # Ottieni tutti i documenti attivi (non archiviati) per visualizzarli
     if current_user.is_admin():
-        # Per gli amministratori, mostra tutti i documenti (non archiviati)
-        owned_documents = Document.query.filter_by(is_archived=False).order_by(sort_field).all()
+        # Per gli amministratori, mostra tutti i documenti
+        owned_documents = Document.query.order_by(sort_field).all()
         shared_documents = []
     else:
         # Per gli utenti normali, distingui tra documenti di proprietà e documenti condivisi
         owned_documents = Document.query.filter_by(
-            owner_id=current_user.id, 
-            is_archived=False
+            owner_id=current_user.id
         ).order_by(sort_field).all()
         
         # Ottieni documenti condivisi con l'utente
@@ -994,7 +993,7 @@ def create_workflow_route():
             return redirect(request.url)
     
     # Get documents owned by the user for the form
-    documents = Document.query.filter_by(owner_id=current_user.id, is_archived=False).all()
+    documents = Document.query.filter_by(owner_id=current_user.id).all()
     
     # Get all users for task assignment
     users = User.query.all()
@@ -1710,15 +1709,13 @@ def document_attachments(document_id):
     # 1. Documenti di proprietà dell'utente
     available_documents = Document.query.filter(
         Document.id != document_id,
-        Document.owner_id == current_user.id,
-        Document.is_archived == False
+        Document.owner_id == current_user.id
     ).all()
     
     # 2. Documenti condivisi con l'utente
     shared_docs = Document.query.filter(
         Document.id != document_id,
-        Document.shared_with.any(id=current_user.id),
-        Document.is_archived == False
+        Document.shared_with.any(id=current_user.id)
     ).all()
     
     for doc in shared_docs:
