@@ -416,10 +416,8 @@ def create_folder(parent_id):
     parent_folder = Folder.query.get_or_404(parent_id)
     company = parent_folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
     
     # Check if user has write permission on parent folder
     if not current_user.is_admin() and not current_user.has_permission(parent_id, AccessLevel.WRITE):
@@ -476,10 +474,8 @@ def update_folder(folder_id):
     folder = Folder.query.get_or_404(folder_id)
     company = folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
     
     # Check if user has write permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.WRITE):
@@ -539,11 +535,7 @@ def folder_permissions(folder_id):
     folder = Folder.query.get_or_404(folder_id)
     company = folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
-    
+    # Gli utenti possono visualizzare tutte le aziende\n    # Mantenere solo i controlli per i permessi specifici delle operazioni
     # Check if user has manage permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.MANAGE):
         flash('You do not have permission to manage this folder', 'danger')
@@ -573,10 +565,7 @@ def add_folder_permission(folder_id):
     company = folder.company
     
     # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
-    
+    # Gli utenti possono visualizzare tutte le aziende\n    # Mantenere solo i controlli per i permessi specifici delle operazioni
     # Check if user has manage permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.MANAGE):
         flash('You do not have permission to manage this folder', 'danger')
@@ -637,12 +626,9 @@ def update_permission(permission_id):
     folder = permission.folder
     company = folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
     
-    # Check if user has manage permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder.id, AccessLevel.MANAGE):
         flash('You do not have permission to manage this folder', 'danger')
         return redirect(url_for('folder_detail', folder_id=folder.id))
@@ -678,16 +664,16 @@ def delete_permission(permission_id):
     folder = permission.folder
     company = folder.company
     user = permission.user
-    
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
-    
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
+
     # Check if user has manage permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder.id, AccessLevel.MANAGE):
-        flash('You do not have permission to manage this folder', 'danger')
-        return redirect(url_for('folder_detail', folder_id=folder.id))
+        flash("You do not have permission to manage this folder", "danger")
+        return redirect(url_for("folder_detail", folder_id=folder.id))
+    
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
     
     # Log before deletion
     log_activity(
@@ -880,17 +866,12 @@ def upload_document_to_folder(folder_id):
     folder = Folder.query.get_or_404(folder_id)
     company = folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this company', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono visualizzare tutte le aziende
+    # Mantenere solo i controlli per i permessi specifici delle operazioni
     
     # Check if user has write permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.WRITE):
-        flash('You do not have permission to upload to this folder', 'danger')
-        return redirect(url_for('folder_detail', folder_id=folder_id))
-    
-    if request.method == 'POST':
+    # Gli utenti possono visualizzare tutte le aziende\n    # Mantenere solo i controlli per i permessi specifici delle operazioni
         # Handle file upload (similar to the main upload_document function)
         if 'document' not in request.files:
             flash('No file part', 'danger')
