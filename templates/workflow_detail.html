@@ -7,7 +7,7 @@
     <div class="col-md-8">
         <h1 class="h3 mb-0">{{ workflow.name }}</h1>
         <p class="text-muted">
-            Created by {{ workflow.created_by.username }} on {{ workflow.created_at.strftime('%b %d, %Y') }}
+            Created by {{ workflow.created_by.username }} on {{ workflow.created_at.strftime('%d/%m/%Y') }}
             <span class="badge 
                 {% if workflow.status == 'active' %}bg-primary
                 {% elif workflow.status == 'complete' %}bg-success
@@ -52,7 +52,7 @@
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Created:</span>
-                            <span>{{ workflow.created_at.strftime('%b %d, %Y') }}</span>
+                            <span>{{ workflow.created_at.strftime('%d/%m/%Y') }}</span>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Tasks:</span>

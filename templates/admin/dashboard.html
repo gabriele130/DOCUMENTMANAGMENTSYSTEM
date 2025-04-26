@@ -197,7 +197,7 @@
                                 <td>{{ user.first_name }} {{ user.last_name }}</td>
                                 <td>{{ user.email }}</td>
                                 <td><span class="badge bg-{{ 'danger' if user.role == 'admin' else 'info' }}">{{ user.role }}</span></td>
-                                <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                                <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
                                 <td>
                                     <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i> Edit

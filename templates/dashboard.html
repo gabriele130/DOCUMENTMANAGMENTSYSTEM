@@ -153,7 +153,7 @@
                                     <i class="bi bi-tag"></i> {{ document.classification or 'Non classificato' }}
                                 </p>
                                 <p class="card-text small text-muted mb-1">
-                                    <i class="bi bi-calendar"></i> {{ document.created_at.strftime('%b %d, %Y') }}
+                                    <i class="bi bi-calendar"></i> {{ document.created_at.strftime('%d/%m/%Y') }}
                                 </p>
                                 {% if document.tags %}
                                 <div class="mt-2">
