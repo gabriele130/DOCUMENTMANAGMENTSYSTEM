@@ -57,7 +57,7 @@ def search_documents(query, user_id, doc_type=None, from_date=None, to_date=None
         )
     
     # Exclude archived documents by default
-    base_query = base_query.filter(Document.is_archived == False)
+    # Non filtriamo più per archiviazione dato che è stata rimossa
     
     # Order by relevance (if search query) or recency
     if query:
@@ -130,8 +130,7 @@ def advanced_search(criteria):
         for tag_id in criteria['tags']:
             query = query.filter(Document.tags.any(Tag.id == tag_id))
     
-    if 'exclude_archived' in criteria and criteria['exclude_archived']:
-        query = query.filter(Document.is_archived == False)
+    # Rimosso filtro archiviazione (funzionalità di archiviazione è stata rimossa)
     
     # Order results by specified field or default to recency
     order_by = criteria.get('order_by', 'updated_at')
