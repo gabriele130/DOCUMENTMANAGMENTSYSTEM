@@ -144,7 +144,7 @@
                                 <td>
                                     {% if task.due_date %}
                                     <span class="{% if task.due_date < now %}text-danger{% endif %}">
-                                        {{ task.due_date.strftime('%b %d, %Y') }}
+                                        {{ task.due_date.strftime('%d/%m/%Y') }}
                                     </span>
                                     {% else %}
                                     <span class="text-muted">No due date</span>

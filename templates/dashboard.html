@@ -92,7 +92,7 @@
                             </div>
                             <div class="task-due-date {% if task.due_date and task.due_date < now %}overdue{% endif %}">
                                 {% if task.due_date %}
-                                <i class="bi bi-calendar"></i> {{ task.due_date.strftime('%b %d, %Y') }}
+                                <i class="bi bi-calendar"></i> {{ task.due_date.strftime('%d/%m/%Y') }}
                                 {% endif %}
                             </div>
                         </div>
@@ -218,7 +218,7 @@
                                     </a>
                                 </td>
                                 <td>{{ document.classification or 'Non classificato' }}</td>
-                                <td>{{ document.expiry_date.strftime('%b %d, %Y') }}</td>
+                                <td>{{ document.expiry_date.strftime('%d/%m/%Y') }}</td>
                                 <td>
                                     <span class="badge {% if days_left < 7 %}bg-danger{% elif days_left < 15 %}bg-warning{% else %}bg-info{% endif %}">
                                         {{ days_left }} giorni
