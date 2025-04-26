@@ -759,94 +759,33 @@ def unshare_document(document_id, user_id):
     
     return redirect(url_for('view_document', document_id=document.id))
 
-@app.route('/documents/<int:document_id>/archive', methods=['POST'])
+# Elimina le route di archiviazione dei documenti in quanto non più necessarie
+# Ora i documenti possono essere eliminati definitivamente solo dagli amministratori
+
+@app.route('/documents/<int:document_id>/delete', methods=['GET', 'POST'])
 @login_required
-def archive_document(document_id):
+@admin_required  # Solo gli amministratori possono eliminare definitivamente
+def delete_document_permanently(document_id):
+    # Primo passaggio: mostra la pagina di conferma
+    if request.method == 'GET':
+        document = Document.query.get_or_404(document_id)
+        return render_template('confirm_delete.html', document=document, form=EmptyForm())
+    
+    # Secondo passaggio: elabora la cancellazione dopo la conferma
     form = EmptyForm()
     if form.validate_on_submit():
         document = Document.query.get_or_404(document_id)
         
-        # Check if user has permission to archive this document
-        if document.owner_id != current_user.id:
-            flash('Non hai i permessi per archiviare questo documento.', 'danger')
+        # Verifica aggiuntiva che l'utente sia amministratore
+        if not current_user.is_admin():
+            flash('Solo gli amministratori possono eliminare definitivamente i documenti.', 'danger')
             return redirect(url_for('documents'))
         
-        document.is_archived = True
-        db.session.commit()
-        
-        # Log activity
-        log_activity(
-            user_id=current_user.id,
-            action="archive_document",
-            document_id=document.id,
-            details=json.dumps({
-                "document_id": document.id,
-                "document_title": document.title or document.original_filename
-            })
-        )
-        
-        flash('Documento archiviato con successo', 'success')
-    else:
-        flash('Errore durante l\'archiviazione del documento. Riprova.', 'danger')
-    
-    return redirect(url_for('documents'))
-
-@app.route('/documents/archived')
-@login_required
-def archived_documents():
-    # Get all archived documents (visibili a tutti)
-    # Se l'utente è admin, mostra tutti i documenti archiviati
-    if current_user.is_admin():
-        documents = Document.query.filter_by(is_archived=True).all()
-    else:
-        # Per gli utenti normali, mostra i propri documenti archiviati
-        documents = Document.query.filter_by(owner_id=current_user.id, is_archived=True).all()
-    
-    return render_template('archived_documents.html', documents=documents, form=EmptyForm())
-
-@app.route('/documents/<int:document_id>/unarchive', methods=['POST'])
-@login_required
-def unarchive_document(document_id):
-    form = EmptyForm()
-    if form.validate_on_submit():
-        document = Document.query.get_or_404(document_id)
-        
-        # Check if user has permission to unarchive this document
-        if document.owner_id != current_user.id:
-            flash('You do not have permission to unarchive this document.', 'danger')
-            return redirect(url_for('archived_documents'))
-        
-        document.is_archived = False
-        db.session.commit()
-        
-        # Log activity
-        log_activity(
-            user_id=current_user.id,
-            action="unarchive_document",
-            document_id=document.id,
-            details=json.dumps({
-                "document_id": document.id,
-                "document_title": document.title or document.original_filename
-            })
-        )
-        
-        flash('Documento ripristinato', 'success')
-    else:
-        flash('Errore durante il ripristino del documento. Riprova.', 'danger')
-    
-    return redirect(url_for('archived_documents'))
-
-@app.route('/documents/<int:document_id>/delete', methods=['POST'])
-@login_required
-def delete_document_permanently(document_id):
-    form = EmptyForm()
-    if form.validate_on_submit():
-        document = Document.query.get_or_404(document_id)
-        
-        # Check if user has permission to delete this document
-        if document.owner_id != current_user.id and not current_user.is_admin():
-            flash('Non hai i permessi per eliminare questo documento.', 'danger')
-            return redirect(url_for('archived_documents'))
+        # Conferma aggiuntiva tramite checkbox
+        confirmation = request.form.get('confirm_delete') == 'yes'
+        if not confirmation:
+            flash('Per eliminare definitivamente questo documento, devi confermare l\'azione.', 'warning')
+            return redirect(url_for('delete_document_permanently', document_id=document_id))
         
         # Store document info for activity log
         doc_info = {
