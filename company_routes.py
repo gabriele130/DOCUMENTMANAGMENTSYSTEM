@@ -330,10 +330,8 @@ def folder_detail(folder_id):
     # Gli utenti possono vedere tutte le aziende
     # Manteniamo solo il controllo di permessi sulla cartella specifica
     
-    # Check if user has at least read permission on this folder
-    if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.READ):
-        flash('You do not have permission to view this folder', 'danger')
-        return redirect(url_for('company_detail', company_id=company.id))
+    # Tutti gli utenti possono visualizzare tutte le cartelle
+    # Rimuoviamo il controllo di permessi per la visualizzazione
     
     # Get sort parameters
     sort_by = request.args.get('sort_by', 'name')
