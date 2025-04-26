@@ -1728,8 +1728,7 @@ def document_attachments(document_id):
             if permission.access_level >= AccessLevel.READ:
                 folder_docs = Document.query.filter(
                     Document.id != document_id,
-                    Document.folder_id == permission.folder_id,
-                    Document.is_archived == False
+                    Document.folder_id == permission.folder_id
                 ).all()
                 
                 for doc in folder_docs:
@@ -1738,8 +1737,7 @@ def document_attachments(document_id):
     else:
         # L'admin vede tutti i documenti
         admin_docs = Document.query.filter(
-            Document.id != document_id,
-            Document.is_archived == False
+            Document.id != document_id
         ).all()
         
         for doc in admin_docs:

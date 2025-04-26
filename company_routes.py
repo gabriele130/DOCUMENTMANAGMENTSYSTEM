@@ -148,8 +148,7 @@ def company_detail(company_id):
     
     # Get recent documents - always sorted by date (most recent first)
     recent_documents = Document.query.filter_by(
-        company_id=company.id, 
-        is_archived=False
+        company_id=company.id
     ).order_by(Document.created_at.desc()).limit(10).all()
     
     # Get complete folder structure for dropdown navigation
@@ -370,7 +369,7 @@ def folder_detail(folder_id):
     else:
         doc_sort_field = doc_sort_field.desc()
     
-    documents = Document.query.filter_by(folder_id=folder.id, is_archived=False).order_by(doc_sort_field).all()
+    documents = Document.query.filter_by(folder_id=folder.id).order_by(doc_sort_field).all()
     
     # Get folder breadcrumbs
     breadcrumbs = []
