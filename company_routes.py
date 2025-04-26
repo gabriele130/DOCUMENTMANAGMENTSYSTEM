@@ -803,6 +803,89 @@ def delete_folder(folder_id):
     else:
         return redirect(url_for('company_detail', company_id=company_id))
 
+@app.route('/folders/<int:folder_id>/move', methods=['POST'])
+@login_required
+def move_folder(folder_id):
+    """Sposta una cartella in una destinazione diversa"""
+    folder = Folder.query.get_or_404(folder_id)
+    target_folder_id = request.form.get('target_folder_id')
+    
+    # Controllo dell'accesso - solo admin o utenti con accesso MANAGE possono spostare
+    if not (current_user.is_admin() or current_user.has_permission(folder.id, AccessLevel.MANAGE)):
+        return jsonify({'success': False, 'message': 'Non hai i permessi per spostare questa cartella'}), 403
+    
+    if not target_folder_id:
+        return jsonify({'success': False, 'message': 'Destinazione non specificata'}), 400
+
+    # Prevent moving to the same location
+    if str(folder.parent_id) == target_folder_id:
+        return jsonify({'success': False, 'message': 'La cartella è già nella destinazione'}), 400
+    
+    # Check if target exists
+    target_folder = None
+    
+    if target_folder_id != 'root':
+        target_folder = Folder.query.get_or_404(target_folder_id)
+        
+        # Check permissions for target folder
+        if not (current_user.is_admin() or current_user.has_permission(int(target_folder_id), AccessLevel.WRITE)):
+            return jsonify({'success': False, 'message': 'Non hai i permessi per inserire nella cartella di destinazione'}), 403
+        
+        # Prevent circular reference (can't move a folder into its own descendant)
+        current = target_folder
+        while current:
+            if current.id == folder.id:
+                return jsonify({'success': False, 'message': 'Impossibile spostare una cartella in una sua sottocartella'}), 400
+            current = current.parent
+    
+    # Check if folder with same name exists at target location
+    if target_folder_id == 'root':
+        existing = Folder.query.filter_by(
+            company_id=folder.company_id,
+            parent_id=None,
+            name=folder.name
+        ).filter(Folder.id != folder.id).first()
+    else:
+        existing = Folder.query.filter_by(
+            parent_id=target_folder_id,
+            name=folder.name
+        ).filter(Folder.id != folder.id).first()
+    
+    if existing:
+        return jsonify({'success': False, 'message': f'Esiste già una cartella chiamata "{folder.name}" nella destinazione'}), 400
+    
+    # Store old path and parent for log
+    old_path = folder.get_path()
+    old_parent_id = folder.parent_id
+    
+    # Move folder
+    if target_folder_id == 'root':
+        folder.parent_id = None
+    else:
+        folder.parent_id = int(target_folder_id)
+    
+    db.session.commit()
+    
+    # Log activity
+    log_activity(
+        user_id=current_user.id,
+        action="move_folder",
+        details=json.dumps({
+            "folder_id": folder.id,
+            "folder_name": folder.name,
+            "old_path": old_path,
+            "new_path": folder.get_path(),
+            "old_parent_id": old_parent_id,
+            "new_parent_id": folder.parent_id
+        })
+    )
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Cartella spostata con successo',
+        'newPath': folder.get_path()
+    })
+
 @app.route('/folders/<int:folder_id>/upload', methods=['GET', 'POST'])
 @login_required
 def upload_document_to_folder(folder_id):

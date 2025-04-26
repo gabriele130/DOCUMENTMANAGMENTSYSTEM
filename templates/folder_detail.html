@@ -157,7 +157,11 @@
             <div class="row row-cols-1 row-cols-md-3 g-4">
                 {% for subfolder in subfolders %}
                 <div class="col">
-                    <div class="card h-100">
+                    <div class="card h-100 folder-card" 
+                         draggable="true"
+                         data-folder-id="{{ subfolder.id }}"
+                         data-folder-name="{{ subfolder.name }}"
+                         ondragstart="folderDragStart(event)">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
                                 <i class="fas fa-folder fa-2x text-warning me-3"></i>
