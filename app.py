@@ -40,7 +40,8 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Configure file upload settings
-app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
+# Usa un percorso assoluto per salvare i file in modo persistente
+app.config["UPLOAD_FOLDER"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
 # Non impostiamo limiti di dimensione file per il caricamento
 app.config["ALLOWED_EXTENSIONS"] = {
     "pdf", "docx", "xlsx", "pptx", "txt", "jpg", "jpeg", "png", "gif", "zip", "rar", "7z", 

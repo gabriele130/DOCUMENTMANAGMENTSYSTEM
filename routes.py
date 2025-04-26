@@ -314,8 +314,17 @@ def upload_document():
             # Save the uploaded file
             filename = secure_filename(file.filename)
             unique_filename = f"{str(uuid.uuid4())}_{filename}"
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            # Usa percorso assoluto per garantire che il file sia persistente
+            file_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+            
+            # Assicurati che la directory upload esista
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+            # Salva il file
             file.save(file_path)
+            
+            # Log del percorso per debug
+            app.logger.info(f"File salvato in: {file_path}")
             
             # Extract basic metadata
             file_type = filename.rsplit('.', 1)[1].lower()
@@ -544,22 +553,34 @@ def download_document(document_id):
         return redirect(url_for('documents'))
     
     # Controlla che il file esista
-    if not os.path.exists(document.file_path):
-        # Log dell'errore
-        app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
-        flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+    file_path = document.file_path
+    if not os.path.exists(file_path):
+        # Prova a ricostruire il percorso file
+        alternative_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
         
-        # Log del problema per audit trail
-        from services.audit_service import AuditTrailService
-        AuditTrailService.log_activity(
-            user_id=current_user.id,
-            action="download",
-            document_id=document_id,
-            result="failure",
-            details=json.dumps({"reason": "file_not_found", "path": document.file_path})
-        )
-        
-        return redirect(url_for('view_document', document_id=document.id))
+        if os.path.exists(alternative_path):
+            # Se trovato, aggiorna il percorso nel database
+            document.file_path = alternative_path
+            db.session.commit()
+            app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
+            file_path = alternative_path
+        else:
+            # Log dell'errore
+            app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
+            app.logger.error(f"Percorso alternativo tentato: {alternative_path}")
+            flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+            
+            # Log del problema per audit trail
+            from services.audit_service import AuditTrailService
+            AuditTrailService.log_activity(
+                user_id=current_user.id,
+                action="download",
+                document_id=document_id,
+                result="failure",
+                details=json.dumps({"reason": "file_not_found", "path": document.file_path, "alt_path": alternative_path})
+            )
+            
+            return redirect(url_for('view_document', document_id=document.id))
     
     # Log del download per audit trail
     from services.audit_service import AuditTrailService
@@ -568,7 +589,7 @@ def download_document(document_id):
         document_id=document_id
     )
     
-    return send_file(document.file_path, 
+    return send_file(file_path, 
                     download_name=document.original_filename,
                     as_attachment=True)
 
@@ -841,21 +862,42 @@ def delete_document_permanently(document_id):
         }
         
         # Remove the file from disk
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+        file_path = document.file_path
+        # Verifica percorso principale
         if os.path.exists(file_path):
             try:
                 os.remove(file_path)
+                app.logger.info(f"File eliminato: {file_path}")
             except Exception as e:
-                app.logger.error(f"Error deleting file {file_path}: {str(e)}")
+                app.logger.error(f"Errore durante l'eliminazione del file {file_path}: {str(e)}")
+        else:
+            # Prova un percorso alternativo
+            alternative_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+            if os.path.exists(alternative_path):
+                try:
+                    os.remove(alternative_path)
+                    app.logger.info(f"File eliminato (percorso alternativo): {alternative_path}")
+                except Exception as e:
+                    app.logger.error(f"Errore durante l'eliminazione del file (percorso alternativo) {alternative_path}: {str(e)}")
         
         # Remove document versions
         for version in document.versions:
-            version_path = os.path.join(app.config['UPLOAD_FOLDER'], version.filename)
-            if os.path.exists(version_path):
+            # Verifica percorso principale della versione
+            if hasattr(version, 'file_path') and version.file_path and os.path.exists(version.file_path):
                 try:
-                    os.remove(version_path)
+                    os.remove(version.file_path)
+                    app.logger.info(f"File versione eliminato: {version.file_path}")
                 except Exception as e:
-                    app.logger.error(f"Error deleting version file {version_path}: {str(e)}")
+                    app.logger.error(f"Errore durante l'eliminazione della versione {version.file_path}: {str(e)}")
+            else:
+                # Prova percorso alternativo
+                version_path = os.path.join(app.config['UPLOAD_FOLDER'], version.filename)
+                if os.path.exists(version_path):
+                    try:
+                        os.remove(version_path)
+                        app.logger.info(f"File versione eliminato (percorso alternativo): {version_path}")
+                    except Exception as e:
+                        app.logger.error(f"Errore durante l'eliminazione della versione (percorso alternativo) {version_path}: {str(e)}")
         
         # Log activity before deletion
         log_activity(
