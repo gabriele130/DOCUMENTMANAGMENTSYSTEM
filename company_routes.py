@@ -32,17 +32,8 @@ def companies():
     else:
         sort_field = sort_field.desc()
     
-    # Get all companies the user has access to with sorting applied
-    if current_user.is_admin():
-        companies = Company.query.order_by(sort_field).all()
-    else:
-        # Per gli utenti normali, dobbiamo filtrare manualmente le aziende associate
-        # e poi ordinarle in Python perché non possiamo facilmente ordinare la relazione many-to-many
-        companies = sorted(
-            current_user.companies,
-            key=lambda c: getattr(c, sort_by),
-            reverse=(sort_order == 'desc')
-        )
+    # Tutte le aziende sono visibili a tutti gli utenti
+    companies = Company.query.order_by(sort_field).all()
     
     return render_template('companies.html', 
                           companies=companies,
@@ -100,10 +91,8 @@ def company_detail(company_id):
     """Redirect to the folder structure view for a company"""
     company = Company.query.get_or_404(company_id)
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('Non hai accesso a questa azienda', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono visualizzare tutte le aziende
+    # Non è più necessario verificare l'appartenenza dell'utente all'azienda
     
     # Log activity
     log_activity(
@@ -338,10 +327,8 @@ def folder_detail(folder_id):
     folder = Folder.query.get_or_404(folder_id)
     company = folder.company
     
-    # Check if user has access to this company
-    if not current_user.is_admin() and company not in current_user.companies:
-        flash('You do not have access to this folder', 'danger')
-        return redirect(url_for('companies'))
+    # Gli utenti possono vedere tutte le aziende
+    # Manteniamo solo il controllo di permessi sulla cartella specifica
     
     # Check if user has at least read permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.READ):
