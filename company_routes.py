@@ -871,7 +871,8 @@ def upload_document_to_folder(folder_id):
     
     # Check if user has write permission on this folder
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.WRITE):
-    # Gli utenti possono visualizzare tutte le aziende\n    # Mantenere solo i controlli per i permessi specifici delle operazioni
+        flash('Non hai i permessi per caricare documenti in questa cartella', 'danger')
+        return redirect(url_for('folder_detail', folder_id=folder_id))
         # Handle file upload (similar to the main upload_document function)
         if 'document' not in request.files:
             flash('No file part', 'danger')
