@@ -276,15 +276,20 @@ def documents():
     else:
         sort_field = sort_field.desc()
     
-    # Get all documents owned by the user or shared with them with sorting applied
-    owned_documents = Document.query.filter_by(
-        owner_id=current_user.id, 
-        is_archived=False
-    ).order_by(sort_field).all()
-    
-    # Note: We can't directly sort shared_documents as it's a relationship attribute
-    # We'll sort it in the template with JavaScript
-    shared_documents = current_user.shared_documents
+    # Ottieni tutti i documenti attivi (non archiviati) per visualizzarli
+    if current_user.is_admin():
+        # Per gli amministratori, mostra tutti i documenti (non archiviati)
+        owned_documents = Document.query.filter_by(is_archived=False).order_by(sort_field).all()
+        shared_documents = []
+    else:
+        # Per gli utenti normali, distingui tra documenti di proprietà e documenti condivisi
+        owned_documents = Document.query.filter_by(
+            owner_id=current_user.id, 
+            is_archived=False
+        ).order_by(sort_field).all()
+        
+        # Ottieni documenti condivisi con l'utente
+        shared_documents = current_user.shared_documents
     
     # Get all tags for filtering
     all_tags = Tag.query.all()
@@ -468,20 +473,8 @@ def upload_document():
 def view_document(document_id):
     document = Document.query.get_or_404(document_id)
     
-    # Check if user has permission to view this document
-    if document.owner_id != current_user.id and current_user not in document.shared_with:
-        # Log accesso negato per audit
-        from services.audit_service import AuditTrailService
-        AuditTrailService.log_activity(
-            user_id=current_user.id,
-            action="view",
-            document_id=document_id,
-            result="denied",
-            details=json.dumps({"reason": "permission_denied"})
-        )
-        
-        flash('Non hai il permesso di visualizzare questo documento.', 'danger')
-        return redirect(url_for('documents'))
+    # Tutti gli utenti possono visualizzare tutti i documenti
+    # Mantenere solo i controlli per operazioni specifiche
     
     # Get document preview if available
     preview_html = get_document_preview(document)
@@ -537,20 +530,8 @@ def view_document(document_id):
 def download_document(document_id):
     document = Document.query.get_or_404(document_id)
     
-    # Check if user has permission to download this document
-    if document.owner_id != current_user.id and current_user not in document.shared_with:
-        # Log accesso negato per audit
-        from services.audit_service import AuditTrailService
-        AuditTrailService.log_activity(
-            user_id=current_user.id,
-            action="download",
-            document_id=document_id,
-            result="denied",
-            details=json.dumps({"reason": "permission_denied"})
-        )
-        
-        flash('Non hai il permesso di scaricare questo documento.', 'danger')
-        return redirect(url_for('documents'))
+    # Tutti gli utenti possono scaricare tutti i documenti
+    # Mantenere solo i controlli per operazioni specifiche
     
     # Controlla che il file esista
     file_path = document.file_path
@@ -813,9 +794,15 @@ def archive_document(document_id):
 @app.route('/documents/archived')
 @login_required
 def archived_documents():
-    # Get all archived documents owned by the user
-    documents = Document.query.filter_by(owner_id=current_user.id, is_archived=True).all()
-    return render_template('archived_documents.html', documents=documents)
+    # Get all archived documents (visibili a tutti)
+    # Se l'utente è admin, mostra tutti i documenti archiviati
+    if current_user.is_admin():
+        documents = Document.query.filter_by(is_archived=True).all()
+    else:
+        # Per gli utenti normali, mostra i propri documenti archiviati
+        documents = Document.query.filter_by(owner_id=current_user.id, is_archived=True).all()
+    
+    return render_template('archived_documents.html', documents=documents, form=EmptyForm())
 
 @app.route('/documents/<int:document_id>/unarchive', methods=['POST'])
 @login_required
@@ -959,15 +946,27 @@ def search():
         except ValueError:
             flash('Invalid to date format', 'warning')
     
-    # Search for documents
-    results = search_documents(
-        query=query,
-        user_id=current_user.id,
-        doc_type=doc_type,
-        from_date=from_date,
-        to_date=to_date,
-        tags=tags
-    )
+    # Search for documents - vista di tutti i documenti per tutti gli utenti
+    if current_user.is_admin():
+        # Gli amministratori possono cercare tutti i documenti nel sistema
+        results = search_documents(
+            query=query,
+            user_id=None,  # None indica ricerca in tutti i documenti
+            doc_type=doc_type,
+            from_date=from_date,
+            to_date=to_date,
+            tags=tags
+        )
+    else:
+        # Gli utenti normali cercano nei propri documenti
+        results = search_documents(
+            query=query,
+            user_id=current_user.id,
+            doc_type=doc_type,
+            from_date=from_date,
+            to_date=to_date,
+            tags=tags
+        )
     
     # Save search history
     filters = {
