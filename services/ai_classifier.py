@@ -18,7 +18,7 @@ def classify_document(text, file_type):
         return classify_document_with_ai(text, file_type)
     except Exception as e:
         logger.error(f"Identificazione tipo di file fallita: {str(e)}")
-        return "Documento Generico"
+        return ""
 
 def extract_data_from_document(text, document_type):
     """

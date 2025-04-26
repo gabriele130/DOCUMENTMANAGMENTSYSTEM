@@ -16,27 +16,9 @@ def classify_document_with_ai(text, file_type):
     """
     logging.info(f"Identificazione tipo di file: {file_type}")
     
-    # Classificazione basata solo sul tipo di file
-    if "pdf" in file_type.lower():
-        return "Documento PDF"
-    elif "doc" in file_type.lower() or "word" in file_type.lower():
-        return "Documento Word"
-    elif "xls" in file_type.lower() or "excel" in file_type.lower() or "spreadsheet" in file_type.lower():
-        return "Foglio di Calcolo"
-    elif "jpg" in file_type.lower() or "jpeg" in file_type.lower() or "png" in file_type.lower() or "image" in file_type.lower():
-        return "Immagine"
-    elif "txt" in file_type.lower():
-        return "Documento di Testo"
-    elif "ppt" in file_type.lower() or "presentation" in file_type.lower():
-        return "Presentazione"
-    elif "zip" in file_type.lower() or "rar" in file_type.lower() or "7z" in file_type.lower():
-        return "Archivio"
-    elif "mp4" in file_type.lower() or "mov" in file_type.lower() or "avi" in file_type.lower() or "video" in file_type.lower():
-        return "Video"
-    elif "mp3" in file_type.lower() or "wav" in file_type.lower() or "audio" in file_type.lower():
-        return "Audio"
-    
-    return "Documento Generico"
+    # Rimozione delle classificazioni dei documenti per richiesta del cliente
+    # Non verranno più mostrate etichette come "Documento PDF" o "Unclassified"
+    return ""
 
 
 def extract_data_from_document(text, document_type):
