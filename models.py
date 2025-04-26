@@ -204,7 +204,6 @@ class Document(db.Model):
     )
     
     # Status flags
-    is_archived = db.Column(db.Boolean, default=False)
     expiry_date = db.Column(db.Date, nullable=True)  # For documents with expiration
     document_status = db.Column(db.String(50), default='active')  # active, expired, pending_review
     

@@ -693,25 +693,38 @@ def delete_permission(permission_id):
     return redirect(url_for('folder_permissions', folder_id=folder.id))
 
 # Upload document to folder
-@app.route('/folders/<int:folder_id>/delete', methods=['POST'])
+@app.route('/folders/<int:folder_id>/delete', methods=['GET', 'POST'])
 @login_required
+@admin_required  # Solo gli amministratori possono eliminare definitivamente
 def delete_folder(folder_id):
     """Elimina una cartella e tutto il suo contenuto"""
     folder = Folder.query.get_or_404(folder_id)
     
-    # Controllo dell'accesso - solo admin o utenti con accesso MANAGE possono eliminare
-    if not (current_user.is_admin() or current_user.has_permission(folder.id, AccessLevel.MANAGE)):
-        flash('Non hai i permessi per eliminare questa cartella', 'danger')
+    # Primo passaggio: mostra la pagina di conferma
+    if request.method == 'GET':
+        return render_template('confirm_delete_folder.html', folder=folder, form=EmptyForm())
+    
+    # Controllo aggiuntivo che l'utente sia amministratore
+    if not current_user.is_admin():
+        flash('Solo gli amministratori possono eliminare definitivamente le cartelle.', 'danger')
         return redirect(url_for('folder_detail', folder_id=folder.id))
     
-    # Non permettere di eliminare cartelle root (senza parent)
-    if folder.parent_id is None:
-        flash('Non è possibile eliminare una cartella principale', 'danger')
-        return redirect(url_for('folder_detail', folder_id=folder.id))
+    # Conferma aggiuntiva tramite checkbox
+    form = EmptyForm()
+    if form.validate_on_submit():
+        confirmation = request.form.get('confirm_delete') == 'yes'
+        if not confirmation:
+            flash('Per eliminare definitivamente questa cartella, devi confermare l\'azione.', 'warning')
+            return redirect(url_for('delete_folder', folder_id=folder.id))
     
-    company_id = folder.company_id
-    parent_folder_id = folder.parent_id
-    folder_name = folder.name
+        # Non permettere di eliminare cartelle root (senza parent)
+        if folder.parent_id is None:
+            flash('Non è possibile eliminare una cartella principale', 'danger')
+            return redirect(url_for('folder_detail', folder_id=folder.id))
+        
+        company_id = folder.company_id
+        parent_folder_id = folder.parent_id
+        folder_name = folder.name
     
     # Registrazione dell'attività prima dell'eliminazione
     log_activity(

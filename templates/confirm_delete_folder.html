@@ -1,0 +1,79 @@
+{% extends 'layout.html' %}
+
+{% block title %}Conferma Eliminazione Cartella{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger shadow">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Attenzione: Eliminazione Definitiva Cartella</h5>
+                </div>
+                <div class="card-body">
+                    <h4 class="mb-3">Sei sicuro di voler eliminare definitivamente questa cartella?</h4>
+                    
+                    <div class="alert alert-warning">
+                        <p><strong>Questa azione non può essere annullata!</strong></p>
+                        <p>La cartella, tutte le sue sottocartelle e tutti i documenti contenuti saranno eliminati permanentemente dal sistema.</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Dettagli cartella:</h5>
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>Nome cartella:</th>
+                                <td>{{ folder.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Percorso:</th>
+                                <td>{{ folder.get_path() }}</td>
+                            </tr>
+                            <tr>
+                                <th>Azienda:</th>
+                                <td>{{ folder.company.name }}</td>
+                            </tr>
+                            <tr>
+                                <th>Creata da:</th>
+                                <td>{% if folder.created_by %}{{ folder.created_by.full_name() }}{% else %}Sistema{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <th>Data creazione:</th>
+                                <td>{{ folder.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            </tr>
+                            <tr>
+                                <th>Sottocartelle:</th>
+                                <td>{{ folder.children|length }}</td>
+                            </tr>
+                            <tr>
+                                <th>Documenti:</th>
+                                <td>{{ folder.documents|length }}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('delete_folder', folder_id=folder.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" name="confirm_delete" value="yes" id="confirm_delete">
+                            <label class="form-check-label" for="confirm_delete">
+                                Confermo di voler eliminare definitivamente questa cartella, tutte le sue sottocartelle e tutti i documenti contenuti, e comprendo che questa azione non può essere annullata.
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('folder_detail', folder_id=folder.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Annulla
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-1"></i> Elimina Definitivamente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
