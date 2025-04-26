@@ -333,14 +333,192 @@
         `;
         
         // Aggiorna l'action del form per puntare alla cartella corretta
-        modalForm.action = `/folder/${folderId}/delete`;
+        modalForm.action = `/folders/${folderId}/delete`;
         
         // Mostra il modal
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
     }
+    
+    // Variabili per il drag and drop
+    let draggedFolderId = null;
+    let draggedFolderName = null;
+    
+    // Funzione per l'inizio del trascinamento
+    function folderDragStart(event) {
+        // Salva l'ID e il nome della cartella trascinata
+        const folderCard = event.currentTarget;
+        draggedFolderId = folderCard.dataset.folderId;
+        draggedFolderName = folderCard.dataset.folderName;
+        
+        // Imposta i dati per il trasferimento
+        event.dataTransfer.setData('text/plain', draggedFolderId);
+        event.dataTransfer.effectAllowed = 'move';
+        
+        // Aggiungi una classe per lo stile durante il trascinamento
+        folderCard.classList.add('dragging');
+        
+        // Per debug
+        console.log(`Inizio trascinamento cartella: ${draggedFolderName} (ID: ${draggedFolderId})`);
+    }
 
+    // Funzione quando si rilascia una cartella
+    function handleFolderDrop(event, targetId) {
+        event.preventDefault();
+        
+        // Rimuovi gli stili di trascinamento
+        document.querySelectorAll('.folder-card').forEach(card => {
+            card.classList.remove('dragging', 'drag-over');
+        });
+        document.querySelectorAll('.drop-target').forEach(target => {
+            target.classList.remove('drag-over');
+        });
+        
+        // Non fare nulla se si trascina su sé stessi
+        if (draggedFolderId === targetId.toString()) {
+            console.log("Non è possibile trascinare una cartella su sé stessa");
+            return;
+        }
+        
+        console.log(`Trascinamento cartella ${draggedFolderName} (ID: ${draggedFolderId}) su cartella ${targetId}`);
+        
+        // Invia richiesta al server per spostare la cartella
+        const formData = new FormData();
+        formData.append('target_folder_id', targetId);
+        
+        // Includi il token CSRF
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        formData.append('csrf_token', csrfToken);
+        
+        fetch(`/folders/${draggedFolderId}/move`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostra notifica di successo
+                showNotification('success', data.message);
+                // Aggiorna la pagina dopo breve ritardo
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                // Mostra notifica di errore
+                showNotification('danger', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Errore durante lo spostamento della cartella:', error);
+            showNotification('danger', 'Si è verificato un errore durante lo spostamento della cartella');
+        });
+    }
+    
+    // Funzione per mostrare notifiche temporanee
+    function showNotification(type, message) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed top-0 start-50 translate-middle-x mt-3`;
+        notification.style.zIndex = '9999';
+        notification.innerHTML = message;
+        document.body.appendChild(notification);
+        
+        // Rimuovi la notifica dopo 3 secondi
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
+        // Imposta eventi drag and drop per le sottocartelle
+        const folderCards = document.querySelectorAll('.folder-card');
+        
+        folderCards.forEach(card => {
+            // Quando termina il trascinamento
+            card.addEventListener('dragend', function(event) {
+                card.classList.remove('dragging');
+                draggedFolderId = null;
+                draggedFolderName = null;
+            });
+            
+            // Consenti di rilasciare su altre cartelle
+            card.addEventListener('dragover', function(event) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                if (draggedFolderId && draggedFolderId !== this.dataset.folderId) {
+                    this.classList.add('drag-over');
+                }
+            });
+            
+            card.addEventListener('dragleave', function(event) {
+                this.classList.remove('drag-over');
+            });
+            
+            card.addEventListener('drop', function(event) {
+                event.preventDefault();
+                if (draggedFolderId) {
+                    handleFolderDrop(event, this.dataset.folderId);
+                }
+            });
+        });
+        
+        // Consenti di rilasciare nella cartella corrente (aggiungiamo un'area di drop per la cartella corrente)
+        const currentFolder = document.querySelector('.card-header');
+        if (currentFolder) {
+            currentFolder.classList.add('drop-target');
+            currentFolder.setAttribute('data-folder-id', '{{ folder.id }}');
+            
+            currentFolder.addEventListener('dragover', function(event) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                if (draggedFolderId && draggedFolderId !== this.dataset.folderId) {
+                    this.classList.add('drag-over');
+                }
+            });
+            
+            currentFolder.addEventListener('dragleave', function(event) {
+                this.classList.remove('drag-over');
+            });
+            
+            currentFolder.addEventListener('drop', function(event) {
+                event.preventDefault();
+                if (draggedFolderId) {
+                    handleFolderDrop(event, this.dataset.folderId);
+                }
+            });
+        }
+        
+        // Consenti di rilasciare sulla cartella root (per spostare una cartella nella root)
+        const breadcrumb = document.querySelector('.breadcrumb');
+        if (breadcrumb) {
+            const companyLink = breadcrumb.querySelector('a[href*="company_detail"]');
+            if (companyLink) {
+                companyLink.classList.add('drop-target');
+                companyLink.setAttribute('data-folder-id', 'root');
+                
+                companyLink.addEventListener('dragover', function(event) {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = 'move';
+                    if (draggedFolderId) {
+                        this.classList.add('drag-over');
+                    }
+                });
+                
+                companyLink.addEventListener('dragleave', function(event) {
+                    this.classList.remove('drag-over');
+                });
+                
+                companyLink.addEventListener('drop', function(event) {
+                    event.preventDefault();
+                    if (draggedFolderId) {
+                        handleFolderDrop(event, 'root');
+                    }
+                });
+            }
+        }
+        
         // Ricerca documenti
         const documentSearch = document.getElementById('documentSearch');
         const documentsTable = document.getElementById('documentsTable');
