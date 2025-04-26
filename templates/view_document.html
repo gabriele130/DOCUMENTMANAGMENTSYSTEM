@@ -15,7 +15,7 @@
                 {% else %}bg-secondary{% endif %}">
                 {{ document.file_type.upper() }}
             </span>
-            <span class="badge bg-secondary">{{ document.classification or 'Non classificato' }}</span>
+            <!-- Classificazione rimossa -->
             {% if document.expiry_date %}
             <span class="badge bg-warning text-dark">Scade il {{ document.expiry_date.strftime('%d/%m/%Y') }}</span>
             {% endif %}

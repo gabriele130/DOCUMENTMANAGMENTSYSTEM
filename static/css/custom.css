@@ -578,6 +578,21 @@ body {
     overflow: hidden;
 }
 
+/* Correzione per i pulsanti nella carta dei documenti */
+.document-card .btn-group {
+    flex-wrap: wrap;
+}
+
+.document-card .btn-group .btn {
+    flex: 1 1 auto;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
 /* Miglioramento visualizzazione tags */
 .document-tag {
     display: inline-block;
