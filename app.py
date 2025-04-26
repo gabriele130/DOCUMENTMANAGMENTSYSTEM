@@ -41,9 +41,10 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # Configure file upload settings
 app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "uploads")
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max upload size
+# Non impostiamo limiti di dimensione file per il caricamento
 app.config["ALLOWED_EXTENSIONS"] = {
-    "pdf", "docx", "xlsx", "pptx", "txt", "jpg", "jpeg", "png", "gif"
+    "pdf", "docx", "xlsx", "pptx", "txt", "jpg", "jpeg", "png", "gif", "zip", "rar", "7z", 
+    "mp4", "mov", "avi", "mp3", "wav", "ogg", "csv", "xls", "doc", "rtf", "odt", "ods"
 }
 
 # Ensure upload directory exists

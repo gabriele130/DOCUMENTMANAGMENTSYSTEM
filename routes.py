@@ -419,8 +419,8 @@ def upload_document():
                 # Extract text with OCR if applicable
                 document.content_text = extract_text_from_document(file_path, file_type)
                 
-                # Classify the document using AI
-                document.classification = classify_document(document.content_text or '', file_type)
+                # Imposta solo il tipo di file come classificazione
+                document.classification = f"File {file_type.upper()}"
                 
                 # Extract metadata from document
                 metadata_dict = extract_document_metadata(file_path, file_type)
@@ -646,8 +646,8 @@ def update_document(document_id):
                     # Extract text with OCR if applicable
                     document.content_text = extract_text_from_document(file_path, document.file_type)
                     
-                    # Classify the document using AI
-                    document.classification = classify_document(document.content_text or '', document.file_type)
+                    # Imposta solo il tipo di file come classificazione
+                    document.classification = f"File {document.file_type.upper()}"
                     
                     # Extract and update metadata
                     metadata_dict = extract_document_metadata(file_path, document.file_type)
