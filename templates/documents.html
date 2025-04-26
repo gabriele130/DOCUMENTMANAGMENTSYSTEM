@@ -229,7 +229,7 @@
                 data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
                 <div class="document-card card h-100 cursor-pointer" onclick="previewDocument({{ document.id }})">
                     <div class="card-header py-3">
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center w-100">
                             <div class="document-icon 
                                 {% if document.file_type == 'pdf' %}bg-danger bg-opacity-10 text-danger
                                 {% elif document.file_type in ['docx', 'doc'] %}bg-primary bg-opacity-10 text-primary
@@ -243,7 +243,7 @@
                                     {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
                                     {% else %}bi-file-earmark{% endif %}"></i>
                             </div>
-                            <div class="ms-2">
+                            <div class="ms-2 overflow-hidden">
                                 <h6 class="card-title mb-0 text-truncate" title="{{ document.title or document.original_filename }}">
                                     {{ document.title or document.original_filename }}
                                 </h6>

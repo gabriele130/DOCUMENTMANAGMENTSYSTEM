@@ -568,6 +568,14 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+/* Correzione per contenere il titolo del documento all'interno del blocco */
+.document-card .ms-2 {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
 }
 
 /* Miglioramento visualizzazione tags */
