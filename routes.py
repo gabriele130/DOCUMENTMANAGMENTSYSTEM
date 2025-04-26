@@ -1712,20 +1712,8 @@ def view_document_content(document_id):
     """Visualizza il contenuto del documento direttamente nel browser"""
     document = Document.query.get_or_404(document_id)
     
-    # Verifica autorizzazioni
-    if document.owner_id != current_user.id and current_user not in document.shared_with:
-        # Log accesso negato per audit
-        from services.audit_service import AuditTrailService
-        AuditTrailService.log_activity(
-            user_id=current_user.id,
-            action="view_content",
-            document_id=document_id,
-            result="denied",
-            details=json.dumps({"reason": "permission_denied"})
-        )
-        
-        flash('Non hai il permesso di visualizzare questo documento.', 'danger')
-        return redirect(url_for('documents'))
+    # Tutti gli utenti possono visualizzare il contenuto di tutti i documenti
+    # Mantenere solo controlli per operazioni specifiche
     
     # Controlla che il file esista
     if not os.path.exists(document.file_path):
@@ -1775,15 +1763,9 @@ def document_attachments(document_id):
     """Gestisci gli allegati di un documento"""
     document = Document.query.get_or_404(document_id)
     
-    # Verifica autorizzazioni
-    if document.owner_id != current_user.id and current_user not in document.shared_with:
-        if document.folder_id:
-            if not current_user.has_permission(document.folder_id, AccessLevel.READ):
-                flash('Non hai i permessi per gestire gli allegati di questo documento.', 'danger')
-                return redirect(url_for('documents'))
-        else:
-            flash('Non hai i permessi per gestire gli allegati di questo documento.', 'danger')
-            return redirect(url_for('documents'))
+    # Tutti gli utenti possono visualizzare gli allegati dei documenti
+    # Mantenere solo i controlli per operazioni specifiche
+    # I controlli per l'aggiunta o la rimozione di allegati verranno mantenuti nelle funzioni specifiche
     
     # Ottieni tutti i documenti disponibili che l'utente può allegare (escluso il documento corrente)
     # 1. Documenti di proprietà dell'utente
