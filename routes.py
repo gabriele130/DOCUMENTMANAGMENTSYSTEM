@@ -638,8 +638,17 @@ def update_document(document_id):
                 # Save the new version
                 filename = secure_filename(file.filename)
                 unique_filename = f"{str(uuid.uuid4())}_{filename}"
-                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                # Usa percorso assoluto per garantire che il file sia persistente
+                file_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+                
+                # Assicurati che la directory upload esista
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                
+                # Salva il file
                 file.save(file_path)
+                
+                # Log del percorso per debug
+                app.logger.info(f"Nuova versione del file salvata in: {file_path}")
                 
                 # Get latest version number
                 latest_version = DocumentVersion.query.filter_by(document_id=document.id).order_by(DocumentVersion.version_number.desc()).first()
