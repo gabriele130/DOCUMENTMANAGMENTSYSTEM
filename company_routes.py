@@ -883,14 +883,16 @@ def upload_document_to_folder(folder_id):
     if not current_user.is_admin() and not current_user.has_permission(folder_id, AccessLevel.WRITE):
         flash('Non hai i permessi per caricare documenti in questa cartella', 'danger')
         return redirect(url_for('folder_detail', folder_id=folder_id))
-        # Handle file upload (similar to the main upload_document function)
+    
+    # Handle file upload (similar to the main upload_document function)
+    if request.method == 'POST':
         if 'document' not in request.files:
-            flash('No file part', 'danger')
+            flash('Nessuna parte del file trovata', 'danger')
             return redirect(request.url)
         
         file = request.files['document']
         if file.filename == '':
-            flash('No selected file', 'danger')
+            flash('Nessun file selezionato', 'danger')
             return redirect(request.url)
         
         from services.document_processor import allowed_file, extract_document_metadata
