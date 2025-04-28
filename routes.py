@@ -761,6 +761,46 @@ def unshare_document(document_id, user_id):
 # Elimina le route di archiviazione dei documenti in quanto non più necessarie
 # Ora i documenti possono essere eliminati definitivamente solo dagli amministratori
 
+def delete_document_file(document, log_prefix=""):
+    """Funzione helper per eliminare i file fisici di un documento"""
+    # Remove the file from disk
+    file_path = document.file_path
+    # Verifica percorso principale
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            app.logger.info(f"{log_prefix}File eliminato: {file_path}")
+        except Exception as e:
+            app.logger.error(f"{log_prefix}Errore durante l'eliminazione del file {file_path}: {str(e)}")
+    else:
+        # Prova un percorso alternativo
+        alternative_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+        if os.path.exists(alternative_path):
+            try:
+                os.remove(alternative_path)
+                app.logger.info(f"{log_prefix}File eliminato (percorso alternativo): {alternative_path}")
+            except Exception as e:
+                app.logger.error(f"{log_prefix}Errore durante l'eliminazione del file (percorso alternativo) {alternative_path}: {str(e)}")
+    
+    # Remove document versions
+    for version in document.versions:
+        # Verifica percorso principale della versione
+        if hasattr(version, 'file_path') and version.file_path and os.path.exists(version.file_path):
+            try:
+                os.remove(version.file_path)
+                app.logger.info(f"{log_prefix}File versione eliminato: {version.file_path}")
+            except Exception as e:
+                app.logger.error(f"{log_prefix}Errore durante l'eliminazione della versione {version.file_path}: {str(e)}")
+        else:
+            # Prova percorso alternativo
+            version_path = os.path.join(app.config['UPLOAD_FOLDER'], version.filename)
+            if os.path.exists(version_path):
+                try:
+                    os.remove(version_path)
+                    app.logger.info(f"{log_prefix}File versione eliminato (percorso alternativo): {version_path}")
+                except Exception as e:
+                    app.logger.error(f"{log_prefix}Errore durante l'eliminazione della versione (percorso alternativo) {version_path}: {str(e)}")
+
 @app.route('/documents/<int:document_id>/delete', methods=['GET', 'POST'])
 @login_required
 @admin_required  # Solo gli amministratori possono eliminare definitivamente
@@ -795,43 +835,8 @@ def delete_document_permanently(document_id):
             "uploaded_date": document.created_at.isoformat()
         }
         
-        # Remove the file from disk
-        file_path = document.file_path
-        # Verifica percorso principale
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-                app.logger.info(f"File eliminato: {file_path}")
-            except Exception as e:
-                app.logger.error(f"Errore durante l'eliminazione del file {file_path}: {str(e)}")
-        else:
-            # Prova un percorso alternativo
-            alternative_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
-            if os.path.exists(alternative_path):
-                try:
-                    os.remove(alternative_path)
-                    app.logger.info(f"File eliminato (percorso alternativo): {alternative_path}")
-                except Exception as e:
-                    app.logger.error(f"Errore durante l'eliminazione del file (percorso alternativo) {alternative_path}: {str(e)}")
-        
-        # Remove document versions
-        for version in document.versions:
-            # Verifica percorso principale della versione
-            if hasattr(version, 'file_path') and version.file_path and os.path.exists(version.file_path):
-                try:
-                    os.remove(version.file_path)
-                    app.logger.info(f"File versione eliminato: {version.file_path}")
-                except Exception as e:
-                    app.logger.error(f"Errore durante l'eliminazione della versione {version.file_path}: {str(e)}")
-            else:
-                # Prova percorso alternativo
-                version_path = os.path.join(app.config['UPLOAD_FOLDER'], version.filename)
-                if os.path.exists(version_path):
-                    try:
-                        os.remove(version_path)
-                        app.logger.info(f"File versione eliminato (percorso alternativo): {version_path}")
-                    except Exception as e:
-                        app.logger.error(f"Errore durante l'eliminazione della versione (percorso alternativo) {version_path}: {str(e)}")
+        # Elimina i file fisici
+        delete_document_file(document)
         
         # Log activity before deletion
         log_activity(
@@ -852,6 +857,70 @@ def delete_document_permanently(document_id):
     referrer = request.referrer
     if referrer and 'archived_documents' in referrer:
         return redirect(url_for('archived_documents'))
+    return redirect(url_for('documents'))
+
+# Multiple document deletion route
+@app.route('/documents/delete_multiple', methods=['POST'])
+@login_required
+@admin_required
+def delete_multiple_documents():
+    """Elimina più documenti contemporaneamente"""
+    # Ottieni gli ID dei documenti da eliminare
+    document_ids = request.form.getlist('document_ids')
+    
+    if not document_ids:
+        flash('Nessun documento selezionato per l\'eliminazione.', 'warning')
+        return redirect(url_for('documents'))
+    
+    # Conferma aggiuntiva tramite checkbox
+    confirmation = request.form.get('confirm_delete') == 'yes'
+    if not confirmation:
+        flash('Per eliminare definitivamente i documenti selezionati, devi confermare l\'azione.', 'warning')
+        # Passa gli ID alla pagina di conferma
+        selected_documents = Document.query.filter(Document.id.in_(document_ids)).all()
+        return render_template('confirm_multiple_delete.html', documents=selected_documents, form=EmptyForm())
+    
+    # Procedi con l'eliminazione dei documenti
+    successfully_deleted = 0
+    
+    for doc_id in document_ids:
+        try:
+            document = Document.query.get(int(doc_id))
+            
+            if document:
+                # Store document info for activity log
+                doc_info = {
+                    "document_id": document.id,
+                    "document_title": document.title or document.original_filename,
+                    "original_filename": document.original_filename,
+                    "file_type": document.file_type,
+                    "uploaded_date": document.created_at.isoformat()
+                }
+                
+                # Elimina i file fisici
+                delete_document_file(document, log_prefix=f"[Batch #{doc_id}] ")
+                
+                # Log activity before deletion
+                log_activity(
+                    user_id=current_user.id,
+                    action="delete_document_permanently",
+                    details=json.dumps(doc_info)
+                )
+                
+                # Delete from database
+                db.session.delete(document)
+                successfully_deleted += 1
+        except Exception as e:
+            app.logger.error(f"Errore durante l'eliminazione del documento ID {doc_id}: {str(e)}")
+    
+    # Commit all changes at once
+    db.session.commit()
+    
+    if successfully_deleted > 0:
+        flash(f'{successfully_deleted} documenti eliminati definitivamente', 'success')
+    else:
+        flash('Nessun documento è stato eliminato. Si è verificato un errore.', 'danger')
+    
     return redirect(url_for('documents'))
 
 # Search routes
