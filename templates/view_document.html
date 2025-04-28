@@ -19,11 +19,15 @@
             {% if document.expiry_date %}
             <span class="badge bg-warning text-dark">Scade il {{ document.expiry_date.strftime('%d/%m/%Y') }}</span>
             {% endif %}
+            
+            {% if file_exists is defined and not file_exists %}
+            <span class="badge bg-danger">File fisico mancante</span>
+            {% endif %}
         </p>
     </div>
     <div class="col-md-4 text-md-end">
         <div class="btn-group">
-            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary">
+            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary {% if file_exists is defined and not file_exists %}disabled{% endif %}">
                 <i class="bi bi-download"></i> Download
             </a>
             <a href="{{ url_for('add_document_reminder', document_id=document.id) }}" class="btn btn-warning">
@@ -61,7 +65,14 @@
             </div>
             <div class="card-body p-0">
                 <div class="document-preview-container">
-                    {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                    {% if (file_exists is defined and not file_exists) or (file_exists is not defined and not os.path.exists(document.file_path)) %}
+                        <div class="alert alert-danger m-3">
+                            <h4 class="alert-heading">File non disponibile</h4>
+                            <p>Il file fisico associato a questo documento non è stato trovato nel sistema.</p>
+                            <p>Il percorso registrato nel database è: <code>{{ document.file_path }}</code></p>
+                            <p>Contattare l'amministratore per risolvere il problema.</p>
+                        </div>
+                    {% elif document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
                         <div class="mb-3 d-flex justify-content-between align-items-center p-3">
                             <h5 class="mb-0">Anteprima Diretta</h5>
                             <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-sm btn-primary" target="_blank">

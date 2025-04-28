@@ -475,6 +475,56 @@ def view_document(document_id):
     # Tutti gli utenti possono visualizzare tutti i documenti
     # Mantenere solo i controlli per operazioni specifiche
     
+    # Controlla se il file esiste fisicamente
+    file_exists = False
+    file_path = document.file_path
+    
+    # Verifica il percorso originale
+    if os.path.exists(file_path):
+        file_exists = True
+    else:
+        # Cerca percorsi alternativi
+        alternatives = [
+            os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
+            os.path.join('uploads', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
+            os.path.join(os.path.abspath('uploads'), document.filename),
+            os.path.join(app.root_path, 'uploads', document.filename)
+        ]
+        
+        # Cerca anche nella cartella attached_assets
+        attached_alternatives = [
+            os.path.join('attached_assets', document.filename),
+            os.path.join('attached_assets', document.original_filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.original_filename),
+            os.path.join(app.root_path, 'attached_assets', document.filename),
+            os.path.join(app.root_path, 'attached_assets', document.original_filename)
+        ]
+        alternatives.extend(attached_alternatives)
+        
+        # Cerca in tutta la directory /home/runner/workspace
+        workspace_path = '/home/runner/workspace'
+        find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
+        try:
+            import subprocess
+            result = subprocess.run(find_command, shell=True, capture_output=True, text=True)
+            if result.stdout.strip():
+                for found_path in result.stdout.strip().split('\n'):
+                    if found_path and found_path not in alternatives:
+                        alternatives.append(found_path)
+        except Exception as e:
+            app.logger.error(f"Errore durante la ricerca dei file: {str(e)}")
+        
+        for alternative_path in alternatives:
+            if os.path.exists(alternative_path):
+                # Se trovato, aggiorna il percorso nel database
+                document.file_path = alternative_path
+                db.session.commit()
+                file_exists = True
+                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id} a {alternative_path}")
+                break
+    
     # Get document preview if available
     preview_html = get_document_preview(document)
     
@@ -516,12 +566,18 @@ def view_document(document_id):
     # Create empty form for CSRF token
     form = EmptyForm()
     
+    # Aggiungi un messaggio se il file non esiste
+    if not file_exists:
+        flash('Il file fisico associato a questo documento non è stato trovato nel sistema. Contattare l\'amministratore.', 'warning')
+        app.logger.warning(f"File non trovato per il documento ID {document_id}: {document.file_path}")
+    
     return render_template('view_document.html', 
                           document=document,
                           preview_html=preview_html,
                           versions=versions,
                           workflow_tasks=workflow_tasks,
                           attachments_info=attachments_info,
+                          file_exists=file_exists,
                           form=form)
 
 @app.route('/documents/<int:document_id>/download')
@@ -539,8 +595,34 @@ def download_document(document_id):
         alternatives = [
             os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
             os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename)
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
+            os.path.join(os.path.abspath('uploads'), document.filename),
+            os.path.join(app.root_path, 'uploads', document.filename)
         ]
+        
+        # Cerca anche nella cartella attached_assets
+        attached_alternatives = [
+            os.path.join('attached_assets', document.filename),
+            os.path.join('attached_assets', document.original_filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.original_filename),
+            os.path.join(app.root_path, 'attached_assets', document.filename),
+            os.path.join(app.root_path, 'attached_assets', document.original_filename)
+        ]
+        alternatives.extend(attached_alternatives)
+        
+        # Cerca in tutta la directory /home/runner/workspace
+        workspace_path = '/home/runner/workspace'
+        find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
+        try:
+            import subprocess
+            result = subprocess.run(find_command, shell=True, capture_output=True, text=True)
+            if result.stdout.strip():
+                for found_path in result.stdout.strip().split('\n'):
+                    if found_path and found_path not in alternatives:
+                        alternatives.append(found_path)
+        except Exception as e:
+            app.logger.error(f"Errore durante la ricerca dei file: {str(e)}")
         
         file_found = False
         for alternative_path in alternatives:
@@ -548,7 +630,7 @@ def download_document(document_id):
                 # Se trovato, aggiorna il percorso nel database
                 document.file_path = alternative_path
                 db.session.commit()
-                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
+                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id} a {alternative_path}")
                 file_path = alternative_path
                 file_found = True
                 break
@@ -1737,8 +1819,34 @@ def view_document_content(document_id):
         alternatives = [
             os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
             os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename)
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
+            os.path.join(os.path.abspath('uploads'), document.filename),
+            os.path.join(app.root_path, 'uploads', document.filename)
         ]
+        
+        # Cerca anche nella cartella attached_assets
+        attached_alternatives = [
+            os.path.join('attached_assets', document.filename),
+            os.path.join('attached_assets', document.original_filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.original_filename),
+            os.path.join(app.root_path, 'attached_assets', document.filename),
+            os.path.join(app.root_path, 'attached_assets', document.original_filename)
+        ]
+        alternatives.extend(attached_alternatives)
+        
+        # Cerca in tutta la directory /home/runner/workspace
+        workspace_path = '/home/runner/workspace'
+        find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
+        try:
+            import subprocess
+            result = subprocess.run(find_command, shell=True, capture_output=True, text=True)
+            if result.stdout.strip():
+                for found_path in result.stdout.strip().split('\n'):
+                    if found_path and found_path not in alternatives:
+                        alternatives.append(found_path)
+        except Exception as e:
+            app.logger.error(f"Errore durante la ricerca dei file: {str(e)}")
         
         file_found = False
         for alternative_path in alternatives:
@@ -1746,7 +1854,7 @@ def view_document_content(document_id):
                 # Se trovato, aggiorna il percorso nel database
                 document.file_path = alternative_path
                 db.session.commit()
-                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
+                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id} a {alternative_path}")
                 file_found = True
                 break
         
