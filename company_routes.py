@@ -907,7 +907,23 @@ def upload_document_to_folder(folder_id):
             filename = secure_filename(file.filename)
             unique_filename = f"{str(uuid.uuid4())}_{filename}"
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            
+            # Assicurati che la directory esista
+            upload_dir = os.path.dirname(file_path)
+            if not os.path.exists(upload_dir):
+                os.makedirs(upload_dir, exist_ok=True)
+                app.logger.info(f"Directory creata: {upload_dir}")
+            
+            # Salva il file
             file.save(file_path)
+            
+            # Verifica che il file sia stato salvato correttamente
+            if not os.path.exists(file_path):
+                app.logger.error(f"Errore: Il file non è stato salvato in {file_path}")
+                flash('Errore durante il salvataggio del file. Contattare l\'amministratore.', 'danger')
+                return redirect(request.url)
+            else:
+                app.logger.info(f"File salvato correttamente in: {file_path} - dimensione: {os.path.getsize(file_path)} bytes")
             
             # Extract basic metadata
             file_type = filename.rsplit('.', 1)[1].lower()
