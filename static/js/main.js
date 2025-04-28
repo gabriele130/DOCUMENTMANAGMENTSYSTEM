@@ -142,8 +142,23 @@ function toggleTheme() {
  * Toggle sidebar visibility on mobile
  */
 function toggleSidebar() {
-    document.querySelector('.sidebar').classList.toggle('show');
-    document.querySelector('.overlay').classList.toggle('show');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.overlay');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+    }
+    
+    if (overlay) {
+        overlay.classList.toggle('active');
+    }
+    
+    // Log per debugging
+    console.log('Sidebar toggle clicked', { 
+        sidebar: sidebar ? 'found' : 'not found', 
+        overlay: overlay ? 'found' : 'not found',
+        sidebarClass: sidebar ? sidebar.className : 'N/A'
+    });
 }
 
 /**
