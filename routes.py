@@ -1731,23 +1731,46 @@ def view_document_content(document_id):
     # Tutti gli utenti possono visualizzare il contenuto di tutti i documenti
     # Mantenere solo controlli per operazioni specifiche
     
-    # Controlla che il file esista
+    # Controlla che il file esista e cerca percorsi alternativi
     if not os.path.exists(document.file_path):
-        # Log dell'errore
-        app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
-        flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+        # Prova a ricostruire il percorso file in diversi modi
+        alternatives = [
+            os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
+            os.path.join('uploads', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename)
+        ]
         
-        # Log del problema per audit trail
-        from services.audit_service import AuditTrailService
-        AuditTrailService.log_activity(
-            user_id=current_user.id,
-            action="view_content",
-            document_id=document_id,
-            result="failure",
-            details=json.dumps({"reason": "file_not_found", "path": document.file_path})
-        )
+        file_found = False
+        for alternative_path in alternatives:
+            if os.path.exists(alternative_path):
+                # Se trovato, aggiorna il percorso nel database
+                document.file_path = alternative_path
+                db.session.commit()
+                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
+                file_found = True
+                break
         
-        return redirect(url_for('view_document', document_id=document.id))
+        if not file_found:
+            # Log dell'errore
+            app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
+            app.logger.error(f"Alternative tentate: {alternatives}")
+            flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
+            
+            # Log del problema per audit trail
+            from services.audit_service import AuditTrailService
+            AuditTrailService.log_activity(
+                user_id=current_user.id,
+                action="view_content",
+                document_id=document_id,
+                result="failure",
+                details=json.dumps({
+                    "reason": "file_not_found", 
+                    "path": document.file_path,
+                    "alternatives_tried": alternatives
+                })
+            )
+            
+            return redirect(url_for('view_document', document_id=document.id))
     
     # Per immagini, PDF e altri tipi supportati dal browser, visualizzali direttamente
     if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg']:

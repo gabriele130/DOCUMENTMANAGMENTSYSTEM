@@ -148,6 +148,38 @@ def get_document_preview(document):
     file_type = document.file_type
     preview_html = ""
     
+    # Verifica che il file esista e controlla path alternativi
+    if not os.path.exists(file_path):
+        from flask import current_app
+        # Prova a ricostruire il percorso file in diversi modi
+        alternatives = [
+            os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename),
+            os.path.join('uploads', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', document.filename)
+        ]
+        
+        file_found = False
+        for alternative_path in alternatives:
+            if os.path.exists(alternative_path):
+                # Se trovato, aggiorna il percorso nel db
+                from app import db
+                document.file_path = alternative_path
+                db.session.commit()
+                current_app.logger.info(f"Percorso file aggiornato per documento ID: {document.id}")
+                file_path = alternative_path
+                file_found = True
+                break
+        
+        if not file_found:
+            current_app.logger.error(f"File non trovato: {file_path} o alternative: {alternatives}")
+            return f"""
+            <div class="alert alert-danger">
+                <h4>File non trovato</h4>
+                <p>Il file non è stato trovato nel sistema. Contattare l'amministratore.</p>
+                <p>ID documento: {document.id}, Filename: {document.filename}</p>
+            </div>
+            """
+    
     try:
         if file_type == 'pdf':
             preview_html = f"""
@@ -209,8 +241,8 @@ def get_document_preview(document):
         else:
             preview_html = f"""
             <div class="alert alert-info">
-                <h4>Preview not available</h4>
-                <p>File type '{file_type}' cannot be previewed. Please download the file to view its contents.</p>
+                <h4>Anteprima non disponibile</h4>
+                <p>Il tipo di file '{file_type}' non può essere visualizzato in anteprima. Scarica il file per visualizzarne il contenuto.</p>
             </div>
             """
     
@@ -218,8 +250,8 @@ def get_document_preview(document):
         current_app.logger.error(f"Error generating preview: {str(e)}")
         preview_html = f"""
         <div class="alert alert-danger">
-            <h4>Preview Error</h4>
-            <p>An error occurred while generating the preview: {str(e)}</p>
+            <h4>Errore anteprima</h4>
+            <p>Si è verificato un errore durante la generazione dell'anteprima: {str(e)}</p>
         </div>
         """
     
