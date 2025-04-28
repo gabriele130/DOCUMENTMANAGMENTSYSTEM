@@ -4,11 +4,19 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-8">
+    <div class="col-md-6">
         <h1 class="h3 mb-0">Documenti</h1>
         <p class="text-muted">Gestisci i tuoi documenti</p>
     </div>
-    <div class="col-md-4 text-md-end">
+    <div class="col-md-6 text-md-end">
+        {% if current_user.is_admin() %}
+        <form id="multipleDeleteForm" action="{{ url_for('delete_multiple_documents') }}" method="POST" class="d-inline">
+            {{ form.hidden_tag() }}
+            <button type="submit" class="btn btn-danger me-2" id="deleteMultipleBtn" style="display: none;">
+                <i class="bi bi-trash"></i> Elimina Selezionati (<span id="selectedCount">0</span>)
+            </button>
+        </form>
+        {% endif %}
         <a href="{{ url_for('upload_document') }}" class="btn btn-primary">
             <i class="bi bi-cloud-upload"></i> Carica Documento
         </a>
@@ -127,6 +135,16 @@
                 data-type="{{ document.classification }}"
                 data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
                 <div class="document-card card h-100 cursor-pointer" onclick="previewDocument({{ document.id }})">
+                    {% if current_user.is_admin() %}
+                    <div class="position-absolute top-0 end-0 pt-2 pe-2" onclick="event.stopPropagation()">
+                        <div class="form-check">
+                            <input class="form-check-input document-checkbox" type="checkbox" value="{{ document.id }}" id="docCheck{{ document.id }}">
+                            <label class="form-check-label visually-hidden" for="docCheck{{ document.id }}">
+                                Seleziona documento
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="card-header py-3">
                         <div class="d-flex align-items-center">
                             <div class="document-icon 
@@ -228,6 +246,16 @@
                 data-type="{{ document.classification }}"
                 data-date="{{ document.created_at.strftime('%Y-%m-%d') }}">
                 <div class="document-card card h-100 cursor-pointer" onclick="previewDocument({{ document.id }})">
+                    {% if current_user.is_admin() %}
+                    <div class="position-absolute top-0 end-0 pt-2 pe-2" onclick="event.stopPropagation()">
+                        <div class="form-check">
+                            <input class="form-check-input document-checkbox" type="checkbox" value="{{ document.id }}" id="docCheck{{ document.id }}">
+                            <label class="form-check-label visually-hidden" for="docCheck{{ document.id }}">
+                                Seleziona documento
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="card-header py-3">
                         <div class="d-flex align-items-center w-100">
                             <div class="document-icon 
@@ -332,8 +360,52 @@
 <script src="{{ url_for('static', filename='js/documents.js') }}"></script>
 
 <script>
-// Funzione per ordinare la lista dei documenti condivisi
+// Gestione selezione multipla documenti e ordinamento
 document.addEventListener('DOMContentLoaded', function() {
+    // Gestione selezione multipla documenti
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    const deleteMultipleBtn = document.getElementById('deleteMultipleBtn');
+    const selectedCountElem = document.getElementById('selectedCount');
+    const multipleDeleteForm = document.getElementById('multipleDeleteForm');
+    
+    // Aggiorna il conteggio e la visibilità del pulsante di eliminazione
+    function updateSelectionCount() {
+        const checkedBoxes = document.querySelectorAll('.document-checkbox:checked');
+        const count = checkedBoxes.length;
+        
+        if (selectedCountElem) {
+            selectedCountElem.textContent = count;
+        }
+        
+        if (deleteMultipleBtn) {
+            if (count > 0) {
+                deleteMultipleBtn.style.display = 'inline-block';
+            } else {
+                deleteMultipleBtn.style.display = 'none';
+            }
+        }
+        
+        // Rimuovi tutti gli input hidden esistenti
+        if (multipleDeleteForm) {
+            const existingInputs = multipleDeleteForm.querySelectorAll('input[name="document_ids"]');
+            existingInputs.forEach(input => input.remove());
+            
+            // Aggiungi i nuovi input hidden per gli ID selezionati
+            checkedBoxes.forEach(checkbox => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'document_ids';
+                input.value = checkbox.value;
+                multipleDeleteForm.appendChild(input);
+            });
+        }
+    }
+    
+    // Aggiungi event listener a ogni checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectionCount);
+    });
+    
     // Ordina i documenti condivisi quando viene selezionata la tab condivisi
     document.getElementById('shared-documents-tab').addEventListener('click', function() {
         sortSharedDocuments('{{ current_sort }}', '{{ current_order }}');
