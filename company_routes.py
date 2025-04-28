@@ -947,8 +947,7 @@ def upload_document_to_folder(folder_id):
                 # Extract text with OCR if applicable
                 document.content_text = extract_text_from_document(file_path, file_type)
                 
-                # Classify the document using AI
-                document.classification = classify_document(document.content_text or '', file_type)
+                # La classificazione è stata rimossa a favore dei tag
                 
                 # Extract metadata from document
                 metadata_dict = extract_document_metadata(file_path, file_type)

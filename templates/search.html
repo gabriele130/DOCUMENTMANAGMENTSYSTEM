@@ -87,7 +87,7 @@
                     <tr>
                         <th style="width: 40%;">Documento</th>
                         <th>Tipo</th>
-                        <th>Etichette</th>
+                        <th>Tag</th>
                         <th>Data</th>
                         <th>Azioni</th>
                     </tr>
@@ -116,7 +116,11 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ document.classification or 'Non classificato' }}</td>
+                        <td>
+                            <span class="badge {% if document.file_type == 'pdf' %}bg-danger{% elif document.file_type in ['docx', 'doc'] %}bg-primary{% elif document.file_type in ['xlsx', 'xls'] %}bg-success{% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ document.file_type }}
+                            </span>
+                        </td>
                         <td>
                             {% for tag in document.tags %}
                             <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
