@@ -270,6 +270,11 @@
                                 <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-outline-secondary btn-sm" title="Modifica">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-document" 
+                                    data-document-id="{{ document.id }}" 
+                                    data-document-name="{{ document.title or document.original_filename }}" title="Elimina">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -316,6 +321,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
 <script>
     // Funzione per preparare il modal di eliminazione per qualsiasi cartella
     function prepareDeleteModal(folderId, folderName) {

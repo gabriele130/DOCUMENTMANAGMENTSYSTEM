@@ -125,11 +125,8 @@ function setupDocumentActions() {
                 'Elimina Definitivamente',
                 `ATTENZIONE: Stai per eliminare definitivamente "${documentName}". Questa azione non può essere annullata. Sei sicuro di voler procedere?`,
                 () => {
-                    // Trova il form associato a questo pulsante e invialo
-                    const parentForm = this.closest('form');
-                    if (parentForm) {
-                        parentForm.submit();
-                    }
+                    // Reindirizza alla pagina di conferma eliminazione
+                    window.location.href = `/documents/${documentId}/confirm_delete`;
                 }
             );
         });
@@ -242,6 +239,68 @@ function previewDocument(documentId) {
         });
     
     previewModal.show();
+}
+
+/**
+ * Mostra un modal di conferma per operazioni critiche
+ */
+function confirmAction(title, message, onConfirm) {
+    // Verifica se esiste già un modal di conferma
+    let confirmModal = document.getElementById('confirmActionModal');
+    
+    // Se non esiste, creane uno nuovo
+    if (!confirmModal) {
+        const modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'confirmActionModal';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-labelledby', 'confirmActionModalLabel');
+        modal.setAttribute('aria-hidden', 'true');
+        
+        modal.innerHTML = `
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="confirmActionModalLabel">Conferma Azione</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="confirmActionMessage"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="button" class="btn btn-danger" id="confirmActionBtn">Conferma</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        confirmModal = modal;
+    }
+    
+    // Aggiorna titolo e messaggio
+    const modalTitle = confirmModal.querySelector('.modal-title');
+    const modalMessage = confirmModal.querySelector('#confirmActionMessage');
+    const confirmButton = confirmModal.querySelector('#confirmActionBtn');
+    
+    modalTitle.textContent = title;
+    modalMessage.innerHTML = message;
+    
+    // Gestisci la conferma
+    const bsModal = new bootstrap.Modal(confirmModal);
+    
+    // Rimuovi listener precedenti per evitare duplicati
+    const newConfirmButton = confirmButton.cloneNode(true);
+    confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
+    
+    // Aggiungi nuovo listener
+    newConfirmButton.addEventListener('click', function() {
+        bsModal.hide();
+        onConfirm();
+    });
+    
+    bsModal.show();
 }
 
 /**
