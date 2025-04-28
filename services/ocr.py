@@ -69,21 +69,34 @@ def extract_text_from_pdf(pdf_path):
             # Extract text from each page
             for page_num in range(len(pdf_reader.pages)):
                 page = pdf_reader.pages[page_num]
-                page_text = page.extract_text()
-                
-                # If page has no text (possibly a scanned image)
-                if not page_text or len(page_text) < 50:
-                    logger.info(f"Page {page_num+1} appears to be a scanned image. OCR is not available.")
-                    page_text = f"[Page {page_num+1} may contain scanned content. Text extraction limited.]"
-                
-                if page_text:
-                    extracted_text.append(page_text)
+                try:
+                    page_text = page.extract_text()
+                    
+                    # Rimpiazza eventuali caratteri NULL con spazi
+                    if page_text:
+                        page_text = page_text.replace('\x00', ' ').strip()
+                    
+                    # If page has no text (possibly a scanned image)
+                    if not page_text or len(page_text) < 50:
+                        logger.info(f"Page {page_num+1} appears to be a scanned image. OCR is not available.")
+                        page_text = f"[Page {page_num+1} may contain scanned content. Text extraction limited.]"
+                    
+                    if page_text:
+                        extracted_text.append(page_text)
+                except Exception as page_error:
+                    logger.warning(f"Error extracting text from page {page_num+1}: {str(page_error)}")
+                    extracted_text.append(f"[Error extracting text from page {page_num+1}]")
     
     except Exception as e:
         logger.error(f"PDF text extraction failed: {str(e)}")
         extracted_text.append(f"PDF text extraction failed: {str(e)}")
     
-    return "\n\n".join(extracted_text)
+    # Assicuriamoci che non ci siano caratteri NULL nel testo finale
+    final_text = "\n\n".join(extracted_text)
+    if '\x00' in final_text:
+        final_text = final_text.replace('\x00', ' ')
+    
+    return final_text
 
 def extract_text_from_docx(docx_path):
     """

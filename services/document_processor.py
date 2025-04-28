@@ -51,7 +51,11 @@ def extract_document_metadata(file_path, file_type):
                     for key, value in pdf.metadata.items():
                         # Clean the key name
                         clean_key = key.replace('/', '_').lower()
-                        metadata[clean_key] = str(value)
+                        # Gestione caratteri NULL nei valori dei metadati
+                        str_value = str(value)
+                        if '\x00' in str_value:
+                            str_value = str_value.replace('\x00', ' ').strip()
+                        metadata[clean_key] = str_value
                 metadata['page_count'] = len(pdf.pages)
                 
         elif file_type in ['docx', 'doc']:
@@ -62,34 +66,67 @@ def extract_document_metadata(file_path, file_type):
             core_props = getattr(doc, 'core_properties', None)
             if core_props:
                 if core_props.author:
-                    metadata['author'] = core_props.author
+                    author = str(core_props.author)
+                    if '\x00' in author:
+                        author = author.replace('\x00', ' ').strip()
+                    metadata['author'] = author
                 if core_props.created:
-                    metadata['created'] = str(core_props.created)
+                    created = str(core_props.created)
+                    if '\x00' in created:
+                        created = created.replace('\x00', ' ').strip()
+                    metadata['created'] = created
                 if core_props.modified:
-                    metadata['modified'] = str(core_props.modified)
+                    modified = str(core_props.modified)
+                    if '\x00' in modified:
+                        modified = modified.replace('\x00', ' ').strip()
+                    metadata['modified'] = modified
                 if core_props.title:
-                    metadata['title'] = core_props.title
+                    title = str(core_props.title)
+                    if '\x00' in title:
+                        title = title.replace('\x00', ' ').strip()
+                    metadata['title'] = title
                 if core_props.subject:
-                    metadata['subject'] = core_props.subject
+                    subject = str(core_props.subject)
+                    if '\x00' in subject:
+                        subject = subject.replace('\x00', ' ').strip()
+                    metadata['subject'] = subject
             
         elif file_type in ['xlsx', 'xls']:
             wb = load_workbook(file_path, read_only=True)
             metadata['sheet_count'] = len(wb.sheetnames)
-            metadata['sheet_names'] = ', '.join(wb.sheetnames)
+            sheet_names = ', '.join(wb.sheetnames)
+            if '\x00' in sheet_names:
+                sheet_names = sheet_names.replace('\x00', ' ').strip()
+            metadata['sheet_names'] = sheet_names
             
             # Extract document properties if available
             props = wb.properties
             if props:
                 if props.creator:
-                    metadata['author'] = props.creator
+                    creator = str(props.creator)
+                    if '\x00' in creator:
+                        creator = creator.replace('\x00', ' ').strip()
+                    metadata['author'] = creator
                 if props.created:
-                    metadata['created'] = str(props.created)
+                    created = str(props.created)
+                    if '\x00' in created:
+                        created = created.replace('\x00', ' ').strip()
+                    metadata['created'] = created
                 if props.modified:
-                    metadata['modified'] = str(props.modified)
+                    modified = str(props.modified)
+                    if '\x00' in modified:
+                        modified = modified.replace('\x00', ' ').strip()
+                    metadata['modified'] = modified
                 if props.title:
-                    metadata['title'] = props.title
+                    title = str(props.title)
+                    if '\x00' in title:
+                        title = title.replace('\x00', ' ').strip()
+                    metadata['title'] = title
                 if props.subject:
-                    metadata['subject'] = props.subject
+                    subject = str(props.subject)
+                    if '\x00' in subject:
+                        subject = subject.replace('\x00', ' ').strip()
+                    metadata['subject'] = subject
         
         # Add general file metadata
         file_stats = os.stat(file_path)

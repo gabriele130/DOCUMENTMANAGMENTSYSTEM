@@ -945,7 +945,15 @@ def upload_document_to_folder(folder_id):
             # Process the document asynchronously (in a real app, this would be a background task)
             try:
                 # Extract text with OCR if applicable
-                document.content_text = extract_text_from_document(file_path, file_type)
+                try:
+                    extracted_text = extract_text_from_document(file_path, file_type)
+                    # Assicuriamoci che non ci siano caratteri NULL anche qui
+                    if extracted_text and '\x00' in extracted_text:
+                        extracted_text = extracted_text.replace('\x00', ' ')
+                    document.content_text = extracted_text
+                except Exception as text_error:
+                    app.logger.error(f"Text extraction error: {str(text_error)}")
+                    document.content_text = "Estrazione testo fallita: verifica se il file è protetto o danneggiato."
                 
                 # La classificazione è stata rimossa a favore dei tag
                 
