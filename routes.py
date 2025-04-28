@@ -535,19 +535,28 @@ def download_document(document_id):
     # Controlla che il file esista
     file_path = document.file_path
     if not os.path.exists(file_path):
-        # Prova a ricostruire il percorso file
-        alternative_path = os.path.join(app.config['UPLOAD_FOLDER'], document.filename)
+        # Prova a ricostruire il percorso file in diversi modi
+        alternatives = [
+            os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
+            os.path.join('uploads', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename)
+        ]
         
-        if os.path.exists(alternative_path):
-            # Se trovato, aggiorna il percorso nel database
-            document.file_path = alternative_path
-            db.session.commit()
-            app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
-            file_path = alternative_path
-        else:
+        file_found = False
+        for alternative_path in alternatives:
+            if os.path.exists(alternative_path):
+                # Se trovato, aggiorna il percorso nel database
+                document.file_path = alternative_path
+                db.session.commit()
+                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id}")
+                file_path = alternative_path
+                file_found = True
+                break
+        
+        if not file_found:
             # Log dell'errore
             app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
-            app.logger.error(f"Percorso alternativo tentato: {alternative_path}")
+            app.logger.error(f"Percorsi alternativi tentati: {alternatives}")
             flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
             
             # Log del problema per audit trail
@@ -557,7 +566,7 @@ def download_document(document_id):
                 action="download",
                 document_id=document_id,
                 result="failure",
-                details=json.dumps({"reason": "file_not_found", "path": document.file_path, "alt_path": alternative_path})
+                details=json.dumps({"reason": "file_not_found", "path": document.file_path, "alt_paths": alternatives})
             )
             
             return redirect(url_for('view_document', document_id=document.id))
