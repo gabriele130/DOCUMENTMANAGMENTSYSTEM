@@ -126,7 +126,7 @@ function setupDocumentActions() {
                 `ATTENZIONE: Stai per eliminare definitivamente "${documentName}". Questa azione non può essere annullata. Sei sicuro di voler procedere?`,
                 () => {
                     // Reindirizza alla pagina di conferma eliminazione
-                    window.location.href = `/documents/${documentId}/confirm_delete`;
+                    window.location.href = `/documents/${documentId}/delete`;
                 }
             );
         });
