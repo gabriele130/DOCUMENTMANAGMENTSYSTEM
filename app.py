@@ -72,13 +72,15 @@ with app.app_context():
 def inject_context_data():
     # Import here to avoid circular imports
     from models import Company
+    import os
     
     # Get all companies for the dropdown menu
     all_companies = Company.query.order_by(Company.name).all()
     
     return {
         'form': EmptyForm(),
-        'all_companies': all_companies
+        'all_companies': all_companies,
+        'os': os
     }
 
 # Import routes after initializing everything
