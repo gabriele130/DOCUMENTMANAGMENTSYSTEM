@@ -267,13 +267,13 @@
                             {% elif task.status == 'rejected' %}bg-danger
                             {% else %}bg-secondary{% endif %}">
                             {% if task.status == 'complete' %}
-                            <i class="bi bi-check"></i>
+                            <i class="fas fa-check"></i>
                             {% elif task.status == 'in_progress' %}
-                            <i class="bi bi-arrow-right"></i>
+                            <i class="fas fa-arrow-right"></i>
                             {% elif task.status == 'rejected' %}
-                            <i class="bi bi-x"></i>
+                            <i class="fas fa-times"></i>
                             {% else %}
-                            <i class="bi bi-clock"></i>
+                            <i class="fas fa-clock"></i>
                             {% endif %}
                         </div>
                         <div class="ms-3">
@@ -300,7 +300,7 @@
                             {% if current_user.id == task.assigned_to_id and task.status in ['pending', 'in_progress'] %}
                             <div class="mt-2">
                                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskActionModal" data-task-id="{{ task.id }}">
-                                    <i class="bi bi-check2"></i> Completa Attività
+                                    <i class="fas fa-check"></i> Completa Attività
                                 </button>
                             </div>
                             {% endif %}
@@ -311,7 +311,7 @@
                 
                 <div class="mt-3">
                     <a href="{{ url_for('workflow_detail', workflow_id=document.workflow_id) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-diagram-3"></i> Visualizza Workflow Completo
+                        <i class="fas fa-project-diagram"></i> Visualizza Workflow Completo
                     </a>
                 </div>
             </div>
@@ -324,7 +324,7 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Condiviso Con</h5>
                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
-                    <i class="bi bi-plus"></i> Condividi
+                    <i class="fas fa-plus"></i> Condividi
                 </button>
             </div>
             <div class="card-body">
@@ -332,13 +332,13 @@
                     {% for user in document.shared_with %}
                     <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                         <div>
-                            <i class="bi bi-person-circle me-2"></i>
+                            <i class="fas fa-user-circle me-2"></i>
                             {{ user.full_name }}
                         </div>
                         <form action="{{ url_for('unshare_document', document_id=document.id, user_id=user.id) }}" method="POST" class="d-inline">
                             {{ form.hidden_tag() }}
                             <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-x-circle"></i> Rimuovi
+                                <i class="fas fa-times-circle"></i> Rimuovi
                             </button>
                         </form>
                     </li>
@@ -404,10 +404,10 @@
                     
                     <div class="d-flex justify-content-between">
                         <button type="button" class="btn btn-danger" onclick="document.querySelector('input[name=\'action\']').value='reject'; this.form.submit();">
-                            <i class="bi bi-x-circle"></i> Rifiuta
+                            <i class="fas fa-times-circle"></i> Rifiuta
                         </button>
                         <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Approva
+                            <i class="fas fa-check-circle"></i> Approva
                         </button>
                     </div>
                 </form>
