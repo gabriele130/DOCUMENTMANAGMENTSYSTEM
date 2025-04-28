@@ -4,12 +4,20 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-md-6">
+    <div class="col-md-5">
         <h1 class="h3 mb-0">Documenti</h1>
         <p class="text-muted">Gestisci i tuoi documenti</p>
     </div>
-    <div class="col-md-6 text-md-end">
+    <div class="col-md-7 text-md-end">
         {% if current_user.is_admin() %}
+        <div id="multiSelectControls" style="display: none;" class="mb-2">
+            <button type="button" id="selectAllBtn" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-check-all"></i> Seleziona Tutti
+            </button>
+            <button type="button" id="deselectAllBtn" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-x-lg"></i> Deseleziona Tutti
+            </button>
+        </div>
         <form id="multipleDeleteForm" action="{{ url_for('delete_multiple_documents') }}" method="POST" class="d-inline">
             {{ form.hidden_tag() }}
             <button type="submit" class="btn btn-danger me-2" id="deleteMultipleBtn" style="display: none;">
@@ -356,6 +364,27 @@
 </div>
 {% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    /* Stili per la selezione multipla dei documenti */
+    .document-checkbox {
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+    }
+    
+    .document-card.selected {
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5) !important;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .document-card .position-absolute {
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/documents.js') }}"></script>
 
@@ -365,6 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gestione selezione multipla documenti
     const checkboxes = document.querySelectorAll('.document-checkbox');
     const deleteMultipleBtn = document.getElementById('deleteMultipleBtn');
+    const multiSelectControls = document.getElementById('multiSelectControls');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const deselectAllBtn = document.getElementById('deselectAllBtn');
     const selectedCountElem = document.getElementById('selectedCount');
     const multipleDeleteForm = document.getElementById('multipleDeleteForm');
     
@@ -385,6 +417,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        if (multiSelectControls) {
+            if (count > 0 || checkboxes.length > 0) {
+                multiSelectControls.style.display = 'block';
+            } else {
+                multiSelectControls.style.display = 'none';
+            }
+        }
+        
+        // Evidenzia le cards selezionate
+        checkboxes.forEach(checkbox => {
+            const card = checkbox.closest('.document-card');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+        
         // Rimuovi tutti gli input hidden esistenti
         if (multipleDeleteForm) {
             const existingInputs = multipleDeleteForm.querySelectorAll('input[name="document_ids"]');
@@ -401,10 +451,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Seleziona tutti i documenti visibili
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            updateSelectionCount();
+        });
+    }
+    
+    // Deseleziona tutti i documenti
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', function() {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            updateSelectionCount();
+        });
+    }
+    
     // Aggiungi event listener a ogni checkbox
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', updateSelectionCount);
     });
+    
+    // Inizializza lo stato della selezione
+    updateSelectionCount();
     
     // Ordina i documenti condivisi quando viene selezionata la tab condivisi
     document.getElementById('shared-documents-tab').addEventListener('click', function() {
