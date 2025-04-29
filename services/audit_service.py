@@ -13,6 +13,21 @@ from flask import request, current_app
 from app import db
 from models import ActivityLog, User, Document
 
+# Funzione di utilità esportata per la compatibilità con moduli esterni
+def log_activity(user_id, action, document_id=None, action_category=None, details=None, result="success"):
+    """
+    Versione semplificata della funzione di log per compatibilità con i nuovi moduli.
+    Utilizza il servizio AuditTrailService internamente.
+    """
+    return AuditTrailService.log_activity(
+        user_id=user_id,
+        action=action,
+        document_id=document_id,
+        details=details,
+        result=result,
+        action_category=action_category
+    )
+
 class AuditTrailService:
     """Servizio per la gestione degli audit log in conformità con le normative."""
     
@@ -62,7 +77,8 @@ class AuditTrailService:
     
     @staticmethod
     def log_activity(user_id, action, document_id=None, details=None, result="success", 
-                     ip_address=None, user_agent=None, device_info=None, geolocation=None):
+                     ip_address=None, user_agent=None, device_info=None, geolocation=None,
+                     action_category=None):
         """
         Registra una attività nel sistema con audit trail completo.
         

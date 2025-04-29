@@ -159,3 +159,14 @@ def handle_db_errors(f):
             flash("Si è verificato un errore nel database. Riprova più tardi.", "danger")
             return redirect(url_for('dashboard'))
     return decorated_function
+
+# Registra i blueprint per i diversi moduli dell'applicazione
+# Qui registriamo le rotte di manutenzione
+from routes_maintenance import maintenance
+app.register_blueprint(maintenance)
+
+# Importa tutte le rotte regolari
+import routes
+
+# Importa le rotte per le aziende (senza usare blueprint per ora)
+from company_routes import *

@@ -462,73 +462,50 @@ def upload_document():
 @app.route('/documents/<int:document_id>')
 @login_required
 def view_document(document_id):
-    document = Document.query.get_or_404(document_id)
+    # Utilizziamo il nuovo sistema di monitoraggio documenti
+    from services.document_monitor import verify_before_access
     
-    # Tutti gli utenti possono visualizzare tutti i documenti
-    # Mantenere solo i controlli per operazioni specifiche
+    # Verifica e recupera se necessario
+    document, status_code, message = verify_before_access(document_id, current_user.id)
     
-    # Controlla se il file esiste fisicamente
-    file_exists = False
-    file_path = document.file_path
+    if not document:
+        flash('Documento non trovato nel database.', 'danger')
+        return redirect(url_for('documents'))
     
-    # Verifica il percorso originale
-    if os.path.exists(file_path):
-        file_exists = True
-    else:
-        # Cerca percorsi alternativi
-        alternatives = [
-            os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
-            os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
-            os.path.join(os.path.abspath('uploads'), document.filename),
-            os.path.join(app.root_path, 'uploads', document.filename),
-            # Percorsi per la cache di backup
-            os.path.join(app.config['DOCUMENT_CACHE'], document.filename),
-            os.path.join('document_cache', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'document_cache', document.filename)
-        ]
+    # Se il file è stato recuperato, mostra un messaggio informativo
+    if status_code == 409:  # File recuperato
+        flash(message, 'warning')
+    
+    # Se il file non è disponibile, mostra un errore
+    file_exists = (status_code == 200 or status_code == 409)
+    if not file_exists:
+        flash(message, 'danger')
+        app.logger.error(f"File non trovato per documento ID: {document_id}, percorso: {document.file_path}")
         
-        # Cerca anche nella cartella attached_assets
-        attached_alternatives = [
-            os.path.join('attached_assets', document.filename),
-            os.path.join('attached_assets', document.original_filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.original_filename),
-            os.path.join(app.root_path, 'attached_assets', document.filename),
-            os.path.join(app.root_path, 'attached_assets', document.original_filename)
-        ]
-        alternatives.extend(attached_alternatives)
-        
-        # Prova anche con il nome del file originale nelle cartelle principali
-        original_alternatives = [
-            os.path.join(app.config['UPLOAD_FOLDER'], document.original_filename),
-            os.path.join(app.config['DOCUMENT_CACHE'], document.original_filename),
-            os.path.join('uploads', document.original_filename),
-            os.path.join('document_cache', document.original_filename)
-        ]
-        alternatives.extend(original_alternatives)
-        
-        # Cerca in tutta la directory /home/runner/workspace
-        workspace_path = '/home/runner/workspace'
-        find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
+        # Tenta di ispezionare e mostrare i percorsi alternativi
         try:
-            import subprocess
-            result = subprocess.run(find_command, shell=True, capture_output=True, text=True)
-            if result.stdout.strip():
-                for found_path in result.stdout.strip().split('\n'):
-                    if found_path and found_path not in alternatives:
-                        alternatives.append(found_path)
+            alternatives = []
+            
+            # Aggiungi percorsi noti per il debug
+            paths_to_check = [
+                os.path.join('uploads', document.filename),
+                os.path.join('document_cache', document.filename),
+                os.path.join('attached_assets', document.filename),
+                os.path.join('uploads', document.original_filename),
+                os.path.join('document_cache', document.original_filename),
+                os.path.join('attached_assets', document.original_filename)
+            ]
+            
+            # Controlla ciascun percorso
+            for path in paths_to_check:
+                alternatives.append({
+                    'path': path,
+                    'exists': os.path.exists(path)
+                })
+                
+            app.logger.info(f"Percorsi alternativi per documento ID {document_id}: {alternatives}")
         except Exception as e:
-            app.logger.error(f"Errore durante la ricerca dei file: {str(e)}")
-        
-        for alternative_path in alternatives:
-            if os.path.exists(alternative_path):
-                # Se trovato, aggiorna il percorso nel database
-                document.file_path = alternative_path
-                db.session.commit()
-                file_exists = True
-                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id} a {alternative_path}")
-                break
+            app.logger.error(f"Errore durante l'ispezione dei percorsi alternativi: {str(e)}")
     
     # Get document preview if available
     preview_html = get_document_preview(document)
@@ -588,97 +565,50 @@ def view_document(document_id):
 @app.route('/documents/<int:document_id>/download')
 @login_required
 def download_document(document_id):
-    document = Document.query.get_or_404(document_id)
+    # Utilizziamo il nuovo sistema di monitoraggio documenti
+    from services.document_monitor import verify_before_access
     
-    # Tutti gli utenti possono scaricare tutti i documenti
-    # Mantenere solo i controlli per operazioni specifiche
+    # Verifica e recupera se necessario
+    document, status_code, message = verify_before_access(document_id, current_user.id)
     
-    # Controlla che il file esista
-    file_path = document.file_path
-    if not os.path.exists(file_path):
-        # Prova a ricostruire il percorso file in diversi modi
-        alternatives = [
-            os.path.join(app.config['UPLOAD_FOLDER'], document.filename),
-            os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
-            os.path.join(os.path.abspath('uploads'), document.filename),
-            os.path.join(app.root_path, 'uploads', document.filename),
-            # Percorsi per la cache di backup
-            os.path.join(app.config['DOCUMENT_CACHE'], document.filename),
-            os.path.join('document_cache', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'document_cache', document.filename)
-        ]
+    if not document:
+        flash('Documento non trovato nel database.', 'danger')
+        return redirect(url_for('documents'))
+    
+    # Se il file è stato recuperato, mostra un messaggio informativo
+    if status_code == 409:  # File recuperato
+        flash(message, 'info')
+    
+    # Se il file non è disponibile, mostra un errore e reindirizza
+    if status_code != 200 and status_code != 409:
+        flash(message, 'danger')
         
-        # Cerca anche nella cartella attached_assets
-        attached_alternatives = [
-            os.path.join('attached_assets', document.filename),
-            os.path.join('attached_assets', document.original_filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'attached_assets', document.original_filename),
-            os.path.join(app.root_path, 'attached_assets', document.filename),
-            os.path.join(app.root_path, 'attached_assets', document.original_filename)
-        ]
-        alternatives.extend(attached_alternatives)
+        # Log del problema per audit trail
+        from services.audit_service import log_activity
+        log_activity(
+            user_id=current_user.id,
+            action="download",
+            document_id=document_id,
+            action_category='ACCESS',
+            details=f"Download fallito: {message}",
+            result="failure"
+        )
         
-        # Prova anche con il nome del file originale nelle cartelle principali
-        original_alternatives = [
-            os.path.join(app.config['UPLOAD_FOLDER'], document.original_filename),
-            os.path.join(app.config['DOCUMENT_CACHE'], document.original_filename),
-            os.path.join('uploads', document.original_filename),
-            os.path.join('document_cache', document.original_filename)
-        ]
-        alternatives.extend(original_alternatives)
-        
-        # Cerca in tutta la directory /home/runner/workspace
-        workspace_path = '/home/runner/workspace'
-        find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
-        try:
-            import subprocess
-            result = subprocess.run(find_command, shell=True, capture_output=True, text=True)
-            if result.stdout.strip():
-                for found_path in result.stdout.strip().split('\n'):
-                    if found_path and found_path not in alternatives:
-                        alternatives.append(found_path)
-        except Exception as e:
-            app.logger.error(f"Errore durante la ricerca dei file: {str(e)}")
-        
-        file_found = False
-        for alternative_path in alternatives:
-            if os.path.exists(alternative_path):
-                # Se trovato, aggiorna il percorso nel database
-                document.file_path = alternative_path
-                db.session.commit()
-                app.logger.info(f"Percorso file aggiornato per documento ID: {document_id} a {alternative_path}")
-                file_path = alternative_path
-                file_found = True
-                break
-        
-        if not file_found:
-            # Log dell'errore
-            app.logger.error(f"File non trovato: {document.file_path} per il documento ID: {document_id}")
-            app.logger.error(f"Percorsi alternativi tentati: {alternatives}")
-            flash('File non trovato nel sistema. Contattare l\'amministratore.', 'danger')
-            
-            # Log del problema per audit trail
-            from services.audit_service import AuditTrailService
-            AuditTrailService.log_activity(
-                user_id=current_user.id,
-                action="download",
-                document_id=document_id,
-                result="failure",
-                details=json.dumps({"reason": "file_not_found", "path": document.file_path, "alt_paths": alternatives})
-            )
-            
-            return redirect(url_for('view_document', document_id=document.id))
+        return redirect(url_for('view_document', document_id=document.id))
     
     # Log del download per audit trail
-    from services.audit_service import AuditTrailService
-    AuditTrailService.log_document_download(
+    from services.audit_service import log_activity
+    log_activity(
         user_id=current_user.id,
-        document_id=document_id
+        action="download",
+        document_id=document_id,
+        action_category='ACCESS',
+        details="Download documento",
+        result="success"
     )
     
-    return send_file(file_path, 
+    # Se siamo qui, il file esiste e può essere scaricato
+    return send_file(document.file_path, 
                     download_name=document.original_filename,
                     as_attachment=True)
 
