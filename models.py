@@ -435,9 +435,9 @@ class ActivityLog(db.Model):
     
     # Enhanced device and location tracking
     ip_address = db.Column(db.String(50))
-    user_agent = db.Column(db.String(256))  # Browser/client info
-    device_info = db.Column(db.String(256))  # Device type/OS
-    geolocation = db.Column(db.String(150), nullable=True)  # Optional geolocation data if available
+    user_agent = db.Column(db.Text)  # Browser/client info - Cambiato da String(256) a Text per evitare truncation
+    device_info = db.Column(db.Text)  # Device type/OS - Cambiato da String(256) a Text per evitare truncation
+    geolocation = db.Column(db.Text, nullable=True)  # Optional geolocation data if available - Cambiato da String(150) a Text
     
     # Enhanced temporal data for audit trails
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)

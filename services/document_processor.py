@@ -161,27 +161,52 @@ def get_document_preview(document):
     # Verifica che il file esista e controlla path alternativi
     if not os.path.exists(file_path):
         from flask import current_app
-        # Prova a ricostruire il percorso file in diversi modi
-        alternatives = [
-            os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename),
-            os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', document.filename),
-            os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename),
-            os.path.join('document_cache', document.filename),
-            os.path.join('attached_assets', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'attached_assets', document.filename),
-            # Cerca in tutte le directory principali
-            os.path.join(os.getcwd(), document.filename),
-            os.path.join('/home/runner/workspace', document.filename)
+        current_app.logger.warning(f"File non trovato al percorso originale: {file_path}")
+        
+        # Estrai nome file dalla parte finale del path (dopo l'ultimo slash o backslash)
+        original_file = os.path.basename(file_path)
+        base_filename = os.path.basename(document.filename)
+        
+        # Estrai nome file senza UUID e timestamp (se presente)
+        # Ad esempio, da "fdadaadb-2cf1-422d-b5a4-d79640a1dfb6_Atto.pdf" estraiamo "Atto.pdf"
+        original_name_parts = original_file.split('_', 1)
+        simplified_original = original_name_parts[1] if len(original_name_parts) > 1 else original_file
+        
+        # Il nome del file potrebbe avere diversi formati a seconda di come è stato caricato
+        # Prova tutte le possibili varianti del nome file
+        alternative_filenames = [
+            document.filename,                  # Nome completo archiviato
+            base_filename,                      # Solo nome senza percorso
+            document.original_filename,         # Nome originale all'upload
+            simplified_original,                # Nome senza UUID
+            document.original_filename.replace(' ', '_')  # Con underscore invece di spazi
         ]
         
-        # Cerca anche in document_cache con solo il nome del file (senza percorso)
-        base_filename = os.path.basename(document.filename)
-        alternatives.extend([
-            os.path.join(current_app.config['UPLOAD_FOLDER'], base_filename),
-            os.path.join(current_app.config['DOCUMENT_CACHE'], base_filename),
-            os.path.join('attached_assets', base_filename)
-        ])
+        # Elenco di cartelle da esplorare
+        possible_dirs = [
+            current_app.config['UPLOAD_FOLDER'],  # Directory principale di upload
+            current_app.config['DOCUMENT_CACHE'], # Cache di backup
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads'),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'document_cache'),
+            'uploads',
+            'document_cache',
+            'attached_assets',
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'attached_assets'),
+            '/home/runner/workspace/uploads',
+            '/home/runner/workspace/document_cache',
+            '/home/runner/workspace/attached_assets',
+            os.getcwd()
+        ]
+        
+        # Genera tutte le possibili combinazioni
+        alternatives = []
+        for dir_path in possible_dirs:
+            for filename in alternative_filenames:
+                if filename:
+                    alternatives.append(os.path.join(dir_path, filename))
+                    
+        # Log per debug
+        current_app.logger.info(f"Cercando file: {document.filename} in {len(alternatives)} percorsi alternativi")
         
         file_found = False
         for alternative_path in alternatives:
