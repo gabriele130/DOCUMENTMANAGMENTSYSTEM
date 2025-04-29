@@ -1,0 +1,206 @@
+{% extends "layout.html" %}
+
+{% block title %}Statistiche documenti{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Statistiche documenti</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Documenti totali</h5>
+                    <p class="card-text display-4">{{ statistics.total_documents }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Dimensione media</h5>
+                    <p class="card-text display-4">{{ statistics.average_size_mb }} MB</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Distribuzione per tipologia</h5>
+                    <canvas id="fileTypeChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Documenti per tipo di file</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tipo file</th>
+                                    <th>Numero documenti</th>
+                                    <th>Percentuale</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file_type in statistics.file_types %}
+                                <tr>
+                                    <td>{{ file_type[0] }}</td>
+                                    <td>{{ file_type[1] }}</td>
+                                    <td>{{ ((file_type[1] / statistics.total_documents) * 100) | round(1) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Documenti per utente</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Utente</th>
+                                    <th>Numero documenti</th>
+                                    <th>Percentuale</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user_stat in statistics.documents_by_owner %}
+                                <tr>
+                                    <td>{{ user_stat[0] }}</td>
+                                    <td>{{ user_stat[1] }}</td>
+                                    <td>{{ ((user_stat[1] / statistics.total_documents) * 100) | round(1) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Documenti per mese</h5>
+                    <canvas id="documentsByMonthChart" width="800" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dati per il grafico a torta dei tipi di file
+        const fileTypeData = {
+            labels: [
+                {% for file_type in statistics.file_types %}
+                '{{ file_type[0] }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for file_type in statistics.file_types %}
+                    {{ file_type[1] }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    '#4e73df',
+                    '#1cc88a',
+                    '#36b9cc',
+                    '#f6c23e',
+                    '#e74a3b',
+                    '#6f42c1',
+                    '#fd7e14',
+                    '#6c757d'
+                ]
+            }]
+        };
+
+        // Dati per il grafico a barre dei documenti per mese
+        const documentsByMonthData = {
+            labels: [
+                {% for month_data in statistics.documents_by_month %}
+                '{{ month_data[0] }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Documenti',
+                data: [
+                    {% for month_data in statistics.documents_by_month %}
+                    {{ month_data[1] }},
+                    {% endfor %}
+                ],
+                backgroundColor: '#4e73df',
+                borderColor: '#2e59d9',
+                borderWidth: 1
+            }]
+        };
+
+        // Grafico a torta per i tipi di file
+        if (document.getElementById('fileTypeChart')) {
+            new Chart(document.getElementById('fileTypeChart'), {
+                type: 'pie',
+                data: fileTypeData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Grafico a barre per i documenti per mese
+        if (document.getElementById('documentsByMonthChart')) {
+            new Chart(document.getElementById('documentsByMonthChart'), {
+                type: 'bar',
+                data: documentsByMonthData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Numero documenti'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Mese'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

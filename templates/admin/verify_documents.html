@@ -1,0 +1,573 @@
+{% extends "layout.html" %}
+
+{% block title %}Verifica e ripristino documenti{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Verifica e ripristino documenti</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Verifica stato documenti</h5>
+                    <p class="card-text">
+                        Utilizza questo strumento per verificare lo stato di tutti i documenti e tentare il recupero automatico di quelli mancanti.
+                    </p>
+                    <button id="startVerification" class="btn btn-primary">
+                        <i class="fas fa-check-circle"></i> Avvia verifica
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-3 d-none" id="verificationProgress">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Verifica in corso</h5>
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             id="progressBar"
+                             style="width: 0%">0%</div>
+                    </div>
+                    <p class="card-text" id="progressStatus">Caricamento documenti...</p>
+                    <button id="cancelVerification" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annulla
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-3 d-none" id="verificationSummary">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Riepilogo verifica</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Documenti OK</h5>
+                                    <p class="card-text display-4" id="originalCount">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-warning text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Documenti recuperati</h5>
+                                    <p class="card-text display-4" id="recoveredCount">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-danger text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Documenti mancanti</h5>
+                                    <p class="card-text display-4" id="notFoundCount">0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Risultati verifica</h5>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="documentTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome file</th>
+                                    <th>Titolo</th>
+                                    <th>Stato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- I risultati verranno caricati qui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <nav aria-label="Navigazione pagine" class="mt-3 d-none" id="pagination">
+                        <ul class="pagination justify-content-center" id="paginationList">
+                            <!-- I link di paginazione verranno generati qui -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal di dettaglio documento -->
+<div class="modal fade" id="documentDetailModal" tabindex="-1" aria-labelledby="documentDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentDetailModalLabel">Dettagli documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6>Informazioni documento</h6>
+                    <dl class="row">
+                        <dt class="col-sm-3">ID:</dt>
+                        <dd class="col-sm-9" id="modalDocId"></dd>
+                        <dt class="col-sm-3">Nome file:</dt>
+                        <dd class="col-sm-9" id="modalDocFilename"></dd>
+                        <dt class="col-sm-3">Titolo:</dt>
+                        <dd class="col-sm-9" id="modalDocTitle"></dd>
+                        <dt class="col-sm-3">Stato:</dt>
+                        <dd class="col-sm-9" id="modalDocStatus"></dd>
+                    </dl>
+                </div>
+                <div class="mb-3">
+                    <h6>Percorsi file</h6>
+                    <dl class="row">
+                        <dt class="col-sm-3">Percorso originale:</dt>
+                        <dd class="col-sm-9" id="modalDocOriginalPath"></dd>
+                        <dt class="col-sm-3">Percorso attuale:</dt>
+                        <dd class="col-sm-9" id="modalDocCurrentPath"></dd>
+                    </dl>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" id="modalRecoverBtn">
+                    <i class="fas fa-sync-alt"></i> Tenta recupero
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elementi DOM
+        const startVerificationBtn = document.getElementById('startVerification');
+        const cancelVerificationBtn = document.getElementById('cancelVerification');
+        const verificationProgress = document.getElementById('verificationProgress');
+        const verificationSummary = document.getElementById('verificationSummary');
+        const progressBar = document.getElementById('progressBar');
+        const progressStatus = document.getElementById('progressStatus');
+        const documentTable = document.getElementById('documentTable').querySelector('tbody');
+        const pagination = document.getElementById('pagination');
+        const paginationList = document.getElementById('paginationList');
+        
+        // Contatori
+        const originalCount = document.getElementById('originalCount');
+        const recoveredCount = document.getElementById('recoveredCount');
+        const notFoundCount = document.getElementById('notFoundCount');
+        
+        // Elementi modal
+        const modalDocId = document.getElementById('modalDocId');
+        const modalDocFilename = document.getElementById('modalDocFilename');
+        const modalDocTitle = document.getElementById('modalDocTitle');
+        const modalDocStatus = document.getElementById('modalDocStatus');
+        const modalDocOriginalPath = document.getElementById('modalDocOriginalPath');
+        const modalDocCurrentPath = document.getElementById('modalDocCurrentPath');
+        const modalRecoverBtn = document.getElementById('modalRecoverBtn');
+        
+        // Variabili di stato
+        let isVerifying = false;
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalDocuments = 0;
+        let documentsVerified = 0;
+        
+        // Statistiche
+        let statsOriginal = 0;
+        let statsRecovered = 0;
+        let statsNotFound = 0;
+        
+        // Inizializza il modal di dettaglio documento
+        const documentDetailModal = new bootstrap.Modal(document.getElementById('documentDetailModal'));
+        
+        // Avvia verifica
+        startVerificationBtn.addEventListener('click', function() {
+            startVerification();
+        });
+        
+        // Annulla verifica
+        cancelVerificationBtn.addEventListener('click', function() {
+            isVerifying = false;
+            verificationProgress.classList.add('d-none');
+            startVerificationBtn.disabled = false;
+        });
+        
+        // Funzione per avviare la verifica
+        function startVerification() {
+            isVerifying = true;
+            startVerificationBtn.disabled = true;
+            verificationProgress.classList.remove('d-none');
+            verificationSummary.classList.add('d-none');
+            pagination.classList.add('d-none');
+            documentTable.innerHTML = '';
+            
+            // Resetta i contatori
+            statsOriginal = 0;
+            statsRecovered = 0;
+            statsNotFound = 0;
+            
+            // Aggiorna i contatori visualizzati
+            updateCounters();
+            
+            // Inizia con la prima pagina
+            documentsVerified = 0;
+            currentPage = 1;
+            fetchDocuments(currentPage);
+        }
+        
+        // Funzione per recuperare i documenti
+        function fetchDocuments(page) {
+            if (!isVerifying) return;
+            
+            progressStatus.textContent = `Caricamento documenti pagina ${page}...`;
+            
+            fetch(`/api/admin/verifica-documenti?page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Aggiorna statistiche di paginazione
+                    totalPages = data.pages;
+                    totalDocuments = data.total;
+                    
+                    // Aggiorna la tabella
+                    updateTable(data.results);
+                    
+                    // Aggiorna i contatori
+                    documentsVerified += data.results.length;
+                    updateProgress();
+                    
+                    // Se ci sono altre pagine e stiamo ancora verificando, continua
+                    if (page < totalPages && isVerifying) {
+                        currentPage++;
+                        fetchDocuments(currentPage);
+                    } else {
+                        // Verifica completata
+                        completeVerification();
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore durante la verifica:', error);
+                    progressStatus.textContent = `Errore durante la verifica: ${error.message}`;
+                    isVerifying = false;
+                    startVerificationBtn.disabled = false;
+                });
+        }
+        
+        // Aggiorna la tabella con i risultati
+        function updateTable(results) {
+            results.forEach(doc => {
+                // Aggiorna i contatori in base allo stato
+                if (doc.status === 'original') {
+                    statsOriginal++;
+                } else if (doc.status === 'recovered') {
+                    statsRecovered++;
+                } else {
+                    statsNotFound++;
+                }
+                
+                // Crea la riga della tabella
+                const row = document.createElement('tr');
+                row.className = getRowClass(doc.status);
+                
+                row.innerHTML = `
+                    <td>${doc.id}</td>
+                    <td>${doc.filename}</td>
+                    <td>${doc.title || ''}</td>
+                    <td>${getStatusBadge(doc.status)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info view-details" data-doc-id="${doc.id}">
+                            <i class="fas fa-info-circle"></i> Dettagli
+                        </button>
+                        ${doc.status === 'not_found' ? `
+                        <button class="btn btn-sm btn-warning recover-document" data-doc-id="${doc.id}">
+                            <i class="fas fa-sync-alt"></i> Recupera
+                        </button>
+                        ` : ''}
+                    </td>
+                `;
+                
+                // Store the document data as a data attribute for use in the modal
+                Object.entries(doc).forEach(([key, value]) => {
+                    row.dataset[key] = value || '';
+                });
+                
+                documentTable.appendChild(row);
+            });
+            
+            // Aggiorna i contatori
+            updateCounters();
+            
+            // Aggiungi event listeners per i pulsanti
+            document.querySelectorAll('.view-details').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const row = this.closest('tr');
+                    showDocumentDetails(row);
+                });
+            });
+            
+            document.querySelectorAll('.recover-document').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const docId = this.getAttribute('data-doc-id');
+                    recoverDocument(docId, this);
+                });
+            });
+        }
+        
+        // Mostra i dettagli del documento nel modal
+        function showDocumentDetails(row) {
+            modalDocId.textContent = row.dataset.id;
+            modalDocFilename.textContent = row.dataset.filename;
+            modalDocTitle.textContent = row.dataset.title || '(Nessun titolo)';
+            modalDocStatus.textContent = getStatusText(row.dataset.status);
+            modalDocStatus.className = getStatusClass(row.dataset.status);
+            modalDocOriginalPath.textContent = row.dataset.originalPath;
+            modalDocCurrentPath.textContent = row.dataset.currentPath || '(File non trovato)';
+            
+            // Configura il pulsante di recupero
+            if (row.dataset.status === 'not_found') {
+                modalRecoverBtn.classList.remove('d-none');
+                modalRecoverBtn.onclick = function() {
+                    recoverDocument(row.dataset.id, null, true);
+                };
+            } else {
+                modalRecoverBtn.classList.add('d-none');
+            }
+            
+            documentDetailModal.show();
+        }
+        
+        // Tenta di recuperare un documento
+        function recoverDocument(docId, buttonElement, isModal = false) {
+            const button = buttonElement;
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recupero in corso...';
+            }
+            
+            if (isModal) {
+                modalRecoverBtn.disabled = true;
+                modalRecoverBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Recupero in corso...';
+            }
+            
+            fetch(`/api/admin/recupera-documento/${docId}?force=true`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'recovered') {
+                        // Aggiorna i contatori
+                        statsRecovered++;
+                        statsNotFound--;
+                        updateCounters();
+                        
+                        // Aggiorna la riga della tabella
+                        const row = document.querySelector(`tr[data-id="${docId}"]`);
+                        if (row) {
+                            row.className = getRowClass('recovered');
+                            row.querySelector('td:nth-child(4)').innerHTML = getStatusBadge('recovered');
+                            row.dataset.status = 'recovered';
+                            row.dataset.currentPath = data.path;
+                            
+                            // Rimuovi il pulsante di recupero
+                            const recoverBtn = row.querySelector('.recover-document');
+                            if (recoverBtn) recoverBtn.remove();
+                        }
+                        
+                        // Se il modale è aperto, aggiorna anche quello
+                        if (isModal) {
+                            modalDocStatus.textContent = getStatusText('recovered');
+                            modalDocStatus.className = getStatusClass('recovered');
+                            modalDocCurrentPath.textContent = data.path;
+                            modalRecoverBtn.classList.add('d-none');
+                        }
+                        
+                        // Mostra un messaggio di successo
+                        alert('Documento recuperato con successo!');
+                    } else {
+                        alert('Non è stato possibile recuperare il documento.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Errore durante il recupero:', error);
+                    alert(`Errore durante il recupero: ${error.message}`);
+                })
+                .finally(() => {
+                    if (button) {
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-sync-alt"></i> Recupera';
+                    }
+                    
+                    if (isModal) {
+                        modalRecoverBtn.disabled = false;
+                        modalRecoverBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Tenta recupero';
+                    }
+                });
+        }
+        
+        // Aggiorna la barra di progresso
+        function updateProgress() {
+            const percentage = Math.round((documentsVerified / totalDocuments) * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressBar.textContent = `${percentage}%`;
+            progressStatus.textContent = `Verificati ${documentsVerified} di ${totalDocuments} documenti...`;
+        }
+        
+        // Aggiorna i contatori
+        function updateCounters() {
+            originalCount.textContent = statsOriginal;
+            recoveredCount.textContent = statsRecovered;
+            notFoundCount.textContent = statsNotFound;
+        }
+        
+        // Completa la verifica
+        function completeVerification() {
+            isVerifying = false;
+            startVerificationBtn.disabled = false;
+            verificationProgress.classList.add('d-none');
+            verificationSummary.classList.remove('d-none');
+            
+            // Genera la paginazione
+            generatePagination();
+            pagination.classList.remove('d-none');
+            
+            progressStatus.textContent = `Verifica completata: ${documentsVerified} documenti verificati.`;
+        }
+        
+        // Genera la paginazione
+        function generatePagination() {
+            paginationList.innerHTML = '';
+            
+            // Pulsante "Precedente"
+            const prevItem = document.createElement('li');
+            prevItem.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevItem.innerHTML = `
+                <a class="page-link" href="#" aria-label="Precedente" data-page="${currentPage - 1}">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            `;
+            paginationList.appendChild(prevItem);
+            
+            // Pagine numerate
+            for (let i = 1; i <= totalPages; i++) {
+                if (totalPages > 7 && (
+                    (i > 2 && i < currentPage - 1) || 
+                    (i > currentPage + 1 && i < totalPages - 1)
+                )) {
+                    // Mostra puntini di sospensione per le pagine intermedie
+                    if (i === 3 && currentPage > 4) {
+                        const ellipsisItem = document.createElement('li');
+                        ellipsisItem.className = 'page-item disabled';
+                        ellipsisItem.innerHTML = '<span class="page-link">...</span>';
+                        paginationList.appendChild(ellipsisItem);
+                    } else if (i === totalPages - 2 && currentPage < totalPages - 3) {
+                        const ellipsisItem = document.createElement('li');
+                        ellipsisItem.className = 'page-item disabled';
+                        ellipsisItem.innerHTML = '<span class="page-link">...</span>';
+                        paginationList.appendChild(ellipsisItem);
+                    }
+                    continue;
+                }
+                
+                const pageItem = document.createElement('li');
+                pageItem.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageItem.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+                paginationList.appendChild(pageItem);
+            }
+            
+            // Pulsante "Successivo"
+            const nextItem = document.createElement('li');
+            nextItem.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextItem.innerHTML = `
+                <a class="page-link" href="#" aria-label="Successivo" data-page="${currentPage + 1}">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            `;
+            paginationList.appendChild(nextItem);
+            
+            // Aggiungi event listeners ai link di paginazione
+            document.querySelectorAll('.page-link[data-page]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = parseInt(this.getAttribute('data-page'));
+                    if (page >= 1 && page <= totalPages) {
+                        currentPage = page;
+                        documentTable.innerHTML = '';
+                        fetchDocuments(currentPage);
+                    }
+                });
+            });
+        }
+        
+        // Utility per ottenere la classe CSS per la riga in base allo stato
+        function getRowClass(status) {
+            switch (status) {
+                case 'original':
+                    return 'table-success';
+                case 'recovered':
+                    return 'table-warning';
+                case 'not_found':
+                    return 'table-danger';
+                default:
+                    return '';
+            }
+        }
+        
+        // Utility per ottenere il badge di stato
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'original':
+                    return '<span class="badge bg-success">Disponibile</span>';
+                case 'recovered':
+                    return '<span class="badge bg-warning">Recuperato</span>';
+                case 'not_found':
+                    return '<span class="badge bg-danger">Non trovato</span>';
+                default:
+                    return '<span class="badge bg-secondary">Sconosciuto</span>';
+            }
+        }
+        
+        // Utility per ottenere il testo di stato
+        function getStatusText(status) {
+            switch (status) {
+                case 'original':
+                    return 'Disponibile (percorso originale)';
+                case 'recovered':
+                    return 'Recuperato (da backup)';
+                case 'not_found':
+                    return 'Non trovato';
+                default:
+                    return 'Sconosciuto';
+            }
+        }
+        
+        // Utility per ottenere la classe CSS per il testo di stato
+        function getStatusClass(status) {
+            switch (status) {
+                case 'original':
+                    return 'text-success';
+                case 'recovered':
+                    return 'text-warning';
+                case 'not_found':
+                    return 'text-danger';
+                default:
+                    return 'text-secondary';
+            }
+        }
+    });
+</script>
+{% endblock %}
