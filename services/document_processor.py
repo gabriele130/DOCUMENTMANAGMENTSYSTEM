@@ -25,11 +25,21 @@ def save_document(file, owner_id):
     """Save a document to the upload folder and return metadata."""
     filename = secure_filename(file.filename)
     unique_filename = f"{owner_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+    
+    # Salva il file nella directory principale di upload
     file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
     file.save(file_path)
     
+    # Salva anche una copia nella cache di backup per garantire la persistenza
+    cache_path = os.path.join(current_app.config['DOCUMENT_CACHE'], unique_filename)
+    import shutil
+    shutil.copy2(file_path, cache_path)
+    
     file_size = os.path.getsize(file_path)
-    file_type = filename.rsplit('.', 1)[1].lower()
+    file_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'unknown'
+    
+    # Registra entrambi i percorsi per maggiore ridondanza
+    current_app.logger.info(f"Documento salvato in: {file_path} e {cache_path}")
     
     return {
         'filename': unique_filename,
@@ -155,8 +165,23 @@ def get_document_preview(document):
         alternatives = [
             os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename),
             os.path.join('uploads', document.filename),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', document.filename)
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads', document.filename),
+            os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename),
+            os.path.join('document_cache', document.filename),
+            os.path.join('attached_assets', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'attached_assets', document.filename),
+            # Cerca in tutte le directory principali
+            os.path.join(os.getcwd(), document.filename),
+            os.path.join('/home/runner/workspace', document.filename)
         ]
+        
+        # Cerca anche in document_cache con solo il nome del file (senza percorso)
+        base_filename = os.path.basename(document.filename)
+        alternatives.extend([
+            os.path.join(current_app.config['UPLOAD_FOLDER'], base_filename),
+            os.path.join(current_app.config['DOCUMENT_CACHE'], base_filename),
+            os.path.join('attached_assets', base_filename)
+        ])
         
         file_found = False
         for alternative_path in alternatives:
@@ -170,6 +195,27 @@ def get_document_preview(document):
                 file_found = True
                 break
         
+        # Se il file non è stato trovato ma esiste nella cache di backup, ripristinalo
+        if not file_found and os.path.exists(os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename)):
+            backup_path = os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename)
+            target_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename)
+            
+            # Assicurati che la directory di destinazione esista
+            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            
+            # Copia il file dalla cache al percorso principale
+            import shutil
+            try:
+                shutil.copy2(backup_path, target_path)
+                current_app.logger.info(f"File ripristinato dalla cache per documento ID: {document.id}")
+                document.file_path = target_path
+                from app import db
+                db.session.commit()
+                file_path = target_path
+                file_found = True
+            except Exception as e:
+                current_app.logger.error(f"Errore durante il ripristino del file dalla cache: {str(e)}")
+        
         if not file_found:
             current_app.logger.error(f"File non trovato: {file_path} o alternative: {alternatives}")
             return f"""
@@ -177,6 +223,7 @@ def get_document_preview(document):
                 <h4>File non trovato</h4>
                 <p>Il file non è stato trovato nel sistema. Contattare l'amministratore.</p>
                 <p>ID documento: {document.id}, Filename: {document.filename}</p>
+                <p>Percorso registrato: {document.file_path}</p>
             </div>
             """
     

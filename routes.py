@@ -315,24 +315,16 @@ def upload_document():
             return redirect(request.url)
         
         if file and allowed_file(file.filename):
-            # Save the uploaded file
-            filename = secure_filename(file.filename)
-            unique_filename = f"{str(uuid.uuid4())}_{filename}"
-            # Usa percorso assoluto per garantire che il file sia persistente
-            file_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-            
-            # Assicurati che la directory upload esista
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            
-            # Salva il file
-            file.save(file_path)
+            # Save the uploaded file using il servizio document_processor
+            document_data = save_document(file, current_user.id)
+            filename = document_data['original_filename']
+            unique_filename = document_data['filename']
+            file_path = document_data['file_path']
+            file_type = document_data['file_type']
+            file_size = document_data['file_size']
             
             # Log del percorso per debug
-            app.logger.info(f"File salvato in: {file_path}")
-            
-            # Extract basic metadata
-            file_type = filename.rsplit('.', 1)[1].lower()
-            file_size = os.path.getsize(file_path)
+            app.logger.info(f"File salvato in: {file_path} e copiato nella cache di backup")
             
             # Create new document record
             document = Document(
@@ -489,7 +481,11 @@ def view_document(document_id):
             os.path.join('uploads', document.filename),
             os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
             os.path.join(os.path.abspath('uploads'), document.filename),
-            os.path.join(app.root_path, 'uploads', document.filename)
+            os.path.join(app.root_path, 'uploads', document.filename),
+            # Percorsi per la cache di backup
+            os.path.join(app.config['DOCUMENT_CACHE'], document.filename),
+            os.path.join('document_cache', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'document_cache', document.filename)
         ]
         
         # Cerca anche nella cartella attached_assets
@@ -502,6 +498,15 @@ def view_document(document_id):
             os.path.join(app.root_path, 'attached_assets', document.original_filename)
         ]
         alternatives.extend(attached_alternatives)
+        
+        # Prova anche con il nome del file originale nelle cartelle principali
+        original_alternatives = [
+            os.path.join(app.config['UPLOAD_FOLDER'], document.original_filename),
+            os.path.join(app.config['DOCUMENT_CACHE'], document.original_filename),
+            os.path.join('uploads', document.original_filename),
+            os.path.join('document_cache', document.original_filename)
+        ]
+        alternatives.extend(original_alternatives)
         
         # Cerca in tutta la directory /home/runner/workspace
         workspace_path = '/home/runner/workspace'
@@ -597,7 +602,11 @@ def download_document(document_id):
             os.path.join('uploads', document.filename),
             os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', document.filename),
             os.path.join(os.path.abspath('uploads'), document.filename),
-            os.path.join(app.root_path, 'uploads', document.filename)
+            os.path.join(app.root_path, 'uploads', document.filename),
+            # Percorsi per la cache di backup
+            os.path.join(app.config['DOCUMENT_CACHE'], document.filename),
+            os.path.join('document_cache', document.filename),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'document_cache', document.filename)
         ]
         
         # Cerca anche nella cartella attached_assets
@@ -610,6 +619,15 @@ def download_document(document_id):
             os.path.join(app.root_path, 'attached_assets', document.original_filename)
         ]
         alternatives.extend(attached_alternatives)
+        
+        # Prova anche con il nome del file originale nelle cartelle principali
+        original_alternatives = [
+            os.path.join(app.config['UPLOAD_FOLDER'], document.original_filename),
+            os.path.join(app.config['DOCUMENT_CACHE'], document.original_filename),
+            os.path.join('uploads', document.original_filename),
+            os.path.join('document_cache', document.original_filename)
+        ]
+        alternatives.extend(original_alternatives)
         
         # Cerca in tutta la directory /home/runner/workspace
         workspace_path = '/home/runner/workspace'
