@@ -42,6 +42,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Configure file upload settings
 # Usa un percorso assoluto per salvare i file in modo persistente
 app.config["UPLOAD_FOLDER"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
+app.config["DOCUMENT_CACHE"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "document_cache"))
+app.config["FALLBACK_PDF"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "static", "img", "document_placeholder.pdf"))
+
 # Non impostiamo limiti di dimensione file per il caricamento
 app.config["ALLOWED_EXTENSIONS"] = {
     "pdf", "docx", "xlsx", "pptx", "txt", "jpg", "jpeg", "png", "gif", "zip", "rar", "7z", 
@@ -50,6 +53,7 @@ app.config["ALLOWED_EXTENSIONS"] = {
 
 # Ensure upload directory exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+os.makedirs(app.config["DOCUMENT_CACHE"], exist_ok=True)
 
 # Initialize extensions with app
 db.init_app(app)
