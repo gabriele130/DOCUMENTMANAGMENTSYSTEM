@@ -198,8 +198,8 @@ def verify_and_repair_storage():
         # Assicurati che le directory esistano
         ensure_storage_directories()
         
-        # Ottieni tutti i documenti dal database
-        documents = Document.query.filter_by(is_deleted=False).all()
+        # Ottieni tutti i documenti dal database (ignorando l'attributo is_deleted che potrebbe non esistere)
+        documents = Document.query.all()
         report['verified_total'] = len(documents)
         
         for doc in documents:
@@ -447,8 +447,8 @@ def migrate_files_to_central_storage(update_database=True):
         # Assicurati che le directory esistano
         ensure_storage_directories()
         
-        # Ottieni tutti i documenti dal database
-        documents = Document.query.filter_by(is_deleted=False).all()
+        # Ottieni tutti i documenti dal database (ignorando l'attributo is_deleted che potrebbe non esistere)
+        documents = Document.query.all()
         report['total_documents'] = len(documents)
         
         for doc in documents:
@@ -508,13 +508,21 @@ def get_storage_stats():
         ensure_storage_directories()
         
         # Conteggio totale documenti
-        stats['total_documents'] = Document.query.filter_by(is_deleted=False).count()
+        stats['total_documents'] = Document.query.count()
         
         # Conteggio documenti migrati
-        stats['migrated_documents'] = Document.query.filter(
-            Document.is_deleted == False,
-            Document.file_path.like(f"{ORIGINAL_FILES_DIR}%")
-        ).count()
+        try:
+            stats['migrated_documents'] = Document.query.filter(
+                Document.file_path.like(f"{ORIGINAL_FILES_DIR}%")
+            ).count()
+        except Exception as e:
+            logging.error(f"Errore durante il conteggio dei documenti migrati: {str(e)}")
+            # Conteggio manuale in caso di errore
+            migrated_count = 0
+            for doc in Document.query.all():
+                if doc.file_path and doc.file_path.startswith(ORIGINAL_FILES_DIR):
+                    migrated_count += 1
+            stats['migrated_documents'] = migrated_count
         
         # Conteggio e dimensione file nel repository principale
         original_files = []

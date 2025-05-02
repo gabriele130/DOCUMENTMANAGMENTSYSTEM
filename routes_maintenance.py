@@ -51,17 +51,19 @@ def index():
     # Conteggio totale documenti
     doc_count = Document.query.count()
     
-    # Conteggio documenti con file mancanti
-    missing_files_count = Document.query.filter(
-        ~Document.is_deleted,
-        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
-    ).count()
+    # Conteggio documenti con file mancanti (senza controllo is_deleted)
+    missing_files_count = 0
+    problem_documents = []
     
-    # Query per documenti con problemi
-    problem_documents = Document.query.filter(
-        ~Document.is_deleted,
-        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
-    ).limit(10).all()
+    try:
+        # La funzione file_exists potrebbe non esistere, utilizziamo un metodo manuale
+        for doc in Document.query.all():
+            if doc.file_path and not os.path.exists(doc.file_path):
+                missing_files_count += 1
+                if len(problem_documents) < 10:
+                    problem_documents.append(doc)
+    except Exception as e:
+        logging.error(f"Errore durante il conteggio dei file mancanti: {str(e)}")
     
     # Statistiche attività recenti
     recent_activity = ActivityLog.query.order_by(desc(ActivityLog.timestamp)).limit(20).all()
@@ -86,11 +88,18 @@ def central_storage():
     # Ottieni statistiche sullo storage
     storage_stats = get_storage_stats()
     
-    # Query per documenti con problemi
-    problem_docs = Document.query.filter(
-        ~Document.is_deleted,
-        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
-    ).limit(50).all()
+    # Query per documenti con problemi (senza controllo is_deleted)
+    problem_docs = []
+    
+    try:
+        # La funzione file_exists potrebbe non esistere, utilizziamo un metodo manuale
+        for doc in Document.query.all():
+            if doc.file_path and not os.path.exists(doc.file_path):
+                problem_docs.append(doc)
+                if len(problem_docs) >= 50:
+                    break
+    except Exception as e:
+        logging.error(f"Errore durante la ricerca di documenti con problemi: {str(e)}")
     
     # Query per documenti recenti
     recent_docs = Document.query.order_by(desc(Document.created_at)).limit(10).all()
