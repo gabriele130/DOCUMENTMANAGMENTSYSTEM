@@ -58,9 +58,10 @@ def main():
         # Creazione delle directory di storage
         logger.info("Creazione delle directory di storage centralizzato...")
         ensure_storage_directories()
-        
-        # Usiamo il contesto dell'app
-            # Conta i documenti nel database
+
+        # Utilizziamo il contesto dell'applicazione
+        with app.app_context():
+            # Contiamo i documenti nel database
             doc_count = Document.query.count()
             logger.info(f"Trovati {doc_count} documenti nel database")
             

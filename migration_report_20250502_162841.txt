@@ -1,0 +1,12 @@
+=== REPORT DI MIGRAZIONE AL SISTEMA DI STORAGE CENTRALIZZATO ===
+Data: 2025-05-02 16:28:41
+
+Documenti totali: 0
+Migrati con successo: 0
+Già migrati: 0
+Migrazione fallita: 0
+
+ERRORI DURANTE LA MIGRAZIONE:
+1. Errore durante la migrazione dei file: Entity namespace for "document" has no property "is_deleted"
+
+=== FINE REPORT ===
