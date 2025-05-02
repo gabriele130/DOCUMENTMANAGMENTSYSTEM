@@ -325,9 +325,23 @@ def document_statistics():
         user_stats=user_stats
     )
 
+# Flag per tenere traccia della registrazione
+_blueprint_registered = False
+
 # Aggiungi il blueprint all'app principale
 def register_maintenance_blueprint(app):
-    app.register_blueprint(maintenance_bp)
+    global _blueprint_registered
+    if not _blueprint_registered:
+        try:
+            app.register_blueprint(maintenance_bp)
+            _blueprint_registered = True
+        except ValueError as e:
+            # Il blueprint è già registrato, ignora l'errore
+            if "already registered" in str(e):
+                _blueprint_registered = True
+                pass
+            else:
+                raise
     
     # Inietta funzioni utili nei template
     @app.template_filter('datetime_format')

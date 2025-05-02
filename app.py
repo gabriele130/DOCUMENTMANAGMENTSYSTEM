@@ -91,6 +91,12 @@ def inject_context_data():
 from routes import *
 from company_routes import *
 
+# Import il blueprint di manutenzione solo se necessario (verrà registrato più avanti)
+try:
+    from routes_maintenance import register_maintenance_blueprint
+except ImportError:
+    pass
+
 # Import e configura il servizio promemoria
 with app.app_context():
     from services.reminder_service import check_reminders
@@ -161,12 +167,4 @@ def handle_db_errors(f):
     return decorated_function
 
 # Registra i blueprint per i diversi moduli dell'applicazione
-# Registra le rotte di manutenzione
-from routes_maintenance import register_maintenance_blueprint
-register_maintenance_blueprint(app)
-
-# Importa tutte le rotte regolari
-import routes
-
-# Importa le rotte per le aziende (senza usare blueprint per ora)
-from company_routes import *
+# Nota: Le importazioni delle rotte principali sono già state fatte sopra
