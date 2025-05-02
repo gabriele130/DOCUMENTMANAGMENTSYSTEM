@@ -1,264 +1,348 @@
+"""
+Routes per la manutenzione del sistema e il monitoraggio dello storage centralizzato.
+"""
+
+from flask import (
+    Blueprint, render_template, redirect, url_for, flash,
+    request, current_app, jsonify, Response, stream_with_context
+)
+from flask_login import login_required, current_user
+from sqlalchemy import func, desc
 import os
 import logging
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, current_app
-from flask_login import login_required, current_user
-from sqlalchemy import func
-from models import Document, db, AccessLevel, ActivityLog, User
-from services.file_recovery import verify_document_file_exists, recover_missing_file
-from services.audit_service import log_activity
-from services.central_storage import migrate_files_to_central_storage, verify_and_repair_storage
+import datetime
+import json
+from functools import wraps
+from app import db
+from models import Document, ActivityLog, User
+from services.central_storage import (
+    ensure_storage_directories, 
+    get_storage_stats, 
+    migrate_files_to_central_storage,
+    verify_and_repair_storage,
+    validate_document_storage,
+    cleanup_orphaned_files
+)
 
-maintenance = Blueprint('maintenance', __name__)
-logger = logging.getLogger(__name__)
+# Configurazione del blueprint
+maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/admin/maintenance')
 
-@maintenance.route('/admin/verifica-documenti')
+# Decorator per verificare i permessi di amministratore
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            flash('Accesso limitato agli amministratori.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@maintenance_bp.route('/')
 @login_required
-def verify_documents():
-    """
-    Pagina admin per verificare lo stato di tutti i documenti
-    """
-    if not current_user.is_admin():
-        flash('Accesso non autorizzato. Solo gli amministratori possono accedere a questa pagina.', 'danger')
-        return redirect(url_for('index'))
-        
-    return render_template('admin/verify_documents.html')
-
-@maintenance.route('/api/admin/verifica-documenti')
-@login_required
-def api_verify_documents():
-    """
-    API per verificare lo stato di tutti i documenti e tentare il recupero automatico
-    """
-    if not current_user.is_admin():
-        return jsonify({'error': 'Accesso non autorizzato'}), 403
+@admin_required
+def index():
+    """Dashboard di manutenzione"""
+    # Controlla che le directory di storage esistano
+    ensure_storage_directories()
     
+    # Ottieni statistiche sullo storage
+    storage_stats = get_storage_stats()
+    
+    # Conteggio totale documenti
+    doc_count = Document.query.count()
+    
+    # Conteggio documenti con file mancanti
+    missing_files_count = Document.query.filter(
+        ~Document.is_deleted,
+        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
+    ).count()
+    
+    # Query per documenti con problemi
+    problem_documents = Document.query.filter(
+        ~Document.is_deleted,
+        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
+    ).limit(10).all()
+    
+    # Statistiche attività recenti
+    recent_activity = ActivityLog.query.order_by(desc(ActivityLog.timestamp)).limit(20).all()
+    
+    return render_template(
+        'admin/maintenance/index.html',
+        storage_stats=storage_stats,
+        doc_count=doc_count,
+        missing_files_count=missing_files_count,
+        problem_documents=problem_documents,
+        recent_activity=recent_activity
+    )
+
+@maintenance_bp.route('/storage-centralizzato')
+@login_required
+@admin_required
+def central_storage():
+    """Gestione dello storage centralizzato"""
+    # Controlla che le directory di storage esistano
+    ensure_storage_directories()
+    
+    # Ottieni statistiche sullo storage
+    storage_stats = get_storage_stats()
+    
+    # Query per documenti con problemi
+    problem_docs = Document.query.filter(
+        ~Document.is_deleted,
+        ~func.exists().where(Document.id == Document.id).where(func.file_exists(Document.file_path))
+    ).limit(50).all()
+    
+    # Query per documenti recenti
+    recent_docs = Document.query.order_by(desc(Document.created_at)).limit(10).all()
+    
+    return render_template(
+        'admin/maintenance/central_storage.html',
+        storage_stats=storage_stats,
+        problem_docs=problem_docs,
+        recent_docs=recent_docs
+    )
+
+@maintenance_bp.route('/avvia-migrazione', methods=['POST'])
+@login_required
+@admin_required
+def start_migration():
+    """Avvia la migrazione dei file al sistema di storage centralizzato"""
     try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 50))
-    except ValueError:
-        page = 1
-        per_page = 50
-    
-    # Get all documents paginated
-    documents = Document.query.paginate(page=page, per_page=per_page, error_out=False)
-    
-    results = []
-    
-    for doc in documents.items:
-        # Check if file exists and try to recover if missing
-        status, file_path = verify_document_file_exists(doc.id)
+        # Avvia la migrazione
+        migration_report = migrate_files_to_central_storage(update_database=True)
         
-        # Creating result object
-        result = {
-            'id': doc.id,
-            'filename': doc.filename,
-            'title': doc.title,
-            'original_path': doc.file_path,
-            'status': status,
-            'current_path': file_path if status != 'not_found' else None
-        }
-        
-        results.append(result)
-        
-        # Log the check activity
-        if status == 'recovered':
-            log_activity(
-                user_id=current_user.id,
-                action='recover_file',
-                document_id=doc.id,
-                action_category='MAINTENANCE',
-                details=f"File recuperato: {file_path}",
-                result='success'
-            )
-    
-    return jsonify({
-        'results': results,
-        'total': documents.total,
-        'pages': documents.pages,
-        'current_page': page
-    })
-
-@maintenance.route('/api/admin/recupera-documento/<int:document_id>')
-@login_required
-def api_recover_document(document_id):
-    """
-    API per tentare il recupero manuale di un singolo documento
-    """
-    if not current_user.is_admin():
-        return jsonify({'error': 'Accesso non autorizzato'}), 403
-    
-    document = Document.query.get(document_id)
-    if not document:
-        return jsonify({'error': 'Documento non trovato'}), 404
-    
-    force = request.args.get('force', 'false').lower() == 'true'
-    
-    # Check if file exists
-    file_exists = os.path.exists(document.file_path)
-    
-    if file_exists and not force:
-        return jsonify({
-            'status': 'original',
-            'message': 'Il file esiste già',
-            'path': document.file_path
-        })
-    
-    # Try to recover the file
-    success = recover_missing_file(document)
-    
-    if success:
-        log_activity(
+        flash(f"Migrazione completata! {migration_report['migrated_successfully']} documenti migrati con successo, "
+              f"{migration_report['migration_failed']} falliti.", 'success')
+              
+        # Registra l'attività
+        log_entry = ActivityLog(
             user_id=current_user.id,
-            action='recover_file',
-            document_id=document.id,
-            action_category='MAINTENANCE',
-            details=f"File recuperato manualmente: {document.file_path}",
-            result='success'
+            action_type="migrate",
+            target_type="storage",
+            target_id=0,
+            details=f"Migrazione al sistema di storage centralizzato: {migration_report['migrated_successfully']} successi, "
+                   f"{migration_report['migration_failed']} fallimenti",
+            result="success" if migration_report['migration_failed'] == 0 else "partial"
         )
+        db.session.add(log_entry)
+        db.session.commit()
         
-        return jsonify({
-            'status': 'recovered',
-            'message': 'File recuperato con successo',
-            'path': document.file_path
-        })
-    
-    return jsonify({
-        'status': 'not_found',
-        'message': 'Non è stato possibile recuperare il file',
-        'path': None
-    }), 404
+        return redirect(url_for('maintenance.central_storage'))
+    except Exception as e:
+        flash(f"Errore durante la migrazione: {str(e)}", 'danger')
+        logging.error(f"Errore durante la migrazione: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="migrate",
+            target_type="storage",
+            target_id=0,
+            details=f"Errore durante la migrazione: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
 
-@maintenance.route('/admin/statistiche-documenti')
+@maintenance_bp.route('/verifica-ripara-storage', methods=['POST'])
 @login_required
+@admin_required
+def verify_repair_storage():
+    """Verifica e ripara eventuali problemi nello storage"""
+    try:
+        # Esegui la verifica e riparazione
+        repair_report = verify_and_repair_storage()
+        
+        flash(f"Verifica e riparazione completata! {repair_report['verified_ok']} documenti OK, "
+              f"{repair_report['files_restored']} file ripristinati.", 'success')
+        
+        # Registra l'attività
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="repair",
+            target_type="storage",
+            target_id=0,
+            details=f"Verifica e riparazione storage: {repair_report['verified_ok']} OK, "
+                   f"{repair_report['files_restored']} ripristinati",
+            result="success"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+    except Exception as e:
+        flash(f"Errore durante la verifica e riparazione: {str(e)}", 'danger')
+        logging.error(f"Errore durante la verifica e riparazione: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="repair",
+            target_type="storage",
+            target_id=0,
+            details=f"Errore durante la verifica e riparazione: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+
+@maintenance_bp.route('/valida-documento/<int:doc_id>', methods=['POST'])
+@login_required
+@admin_required
+def validate_document(doc_id):
+    """Valida un singolo documento e ne ripristina il file se necessario"""
+    try:
+        document = Document.query.get_or_404(doc_id)
+        
+        validation_result = validate_document_storage(document)
+        
+        if validation_result['status'] == 'ok':
+            flash(f"Documento validato con successo: {document.filename}", 'success')
+        elif validation_result['status'] == 'restored':
+            flash(f"Documento ripristinato con successo: {document.filename}", 'success')
+        else:
+            flash(f"Il documento non può essere ripristinato: {validation_result['message']}", 'warning')
+        
+        # Registra l'attività
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="validate",
+            target_type="document",
+            target_id=doc_id,
+            details=f"Validazione documento: {validation_result['status']} - {validation_result.get('message', '')}",
+            result="success" if validation_result['status'] in ['ok', 'restored'] else "failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+    except Exception as e:
+        flash(f"Errore durante la validazione del documento: {str(e)}", 'danger')
+        logging.error(f"Errore durante la validazione del documento {doc_id}: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="validate",
+            target_type="document",
+            target_id=doc_id,
+            details=f"Errore durante la validazione: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+
+@maintenance_bp.route('/pulizia-file-orfani', methods=['POST'])
+@login_required
+@admin_required
+def cleanup_orphans():
+    """Pulisce i file orfani che non sono collegati a nessun documento nel database"""
+    try:
+        cleanup_result = cleanup_orphaned_files(commit=request.form.get('commit') == 'true')
+        
+        if request.form.get('commit') == 'true':
+            flash(f"Pulizia completata! Rimossi {cleanup_result['removed']} file orfani.", 'success')
+        else:
+            flash(f"Simulazione pulizia: trovati {cleanup_result['identified']} file orfani. "
+                 "Esegui nuovamente con l'opzione 'Conferma' per rimuoverli.", 'info')
+        
+        # Registra l'attività
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="cleanup",
+            target_type="storage",
+            target_id=0,
+            details=f"Pulizia file orfani: {json.dumps(cleanup_result)}",
+            result="success"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+    except Exception as e:
+        flash(f"Errore durante la pulizia dei file orfani: {str(e)}", 'danger')
+        logging.error(f"Errore durante la pulizia dei file orfani: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="cleanup",
+            target_type="storage",
+            target_id=0,
+            details=f"Errore durante la pulizia: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.central_storage'))
+
+@maintenance_bp.route('/statistiche-documenti')
+@login_required
+@admin_required
 def document_statistics():
-    """
-    Pagina admin per visualizzare statistiche sui documenti
-    """
-    if not current_user.is_admin():
-        flash('Accesso non autorizzato. Solo gli amministratori possono accedere a questa pagina.', 'danger')
-        return redirect(url_for('index'))
-    
-    # Get total document count
-    total_documents = Document.query.count()
-    
-    # Get count of documents by file type
-    file_types = db.session.query(
+    """Visualizza statistiche dettagliate sui documenti"""
+    # Statistiche per tipo di file
+    file_type_stats = db.session.query(
         Document.file_type, 
         func.count(Document.id).label('count')
     ).group_by(Document.file_type).all()
     
-    # Get count of documents by owner
-    documents_by_owner = db.session.query(
-        User.username,
-        func.count(Document.id).label('count')
-    ).join(Document, User.id == Document.owner_id).group_by(User.username).all()
-    
-    # Get average file size
-    average_size = db.session.query(func.avg(Document.file_size)).scalar()
-    if average_size:
-        average_size = round(average_size / (1024 * 1024), 2)  # Convert to MB
-    
-    # Document count by month
-    documents_by_month = db.session.query(
-        func.date_format(Document.created_at, '%Y-%m').label('month'),
+    # Statistiche per mese di creazione
+    month_stats = db.session.query(
+        func.date_trunc('month', Document.created_at).label('month'),
         func.count(Document.id).label('count')
     ).group_by('month').order_by('month').all()
     
-    statistics = {
-        'total_documents': total_documents,
-        'file_types': file_types,
-        'documents_by_owner': documents_by_owner,
-        'average_size_mb': average_size or 0,
-        'documents_by_month': documents_by_month
-    }
+    # Statistiche per utente
+    user_stats = db.session.query(
+        User.id,
+        User.username,
+        func.count(Document.id).label('count')
+    ).join(Document, Document.owner_id == User.id)\
+     .group_by(User.id, User.username)\
+     .order_by(desc('count')).all()
     
-    return render_template('admin/document_statistics.html', statistics=statistics)
+    return render_template(
+        'admin/maintenance/document_statistics.html',
+        file_type_stats=file_type_stats,
+        month_stats=month_stats,
+        user_stats=user_stats
+    )
 
-@maintenance.route('/admin/storage-centralizzato')
-@login_required
-def central_storage_management():
-    """
-    Pagina admin per la gestione dello storage centralizzato
-    """
-    if not current_user.is_admin():
-        flash('Accesso non autorizzato. Solo gli amministratori possono accedere a questa pagina.', 'danger')
-        return redirect(url_for('index'))
-        
-    return render_template('admin/central_storage.html')
-
-@maintenance.route('/api/admin/migrazione-storage', methods=['POST'])
-@login_required
-def api_migrate_storage():
-    """
-    API per avviare la migrazione dei file al nuovo sistema di storage centralizzato
-    """
-    if not current_user.is_admin():
-        return jsonify({'error': 'Accesso non autorizzato'}), 403
+# Aggiungi il blueprint all'app principale
+def register_maintenance_blueprint(app):
+    app.register_blueprint(maintenance_bp)
     
-    try:
-        # Avvia la migrazione
-        report = migrate_files_to_central_storage(update_database=True)
-        
-        # Log dell'attività
-        log_activity(
-            user_id=current_user.id,
-            action='migrate_storage',
-            action_category='MAINTENANCE',
-            details=json.dumps({
-                'total_documents': report['total_documents'],
-                'migrated_successfully': report['migrated_successfully'],
-                'migration_failed': report['migration_failed'],
-                'already_migrated': report['already_migrated'],
-            }),
-            result='success'
-        )
-        
-        return jsonify({
-            'success': True,
-            'report': report
-        })
-    except Exception as e:
-        logger.error(f"Errore durante la migrazione dello storage: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@maintenance.route('/api/admin/verifica-ripara-storage', methods=['POST'])
-@login_required
-def api_verify_repair_storage():
-    """
-    API per verificare e riparare lo storage centralizzato
-    """
-    if not current_user.is_admin():
-        return jsonify({'error': 'Accesso non autorizzato'}), 403
+    # Inietta funzioni utili nei template
+    @app.template_filter('datetime_format')
+    def datetime_format(value, format='%d/%m/%Y %H:%M'):
+        if value is None:
+            return ""
+        return value.strftime(format)
     
-    try:
-        # Avvia la verifica e riparazione
-        report = verify_and_repair_storage()
-        
-        # Log dell'attività
-        log_activity(
-            user_id=current_user.id,
-            action='verify_repair_storage',
-            action_category='MAINTENANCE',
-            details=json.dumps({
-                'total_documents': report['total_documents'],
-                'verified_ok': report['verified_ok'],
-                'files_missing': report['files_missing'],
-                'files_restored': report['files_restored'],
-                'files_unrepairable': report['files_unrepairable'],
-            }),
-            result='success'
-        )
-        
-        return jsonify({
-            'success': True,
-            'report': report
-        })
-    except Exception as e:
-        logger.error(f"Errore durante la verifica e riparazione dello storage: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+    @app.template_filter('filesize_format')
+    def filesize_format(bytes, unit='auto'):
+        if unit == 'auto':
+            if bytes < 1024:
+                return f"{bytes} B"
+            elif bytes < 1024 * 1024:
+                return f"{bytes/1024:.1f} KB"
+            elif bytes < 1024 * 1024 * 1024:
+                return f"{bytes/(1024*1024):.1f} MB"
+            else:
+                return f"{bytes/(1024*1024*1024):.2f} GB"
+        elif unit == 'kb':
+            return f"{bytes/1024:.1f} KB"
+        elif unit == 'mb':
+            return f"{bytes/(1024*1024):.1f} MB"
+        elif unit == 'gb':
+            return f"{bytes/(1024*1024*1024):.2f} GB"
+        else:
+            return f"{bytes} B"

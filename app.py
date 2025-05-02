@@ -161,9 +161,9 @@ def handle_db_errors(f):
     return decorated_function
 
 # Registra i blueprint per i diversi moduli dell'applicazione
-# Qui registriamo le rotte di manutenzione
-from routes_maintenance import maintenance
-app.register_blueprint(maintenance)
+# Registra le rotte di manutenzione
+from routes_maintenance import register_maintenance_blueprint
+register_maintenance_blueprint(app)
 
 # Importa tutte le rotte regolari
 import routes
