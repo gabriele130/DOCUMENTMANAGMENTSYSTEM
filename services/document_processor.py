@@ -9,6 +9,8 @@ from docx import Document as DocxDocument
 from openpyxl import load_workbook
 import magic
 import html
+import logging
+from services.central_storage import save_file_to_central_storage, get_file_from_storage
 
 def allowed_file(filename):
     """Check if the file has an allowed extension."""
@@ -22,32 +24,83 @@ def get_file_type(file_path):
     return file_type
 
 def save_document(file, owner_id):
-    """Save a document to the upload folder and return metadata."""
-    filename = secure_filename(file.filename)
-    unique_filename = f"{owner_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+    """
+    Salva un documento utilizzando il sistema di storage centralizzato
+    e restituisce i metadati del file salvato.
     
-    # Salva il file nella directory principale di upload
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
-    file.save(file_path)
-    
-    # Salva anche una copia nella cache di backup per garantire la persistenza
-    cache_path = os.path.join(current_app.config['DOCUMENT_CACHE'], unique_filename)
-    import shutil
-    shutil.copy2(file_path, cache_path)
-    
-    file_size = os.path.getsize(file_path)
-    file_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'unknown'
-    
-    # Registra entrambi i percorsi per maggiore ridondanza
-    current_app.logger.info(f"Documento salvato in: {file_path} e {cache_path}")
-    
-    return {
-        'filename': unique_filename,
-        'original_filename': filename,
-        'file_path': file_path,
-        'file_type': file_type,
-        'file_size': file_size
-    }
+    Args:
+        file: L'oggetto file da salvare
+        owner_id: ID dell'utente proprietario
+        
+    Returns:
+        dict: Dizionario con i metadati del file salvato
+    """
+    # Utilizza il sistema di storage centralizzato
+    try:
+        # Prepara il nome originale del file
+        original_filename = secure_filename(file.filename)
+        
+        # Salva il file nel repository centralizzato
+        storage_result = save_file_to_central_storage(
+            file_obj=file,
+            original_filename=original_filename,
+            create_backup=True  # Crea automaticamente un backup
+        )
+        
+        if not storage_result:
+            raise Exception("Errore durante il salvataggio del file nel repository centralizzato")
+        
+        # Estrai il tipo di file dall'estensione
+        file_type = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'unknown'
+        
+        # Registra l'operazione
+        logging.info(f"Documento salvato nel repository centralizzato: {storage_result['file_path']}")
+        if storage_result['backup_path']:
+            logging.info(f"Backup creato: {storage_result['backup_path']}")
+        
+        # Restituisci i metadati del file
+        return {
+            'filename': storage_result['filename'],
+            'original_filename': original_filename,
+            'file_path': storage_result['file_path'],
+            'file_type': file_type,
+            'file_size': storage_result['file_size']
+        }
+    except Exception as e:
+        logging.error(f"Errore durante il salvataggio del documento: {str(e)}")
+        
+        # Fallback al metodo originale se il sistema centralizzato fallisce
+        try:
+            filename = secure_filename(file.filename)
+            unique_filename = f"{owner_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{filename}"
+            
+            # Salva il file nella directory principale di upload
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            file.save(file_path)
+            
+            # Salva anche una copia nella cache di backup per garantire la persistenza
+            cache_path = os.path.join(current_app.config['DOCUMENT_CACHE'], unique_filename)
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            import shutil
+            shutil.copy2(file_path, cache_path)
+            
+            file_size = os.path.getsize(file_path)
+            file_type = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'unknown'
+            
+            # Registra entrambi i percorsi per maggiore ridondanza
+            logging.info(f"Documento salvato con metodo di fallback in: {file_path} e {cache_path}")
+            
+            return {
+                'filename': unique_filename,
+                'original_filename': filename,
+                'file_path': file_path,
+                'file_type': file_type,
+                'file_size': file_size
+            }
+        except Exception as fallback_error:
+            logging.error(f"Anche il metodo di fallback è fallito: {str(fallback_error)}")
+            raise Exception(f"Impossibile salvare il file: {str(e)} - Fallback error: {str(fallback_error)}")
 
 def extract_document_metadata(file_path, file_type):
     """Extract metadata from a document file based on its type."""
@@ -158,99 +211,101 @@ def get_document_preview(document):
     file_type = document.file_type
     preview_html = ""
     
-    # Verifica che il file esista e controlla path alternativi
+    # Verifica che il file esista nel percorso originale
     if not os.path.exists(file_path):
-        from flask import current_app
-        current_app.logger.warning(f"File non trovato al percorso originale: {file_path}")
+        logging.warning(f"File non trovato al percorso originale: {file_path}")
         
-        # Estrai nome file dalla parte finale del path (dopo l'ultimo slash o backslash)
-        original_file = os.path.basename(file_path)
-        base_filename = os.path.basename(document.filename)
+        # Tenta di recuperare il file tramite il sistema di storage centralizzato
+        recovered_path = get_file_from_storage(document.filename, document_id=document.id)
         
-        # Estrai nome file senza UUID e timestamp (se presente)
-        # Ad esempio, da "fdadaadb-2cf1-422d-b5a4-d79640a1dfb6_Atto.pdf" estraiamo "Atto.pdf"
-        original_name_parts = original_file.split('_', 1)
-        simplified_original = original_name_parts[1] if len(original_name_parts) > 1 else original_file
-        
-        # Il nome del file potrebbe avere diversi formati a seconda di come è stato caricato
-        # Prova tutte le possibili varianti del nome file
-        alternative_filenames = [
-            document.filename,                  # Nome completo archiviato
-            base_filename,                      # Solo nome senza percorso
-            document.original_filename,         # Nome originale all'upload
-            simplified_original,                # Nome senza UUID
-            document.original_filename.replace(' ', '_')  # Con underscore invece di spazi
-        ]
-        
-        # Elenco di cartelle da esplorare
-        possible_dirs = [
-            current_app.config['UPLOAD_FOLDER'],  # Directory principale di upload
-            current_app.config['DOCUMENT_CACHE'], # Cache di backup
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads'),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'document_cache'),
-            'uploads',
-            'document_cache',
-            'attached_assets',
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'attached_assets'),
-            '/home/runner/workspace/uploads',
-            '/home/runner/workspace/document_cache',
-            '/home/runner/workspace/attached_assets',
-            os.getcwd()
-        ]
-        
-        # Genera tutte le possibili combinazioni
-        alternatives = []
-        for dir_path in possible_dirs:
-            for filename in alternative_filenames:
-                if filename:
-                    alternatives.append(os.path.join(dir_path, filename))
-                    
-        # Log per debug
-        current_app.logger.info(f"Cercando file: {document.filename} in {len(alternatives)} percorsi alternativi")
-        
-        file_found = False
-        for alternative_path in alternatives:
-            if os.path.exists(alternative_path):
-                # Se trovato, aggiorna il percorso nel db
-                from app import db
-                document.file_path = alternative_path
-                db.session.commit()
-                current_app.logger.info(f"Percorso file aggiornato per documento ID: {document.id}")
-                file_path = alternative_path
-                file_found = True
-                break
-        
-        # Se il file non è stato trovato ma esiste nella cache di backup, ripristinalo
-        if not file_found and os.path.exists(os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename)):
-            backup_path = os.path.join(current_app.config['DOCUMENT_CACHE'], document.filename)
-            target_path = os.path.join(current_app.config['UPLOAD_FOLDER'], document.filename)
+        if recovered_path:
+            # Se trovato, aggiorna il percorso nel database
+            from app import db
+            document.file_path = recovered_path
+            db.session.commit()
+            logging.info(f"Percorso file aggiornato per documento ID: {document.id}")
+            file_path = recovered_path
+        else:
+            # Se non trovato nel sistema centralizzato, prova il metodo precedente
             
-            # Assicurati che la directory di destinazione esista
-            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+            # Estrai nome file dalla parte finale del path (dopo l'ultimo slash o backslash)
+            original_file = os.path.basename(file_path)
+            base_filename = os.path.basename(document.filename)
             
-            # Copia il file dalla cache al percorso principale
-            import shutil
-            try:
-                shutil.copy2(backup_path, target_path)
-                current_app.logger.info(f"File ripristinato dalla cache per documento ID: {document.id}")
-                document.file_path = target_path
-                from app import db
-                db.session.commit()
-                file_path = target_path
-                file_found = True
-            except Exception as e:
-                current_app.logger.error(f"Errore durante il ripristino del file dalla cache: {str(e)}")
-        
-        if not file_found:
-            current_app.logger.error(f"File non trovato: {file_path} o alternative: {alternatives}")
-            return f"""
-            <div class="alert alert-danger">
-                <h4>File non trovato</h4>
-                <p>Il file non è stato trovato nel sistema. Contattare l'amministratore.</p>
-                <p>ID documento: {document.id}, Filename: {document.filename}</p>
-                <p>Percorso registrato: {document.file_path}</p>
-            </div>
-            """
+            # Estrai nome file senza UUID e timestamp (se presente)
+            # Ad esempio, da "fdadaadb-2cf1-422d-b5a4-d79640a1dfb6_Atto.pdf" estraiamo "Atto.pdf"
+            original_name_parts = original_file.split('_', 1)
+            simplified_original = original_name_parts[1] if len(original_name_parts) > 1 else original_file
+            
+            # Il nome del file potrebbe avere diversi formati a seconda di come è stato caricato
+            # Prova tutte le possibili varianti del nome file
+            alternative_filenames = [
+                document.filename,                  # Nome completo archiviato
+                base_filename,                      # Solo nome senza percorso
+                document.original_filename,         # Nome originale all'upload
+                simplified_original,                # Nome senza UUID
+                document.original_filename.replace(' ', '_')  # Con underscore invece di spazi
+            ]
+            
+            # Directory di storage centralizzato
+            from services.central_storage import ORIGINAL_FILES_DIR, BACKUP_FILES_DIR
+            
+            # Elenco di cartelle da esplorare (iniziando con lo storage centralizzato)
+            possible_dirs = [
+                ORIGINAL_FILES_DIR,                 # Storage centralizzato principale
+                BACKUP_FILES_DIR,                   # Storage centralizzato backup
+                'document_storage/originals',       # Percorso relativo centralizzato principale
+                'document_storage/backup',          # Percorso relativo centralizzato backup
+                current_app.config['UPLOAD_FOLDER'],  # Directory principale di upload
+                current_app.config['DOCUMENT_CACHE'], # Cache di backup
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'uploads'),
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'document_cache'),
+                'uploads',
+                'document_cache',
+                'attached_assets',
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'attached_assets'),
+                '/home/runner/workspace/uploads',
+                '/home/runner/workspace/document_cache',
+                '/home/runner/workspace/attached_assets',
+                os.getcwd(),
+                # Aggiungi anche il nuovo sistema centralizzato con percorso assoluto
+                '/home/runner/workspace/document_storage/originals',
+                '/home/runner/workspace/document_storage/backup'
+            ]
+            
+            # Genera tutte le possibili combinazioni
+            alternatives = []
+            for dir_path in possible_dirs:
+                for filename in alternative_filenames:
+                    if filename:
+                        alternatives.append(os.path.join(dir_path, filename))
+                        
+            # Log per debug
+            logging.info(f"Cercando file: {document.filename} in {len(alternatives)} percorsi alternativi")
+            
+            file_found = False
+            for alternative_path in alternatives:
+                if os.path.exists(alternative_path):
+                    # Se trovato, aggiorna il percorso nel db
+                    from app import db
+                    document.file_path = alternative_path
+                    db.session.commit()
+                    logging.info(f"Percorso file aggiornato per documento ID: {document.id}, nuovo percorso: {alternative_path}")
+                    file_path = alternative_path
+                    file_found = True
+                    break
+            
+            if not file_found:
+                logging.error(f"File non trovato: {file_path} o alternative: {alternatives}")
+                return f"""
+                <div class="alert alert-danger">
+                    <h4>File non trovato</h4>
+                    <p>Il file non è stato trovato nel sistema. Contattare l'amministratore.</p>
+                    <p>ID documento: {document.id}, Filename: {document.filename}</p>
+                    <p>Percorso registrato: {document.file_path}</p>
+                    <p>Nota: È stato creato un sistema di storage centralizzato. Se il problema persiste, un amministratore deve eseguire la migrazione dei documenti al nuovo sistema.</p>
+                </div>
+                """
     
     try:
         if file_type == 'pdf':

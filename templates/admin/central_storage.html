@@ -1,0 +1,304 @@
+{% extends "layout.html" %}
+
+{% block title %}Gestione Storage Centralizzato{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Gestione Storage Centralizzato</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Informazioni sul Sistema di Storage</h5>
+        </div>
+        <div class="card-body">
+            <p>Il sistema di storage centralizzato garantisce che tutti i documenti siano conservati in un'unica posizione ben definita, con backup automatici e meccanismi di recupero avanzati.</p>
+            
+            <div class="alert alert-info">
+                <h5>Benefici del Sistema Centralizzato:</h5>
+                <ul>
+                    <li>Tutti i file vengono salvati in un'unica posizione predefinita</li>
+                    <li>Backup automatico di ogni file al momento del caricamento</li>
+                    <li>Verifica automatica dell'integrità dei file</li>
+                    <li>Recupero automatico dai backup in caso di file mancanti</li>
+                    <li>Facilità di gestione e manutenzione</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Migrazione Storage -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Migrazione allo Storage Centralizzato</h5>
+                </div>
+                <div class="card-body">
+                    <p>Questa operazione migrerà tutti i file esistenti al nuovo sistema di storage centralizzato, creando una copia di backup di ogni file.</p>
+                    <div class="alert alert-warning">
+                        <strong>Attenzione:</strong> La migrazione può richiedere tempo in base al numero di documenti. Il sistema rimarrà operativo durante il processo.
+                    </div>
+                    <button id="btn-migrate" class="btn btn-warning">
+                        <i class="fas fa-exchange-alt"></i> Avvia Migrazione
+                    </button>
+                    
+                    <div id="migration-result" class="mt-3" style="display: none;">
+                        <h6>Risultato Migrazione:</h6>
+                        <div id="migration-details" class="border rounded p-3 bg-light"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Verifica e Riparazione -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success">
+                    <h5 class="mb-0">Verifica e Riparazione Storage</h5>
+                </div>
+                <div class="card-body">
+                    <p>Questa operazione controlla tutti i documenti, verifica che i file esistano e tenta di ripristinarli dai backup se mancanti.</p>
+                    <div class="alert alert-info">
+                        <strong>Nota:</strong> Eseguire periodicamente questa operazione per garantire l'integrità dei documenti.
+                    </div>
+                    <button id="btn-verify-repair" class="btn btn-success">
+                        <i class="fas fa-tools"></i> Verifica e Ripara
+                    </button>
+                    
+                    <div id="verify-result" class="mt-3" style="display: none;">
+                        <h6>Risultato Verifica:</h6>
+                        <div id="verify-details" class="border rounded p-3 bg-light"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cronologia Operazioni -->
+    <div class="card mt-2">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Cronologia Operazioni</h5>
+        </div>
+        <div class="card-body">
+            <p>Ultime operazioni di manutenzione eseguite sul sistema di storage.</p>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Data/Ora</th>
+                            <th>Utente</th>
+                            <th>Operazione</th>
+                            <th>Risultato</th>
+                        </tr>
+                    </thead>
+                    <tbody id="operations-log">
+                        <!-- I dati verranno caricati dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    $(document).ready(function() {
+        // Migrazione allo storage centralizzato
+        $('#btn-migrate').click(function() {
+            if (!confirm('Sei sicuro di voler avviare la migrazione allo storage centralizzato?')) {
+                return;
+            }
+            
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Migrazione in corso...');
+            
+            $.ajax({
+                url: '{{ url_for("maintenance.api_migrate_storage") }}',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    $('#btn-migrate').prop('disabled', false).html('<i class="fas fa-exchange-alt"></i> Avvia Migrazione');
+                    
+                    if (response.success) {
+                        $('#migration-result').show();
+                        
+                        // Formatta il risultato in HTML
+                        let report = response.report;
+                        let html = `
+                            <div class="alert alert-success">
+                                <strong>Migrazione completata con successo!</strong>
+                            </div>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Documenti totali
+                                    <span class="badge bg-primary rounded-pill">${report.total_documents}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Migrati con successo
+                                    <span class="badge bg-success rounded-pill">${report.migrated_successfully}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Già migrati
+                                    <span class="badge bg-info rounded-pill">${report.already_migrated}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Falliti
+                                    <span class="badge bg-danger rounded-pill">${report.migration_failed}</span>
+                                </li>
+                            </ul>`;
+                        
+                        // Aggiungi eventuali errori
+                        if (report.errors && report.errors.length > 0) {
+                            html += `<div class="mt-3">
+                                <h6 class="text-danger">Errori:</h6>
+                                <ul class="text-danger">`;
+                            
+                            report.errors.forEach(function(error) {
+                                html += `<li>${error}</li>`;
+                            });
+                            
+                            html += `</ul></div>`;
+                        }
+                        
+                        $('#migration-details').html(html);
+                        
+                        // Aggiorna la tabella delle operazioni
+                        loadOperationsLog();
+                    } else {
+                        alert('Errore durante la migrazione: ' + response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#btn-migrate').prop('disabled', false).html('<i class="fas fa-exchange-alt"></i> Avvia Migrazione');
+                    alert('Errore durante la richiesta: ' + error);
+                }
+            });
+        });
+        
+        // Verifica e riparazione dello storage
+        $('#btn-verify-repair').click(function() {
+            if (!confirm('Sei sicuro di voler avviare la verifica e riparazione dello storage?')) {
+                return;
+            }
+            
+            $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Verifica in corso...');
+            
+            $.ajax({
+                url: '{{ url_for("maintenance.api_verify_repair_storage") }}',
+                type: 'POST',
+                dataType: 'json',
+                success: function(response) {
+                    $('#btn-verify-repair').prop('disabled', false).html('<i class="fas fa-tools"></i> Verifica e Ripara');
+                    
+                    if (response.success) {
+                        $('#verify-result').show();
+                        
+                        // Formatta il risultato in HTML
+                        let report = response.report;
+                        let html = `
+                            <div class="alert alert-success">
+                                <strong>Verifica e riparazione completata!</strong>
+                            </div>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Documenti totali
+                                    <span class="badge bg-primary rounded-pill">${report.total_documents}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    Verificati OK
+                                    <span class="badge bg-success rounded-pill">${report.verified_ok}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    File mancanti
+                                    <span class="badge bg-warning rounded-pill">${report.files_missing}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    File ripristinati
+                                    <span class="badge bg-info rounded-pill">${report.files_restored}</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    File non riparabili
+                                    <span class="badge bg-danger rounded-pill">${report.files_unrepairable}</span>
+                                </li>
+                            </ul>`;
+                        
+                        // Aggiungi eventuali errori
+                        if (report.errors && report.errors.length > 0) {
+                            html += `<div class="mt-3">
+                                <h6 class="text-danger">Errori:</h6>
+                                <ul class="text-danger">`;
+                            
+                            report.errors.forEach(function(error) {
+                                html += `<li>${error}</li>`;
+                            });
+                            
+                            html += `</ul></div>`;
+                        }
+                        
+                        $('#verify-details').html(html);
+                        
+                        // Aggiorna la tabella delle operazioni
+                        loadOperationsLog();
+                    } else {
+                        alert('Errore durante la verifica: ' + response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#btn-verify-repair').prop('disabled', false).html('<i class="fas fa-tools"></i> Verifica e Ripara');
+                    alert('Errore durante la richiesta: ' + error);
+                }
+            });
+        });
+        
+        // Carica il log delle operazioni
+        function loadOperationsLog() {
+            $.ajax({
+                url: '/api/admin/activity-log?action_category=MAINTENANCE&limit=10',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    let html = '';
+                    
+                    if (response.logs && response.logs.length > 0) {
+                        response.logs.forEach(function(log) {
+                            html += `<tr>
+                                <td>${formatDateTime(log.created_at)}</td>
+                                <td>${log.user_username}</td>
+                                <td>${formatAction(log.action)}</td>
+                                <td><span class="badge ${log.result === 'success' ? 'bg-success' : 'bg-danger'}">${log.result}</span></td>
+                            </tr>`;
+                        });
+                    } else {
+                        html = '<tr><td colspan="4" class="text-center">Nessuna operazione di manutenzione registrata</td></tr>';
+                    }
+                    
+                    $('#operations-log').html(html);
+                },
+                error: function() {
+                    $('#operations-log').html('<tr><td colspan="4" class="text-center text-danger">Errore nel caricamento del log operazioni</td></tr>');
+                }
+            });
+        }
+        
+        // Funzione per formattare l'azione
+        function formatAction(action) {
+            const actionMap = {
+                'migrate_storage': 'Migrazione Storage',
+                'verify_repair_storage': 'Verifica e Riparazione',
+                'recover_file': 'Recupero File'
+            };
+            
+            return actionMap[action] || action;
+        }
+        
+        // Funzione per formattare la data/ora
+        function formatDateTime(dateTimeStr) {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleDateString('it-IT') + ' ' + date.toLocaleTimeString('it-IT');
+        }
+        
+        // Carica il log delle operazioni all'avvio
+        loadOperationsLog();
+    });
+</script>
+{% endblock %}

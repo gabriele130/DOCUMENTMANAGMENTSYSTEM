@@ -6,6 +6,7 @@ from sqlalchemy import func
 from models import Document, db, AccessLevel, ActivityLog, User
 from services.file_recovery import verify_document_file_exists, recover_missing_file
 from services.audit_service import log_activity
+from services.central_storage import migrate_files_to_central_storage, verify_and_repair_storage
 
 maintenance = Blueprint('maintenance', __name__)
 logger = logging.getLogger(__name__)
@@ -172,3 +173,92 @@ def document_statistics():
     }
     
     return render_template('admin/document_statistics.html', statistics=statistics)
+
+@maintenance.route('/admin/storage-centralizzato')
+@login_required
+def central_storage_management():
+    """
+    Pagina admin per la gestione dello storage centralizzato
+    """
+    if not current_user.is_admin():
+        flash('Accesso non autorizzato. Solo gli amministratori possono accedere a questa pagina.', 'danger')
+        return redirect(url_for('index'))
+        
+    return render_template('admin/central_storage.html')
+
+@maintenance.route('/api/admin/migrazione-storage', methods=['POST'])
+@login_required
+def api_migrate_storage():
+    """
+    API per avviare la migrazione dei file al nuovo sistema di storage centralizzato
+    """
+    if not current_user.is_admin():
+        return jsonify({'error': 'Accesso non autorizzato'}), 403
+    
+    try:
+        # Avvia la migrazione
+        report = migrate_files_to_central_storage(update_database=True)
+        
+        # Log dell'attività
+        log_activity(
+            user_id=current_user.id,
+            action='migrate_storage',
+            action_category='MAINTENANCE',
+            details=json.dumps({
+                'total_documents': report['total_documents'],
+                'migrated_successfully': report['migrated_successfully'],
+                'migration_failed': report['migration_failed'],
+                'already_migrated': report['already_migrated'],
+            }),
+            result='success'
+        )
+        
+        return jsonify({
+            'success': True,
+            'report': report
+        })
+    except Exception as e:
+        logger.error(f"Errore durante la migrazione dello storage: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@maintenance.route('/api/admin/verifica-ripara-storage', methods=['POST'])
+@login_required
+def api_verify_repair_storage():
+    """
+    API per verificare e riparare lo storage centralizzato
+    """
+    if not current_user.is_admin():
+        return jsonify({'error': 'Accesso non autorizzato'}), 403
+    
+    try:
+        # Avvia la verifica e riparazione
+        report = verify_and_repair_storage()
+        
+        # Log dell'attività
+        log_activity(
+            user_id=current_user.id,
+            action='verify_repair_storage',
+            action_category='MAINTENANCE',
+            details=json.dumps({
+                'total_documents': report['total_documents'],
+                'verified_ok': report['verified_ok'],
+                'files_missing': report['files_missing'],
+                'files_restored': report['files_restored'],
+                'files_unrepairable': report['files_unrepairable'],
+            }),
+            result='success'
+        )
+        
+        return jsonify({
+            'success': True,
+            'report': report
+        })
+    except Exception as e:
+        logger.error(f"Errore durante la verifica e riparazione dello storage: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
