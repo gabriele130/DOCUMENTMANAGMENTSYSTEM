@@ -467,6 +467,9 @@ def view_document(document_id):
     # Utilizziamo il nuovo sistema di monitoraggio documenti
     from services.document_monitor import verify_before_access
     
+    # Ottieni la data corrente per il confronto con le date di scadenza nel template
+    now = datetime.datetime.now()
+    
     # Verifica e recupera se necessario
     document, status_code, message = verify_before_access(document_id, current_user.id)
     
@@ -562,6 +565,7 @@ def view_document(document_id):
                           workflow_tasks=workflow_tasks,
                           attachments_info=attachments_info,
                           file_exists=file_exists,
+                          now=now,
                           form=form)
 
 @app.route('/documents/<int:document_id>/download')
