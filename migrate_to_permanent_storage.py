@@ -65,11 +65,8 @@ def main():
         total_documents = Document.query.count()
         logging.info(f"Trovati {total_documents} documenti da migrare")
         
-        # Chiedi conferma all'utente
-        confirm = input(f"Confermi la migrazione di {total_documents} documenti allo storage permanente? (s/n): ")
-        if confirm.lower() != 's':
-            logging.info("Migrazione annullata dall'utente")
-            sys.exit(0)
+        # Procedi automaticamente con la migrazione
+        logging.info(f"Procedo automaticamente con la migrazione di {total_documents} documenti allo storage permanente")
         
         # Esegui la migrazione in batch
         batch_size = 100

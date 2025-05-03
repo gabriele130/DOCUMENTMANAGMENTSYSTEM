@@ -26,6 +26,12 @@ from services.central_storage import (
     migrate_document_to_central_storage
 )
 from services.file_recovery import recover_missing_file
+from services.persistent_storage import (
+    ensure_storage_structure as ensure_permanent_storage_structure,
+    batch_migrate_to_permanent_storage,
+    migrate_document_to_permanent_storage,
+    verify_storage_integrity as verify_permanent_storage_integrity
+)
 
 # Configurazione del blueprint
 maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/admin/maintenance')
@@ -294,6 +300,178 @@ def cleanup_orphans():
         db.session.commit()
         
         return redirect(url_for('maintenance.central_storage'))
+
+@maintenance_bp.route('/storage-permanente')
+@login_required
+@admin_required
+def permanent_storage():
+    """Gestione dello storage permanente"""
+    # Controlla che le directory di storage permanente esistano
+    ensure_permanent_storage_structure()
+    
+    # Query per documenti con problemi (senza controllo is_deleted)
+    problem_docs = []
+    
+    try:
+        # Usa il metodo manuale per trovare documenti con problemi
+        for doc in Document.query.all():
+            if doc.file_path and not os.path.exists(doc.file_path):
+                problem_docs.append(doc)
+                if len(problem_docs) >= 50:
+                    break
+    except Exception as e:
+        logging.error(f"Errore durante la ricerca di documenti con problemi: {str(e)}")
+    
+    # Query per documenti recenti
+    recent_docs = Document.query.order_by(desc(Document.created_at)).limit(10).all()
+    
+    # Conta il numero totale di documenti
+    total_documents = Document.query.count()
+    
+    return render_template(
+        'admin/maintenance/permanent_storage.html',
+        problem_docs=problem_docs,
+        recent_docs=recent_docs,
+        total_documents=total_documents
+    )
+
+@maintenance_bp.route('/migrazione-storage-permanente', methods=['POST'])
+@login_required
+@admin_required
+def migrate_to_permanent_storage():
+    """Avvia la migrazione dei file al sistema di storage permanente"""
+    try:
+        # Controlla che le directory di storage permanente esistano
+        ensure_permanent_storage_structure()
+        
+        # Conta il numero totale di documenti
+        total_documents = Document.query.count()
+        
+        # Avvia la migrazione in batch
+        batch_size = 50  # Dimensione del batch ridotta per evitare problemi di timeout
+        migrated = 0
+        failed = 0
+        errors = []
+        
+        # Ottieni tutti i documenti
+        documents = Document.query.all()
+        
+        for doc in documents:
+            try:
+                result = migrate_document_to_permanent_storage(doc)
+                
+                if result['status'] in ['migrated', 'ok', 'restored']:
+                    migrated += 1
+                else:
+                    failed += 1
+                    errors.append({
+                        'document_id': doc.id,
+                        'reason': result['message']
+                    })
+            except Exception as e:
+                failed += 1
+                errors.append({
+                    'document_id': doc.id,
+                    'reason': str(e)
+                })
+        
+        # Crea un timestamp per il nome del report
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_file = f"migration_report_{timestamp}.txt"
+        
+        # Salva il report
+        with open(report_file, 'w') as f:
+            f.write(f"== Report di Migrazione allo Storage Permanente ==\n")
+            f.write(f"Data: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            f.write(f"Totale documenti: {total_documents}\n")
+            f.write(f"Documenti migrati con successo: {migrated}\n")
+            f.write(f"Documenti falliti: {failed}\n\n")
+            
+            if failed > 0:
+                f.write("== Dettagli Errori ==\n")
+                for error in errors:
+                    f.write(f"Documento ID {error['document_id']}: {error['reason']}\n")
+            
+            f.write("\n== Fine Report ==\n")
+        
+        # Registra l'attività
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="migrate",
+            target_type="storage_permanent",
+            target_id=0,
+            details=f"Migrazione allo storage permanente: {migrated} successi, {failed} fallimenti",
+            result="success" if failed == 0 else "partial"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        flash(f"Migrazione allo storage permanente completata! {migrated} documenti migrati con successo, {failed} falliti. Report salvato in {report_file}", 'success')
+        return redirect(url_for('maintenance.permanent_storage'))
+    except Exception as e:
+        flash(f"Errore durante la migrazione allo storage permanente: {str(e)}", 'danger')
+        logging.error(f"Errore durante la migrazione allo storage permanente: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="migrate",
+            target_type="storage_permanent",
+            target_id=0,
+            details=f"Errore durante la migrazione allo storage permanente: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.permanent_storage'))
+
+@maintenance_bp.route('/verifica-storage-permanente', methods=['POST'])
+@login_required
+@admin_required
+def verify_permanent_storage():
+    """Verifica l'integrità dello storage permanente"""
+    try:
+        # Assicura che le directory di storage esistano
+        ensure_permanent_storage_structure()
+        
+        # Esegui la verifica di integrità
+        verification_stats = verify_permanent_storage_integrity()
+        
+        flash(f"Verifica completata! {verification_stats['ok']} file integri, {verification_stats['repaired']} riparati, {verification_stats['failed']} non ripristinabili.", 'success')
+        
+        # Registra l'attività
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="verify",
+            target_type="storage_permanent",
+            target_id=0,
+            details=f"Verifica storage permanente: {verification_stats['ok']} integri, {verification_stats['repaired']} riparati, {verification_stats['failed']} falliti",
+            result="success"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.permanent_storage'))
+    except Exception as e:
+        flash(f"Errore durante la verifica dello storage permanente: {str(e)}", 'danger')
+        logging.error(f"Errore durante la verifica dello storage permanente: {str(e)}")
+        
+        # Registra l'errore
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action_type="verify",
+            target_type="storage_permanent",
+            target_id=0,
+            details=f"Errore durante la verifica dello storage permanente: {str(e)}",
+            result="failure"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        return redirect(url_for('maintenance.permanent_storage'))
 
 @maintenance_bp.route('/statistiche-documenti')
 @login_required

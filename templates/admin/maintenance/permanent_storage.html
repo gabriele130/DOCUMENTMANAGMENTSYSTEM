@@ -1,0 +1,169 @@
+{% extends 'admin/layout.html' %}
+
+{% block title %}Storage Permanente - {{ super() }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .stats-card {
+        margin-bottom: 20px;
+    }
+    .doc-item {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        padding: 10px 0;
+    }
+    .doc-item:last-child {
+        border-bottom: none;
+    }
+    .alert-container {
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="my-4">Gestione Storage Permanente</h1>
+    
+    <div class="alert alert-info">
+        <h4>Informazioni sul sistema di storage permanente</h4>
+        <p>Il sistema di storage permanente è progettato per garantire la massima durabilità e disponibilità dei file caricati, anche a distanza di mesi o anni.</p>
+        <p><strong>Caratteristiche principali:</strong></p>
+        <ul>
+            <li>Memorizzazione dei file con percorsi assoluti per evitare problemi di relatività</li>
+            <li>Ridondanza multipla con backup automatici in diverse posizioni</li>
+            <li>Recupero automatico da percorsi alternativi quando necessario</li>
+            <li>Verifica dell'integrità dei file tramite controlli di checksum</li>
+            <li>Meccanismi di ripristino avanzati per file danneggiati o mancanti</li>
+        </ul>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card stats-card">
+                <div class="card-header">
+                    <h2>Migrazione allo Storage Permanente</h2>
+                </div>
+                <div class="card-body">
+                    <p>Migra tutti i documenti esistenti al sistema di storage permanente per garantire la loro disponibilità a lungo termine.</p>
+                    <p class="text-warning">Nota: la migrazione può richiedere del tempo, specialmente se ci sono molti documenti.</p>
+                    <form action="{{ url_for('maintenance.migrate_to_permanent_storage') }}" method="post">
+                        <div class="d-flex justify-content-between">
+                            <span>Documenti totali: <strong>{{ total_documents }}</strong></span>
+                            <button type="submit" class="btn btn-primary">Avvia Migrazione</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card stats-card">
+                <div class="card-header">
+                    <h2>Verifica Integrità Storage</h2>
+                </div>
+                <div class="card-body">
+                    <p>Verifica l'integrità dello storage permanente e ripara automaticamente eventuali problemi.</p>
+                    <form action="{{ url_for('maintenance.verify_permanent_storage') }}" method="post">
+                        <button type="submit" class="btn btn-warning">Verifica e Ripara</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card stats-card">
+                <div class="card-header">
+                    <h2>Documenti con Problemi</h2>
+                </div>
+                <div class="card-body">
+                    {% if problem_docs %}
+                        <div class="alert alert-warning">
+                            Trovati {{ problem_docs|length }} documenti con problemi di file mancanti.
+                        </div>
+                        <div class="list-group">
+                            {% for doc in problem_docs %}
+                                <div class="doc-item">
+                                    <h5>{{ doc.title or doc.original_filename }}</h5>
+                                    <p>Percorso: {{ doc.file_path }}</p>
+                                    <p>ID: {{ doc.id }} - Tipo: {{ doc.file_type }} - Creato: {{ doc.created_at }}</p>
+                                    <div class="d-flex">
+                                        <a href="{{ url_for('view_document', document_id=doc.id) }}" class="btn btn-sm btn-secondary mr-2">Dettagli</a>
+                                        <form action="{{ url_for('documents.verify_document_storage', document_id=doc.id) }}" method="post" class="ml-2">
+                                            <button type="submit" class="btn btn-sm btn-warning">Ripara</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success">
+                            Non sono stati trovati documenti con problemi di file mancanti.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card stats-card">
+                <div class="card-header">
+                    <h2>Documenti Recenti</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Titolo</th>
+                                    <th>File</th>
+                                    <th>Tipo</th>
+                                    <th>Creato</th>
+                                    <th>Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in recent_docs %}
+                                    <tr>
+                                        <td>{{ doc.id }}</td>
+                                        <td>{{ doc.title or doc.original_filename }}</td>
+                                        <td>{{ doc.file_path }}</td>
+                                        <td>{{ doc.file_type }}</td>
+                                        <td>{{ doc.created_at|datetime_format }}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('view_document', document_id=doc.id) }}" class="btn btn-info">Visualizza</a>
+                                                <form action="{{ url_for('documents.verify_document_storage', document_id=doc.id) }}" method="post" class="d-inline">
+                                                    <button type="submit" class="btn btn-warning">Verifica</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Conferma prima di avviare la migrazione
+    document.addEventListener('DOMContentLoaded', function() {
+        const migrationForm = document.querySelector('form[action*="migrate-to-permanent-storage"]');
+        if (migrationForm) {
+            migrationForm.addEventListener('submit', function(e) {
+                if (!confirm('Confermi di voler avviare la migrazione di tutti i documenti allo storage permanente? L\'operazione potrebbe richiedere tempo.')) {
+                    e.preventDefault();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
