@@ -2,51 +2,188 @@
 
 {% block title %}{{ document.title or document.original_filename }} - Document Management System{% endblock %}
 
+{% block styles %}
+{{ super() }}
+<style>
+    .document-header {
+        position: relative;
+        margin-bottom: 2rem;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--bs-dark-bg-subtle);
+        padding: 1.5rem;
+    }
+
+    .document-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 4px;
+        width: 100%;
+        background: linear-gradient(to right, 
+            {% if document.file_type == 'pdf' %}var(--bs-danger)
+            {% elif document.file_type in ['docx', 'doc'] %}var(--bs-primary)
+            {% elif document.file_type in ['xlsx', 'xls'] %}var(--bs-success)
+            {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}var(--bs-info)
+            {% else %}var(--bs-secondary){% endif %}, 
+            transparent 90%);
+    }
+
+    .document-icon {
+        font-size: 2.5rem;
+        margin-right: 1rem;
+        color: {% if document.file_type == 'pdf' %}var(--bs-danger)
+                {% elif document.file_type in ['docx', 'doc'] %}var(--bs-primary)
+                {% elif document.file_type in ['xlsx', 'xls'] %}var(--bs-success)
+                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}var(--bs-info)
+                {% else %}var(--bs-secondary){% endif %};
+    }
+
+    .btn-action {
+        border-radius: 6px;
+        margin-right: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn-action i {
+        margin-right: 0.5rem;
+    }
+
+    .document-iframe-container {
+        border-radius: 0 0 8px 8px;
+        overflow: hidden;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .document-preview-container {
+        background: var(--bs-body-bg);
+        border-radius: 0 0 8px 8px;
+    }
+
+    .document-meta-card {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .document-meta-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .document-tag {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        margin: 0.25rem;
+        border-radius: 20px;
+        transition: all 0.2s ease;
+    }
+
+    .document-tag:hover {
+        transform: scale(1.05);
+    }
+
+    .version-item {
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .version-item:hover {
+        background-color: var(--bs-secondary-bg-subtle);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h1 class="h3 mb-0">{{ document.title or document.original_filename }}</h1>
-        <p class="text-muted">
-            <span class="badge 
-                {% if document.file_type == 'pdf' %}bg-danger
-                {% elif document.file_type in ['docx', 'doc'] %}bg-primary
-                {% elif document.file_type in ['xlsx', 'xls'] %}bg-success
-                {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info
-                {% else %}bg-secondary{% endif %}">
-                {{ document.file_type.upper() }}
-            </span>
-            <!-- Classificazione rimossa a favore dei tag -->
-            {% if document.expiry_date %}
-            <span class="badge bg-warning text-dark">Scade il {{ document.expiry_date.strftime('%d/%m/%Y') }}</span>
-            {% endif %}
-            
-            {% if file_exists is defined and not file_exists %}
-            <span class="badge bg-danger">File fisico mancante</span>
-            {% endif %}
-        </p>
-    </div>
-    <div class="col-md-4 text-md-end">
-        <div class="btn-group">
-            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary {% if file_exists is defined and not file_exists %}disabled{% endif %}">
-                <i class="bi bi-download"></i> Download
-            </a>
-            <a href="{{ url_for('add_document_reminder', document_id=document.id) }}" class="btn btn-warning">
-                <i class="bi bi-calendar-plus"></i> Promemoria
-            </a>
-            <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-success">
-                <i class="bi bi-paperclip"></i> Allegati 
-                {% if document.attachments %}
-                <span class="badge bg-light text-dark ms-1">{{ document.attachments|length }}</span>
-                {% endif %}
-            </a>
-            {% if document.owner_id == current_user.id %}
-            <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-secondary">
-                <i class="bi bi-pencil"></i> Modifica
-            </a>
-            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
-                <i class="bi bi-share"></i> Condividi
-            </button>
-            {% endif %}
+<div class="document-header">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center">
+                <div class="document-icon">
+                    <i class="bi 
+                        {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
+                        {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
+                        {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
+                        {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
+                        {% else %}bi-file-earmark{% endif %}"></i>
+                </div>
+                <div>
+                    <h1 class="h3 mb-1">{{ document.title or document.original_filename }}</h1>
+                    <div class="d-flex align-items-center flex-wrap">
+                        <span class="badge 
+                            {% if document.file_type == 'pdf' %}bg-danger
+                            {% elif document.file_type in ['docx', 'doc'] %}bg-primary
+                            {% elif document.file_type in ['xlsx', 'xls'] %}bg-success
+                            {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info
+                            {% else %}bg-secondary{% endif %} me-2">
+                            {{ document.file_type.upper() }}
+                        </span>
+                        <span class="text-muted small me-3">{{ (document.file_size / 1024)|round|int }} KB</span>
+                        <span class="text-muted small me-3">Caricato: {{ document.created_at.strftime('%d/%m/%Y') }}</span>
+                        {% if document.expiry_date %}
+                        <span class="badge bg-warning text-dark">Scade il {{ document.expiry_date.strftime('%d/%m/%Y') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mt-3 mt-lg-0">
+            <div class="d-flex flex-wrap justify-content-lg-end">
+                <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary btn-action mb-2 mb-md-0 me-2">
+                    <i class="bi bi-download"></i> Download
+                </a>
+                
+                <div class="dropdown d-inline-block mb-2 mb-md-0">
+                    <button class="btn btn-outline-secondary dropdown-toggle btn-action" type="button" id="documentActions" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots"></i> Azioni
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="documentActions">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
+                                <i class="bi bi-calendar-plus me-2"></i> Aggiungi promemoria
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
+                                <i class="bi bi-paperclip me-2"></i> Gestisci allegati
+                                {% if document.attachments %}
+                                <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% if document.owner_id == current_user.id %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('update_document', document_id=document.id) }}">
+                                <i class="bi bi-pencil me-2"></i> Modifica documento
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
+                                <i class="bi bi-share me-2"></i> Condividi
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li>
+                            <button type="button" class="dropdown-item" onclick="window.print()">
+                                <i class="bi bi-printer me-2"></i> Stampa
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -54,14 +191,14 @@
 <div class="row">
     <!-- Document Preview Column -->
     <div class="col-lg-8 mb-4">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
                 <h5 class="card-title mb-0">Anteprima Documento</h5>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
-                        <i class="bi bi-printer"></i> Stampa
-                    </button>
-                </div>
+                {% if document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
+                <a href="{{ url_for('view_document_content', document_id=document.id) }}" class="btn btn-sm btn-primary" target="_blank">
+                    <i class="bi bi-arrows-fullscreen"></i> Schermo intero
+                </a>
+                {% endif %}
             </div>
             <div class="card-body p-0">
                 <div class="document-preview-container">
@@ -107,57 +244,77 @@
     <!-- Document Info Column -->
     <div class="col-lg-4">
         <!-- Document details -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Dettagli Documento</h5>
+        <div class="card document-meta-card mb-4">
+            <div class="card-header bg-light border-0">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Dettagli Documento
+                </h5>
             </div>
             <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Nome File Originale</span>
-                        <span class="text-truncate ms-2" style="max-width: 200px;">{{ document.original_filename }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Dimensione</span>
-                        <span>{{ (document.file_size / 1024)|round|int }} KB</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Caricato Da</span>
-                        <span>{{ document.owner.full_name }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Caricato Il</span>
-                        <span>{{ document.created_at.strftime('%d/%m/%Y, %H:%M') }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Ultima Modifica</span>
-                        <span>{{ document.updated_at.strftime('%d/%m/%Y, %H:%M') }}</span>
-                    </li>
-                    {% if document.expiry_date %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <span>Data Scadenza</span>
-                        <span>{{ document.expiry_date.strftime('%d/%m/%Y') }}</span>
-                    </li>
-                    {% endif %}
-                </ul>
+                <div class="mb-3">
+                    <div class="small text-muted mb-1">Nome File</div>
+                    <div class="fw-bold text-truncate">{{ document.original_filename }}</div>
+                </div>
                 
-                {% if document.tags %}
-                <div class="mt-3">
-                    <h6>Tag</h6>
-                    <div>
-                        {% for tag in document.tags %}
-                        <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }};">
-                            {{ tag.name }}
-                        </span>
-                        {% endfor %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Dimensione</div>
+                        <div>{{ (document.file_size / 1024)|round|int }} KB</div>
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Tipo</div>
+                        <div>
+                            <span class="badge 
+                            {% if document.file_type == 'pdf' %}bg-danger
+                            {% elif document.file_type in ['docx', 'doc'] %}bg-primary
+                            {% elif document.file_type in ['xlsx', 'xls'] %}bg-success
+                            {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                                {{ document.file_type.upper() }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Caricato Da</div>
+                        <div>{{ document.owner.full_name }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Caricato Il</div>
+                        <div>{{ document.created_at.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Ultima Modifica</div>
+                        <div>{{ document.updated_at.strftime('%d/%m/%Y') }}</div>
+                    </div>
+                    {% if document.expiry_date %}
+                    <div class="col-md-6 mb-3">
+                        <div class="small text-muted mb-1">Scadenza</div>
+                        <div>
+                            <span class="{% if document.expiry_date < now.date() %}text-danger{% elif (document.expiry_date - now.date()).days < 30 %}text-warning{% else %}text-success{% endif %}">
+                                {{ document.expiry_date.strftime('%d/%m/%Y') }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if document.description %}
+                <div class="mb-4">
+                    <div class="small text-muted mb-1">Descrizione</div>
+                    <div class="p-3 bg-light rounded">{{ document.description }}</div>
                 </div>
                 {% endif %}
                 
-                {% if document.description %}
-                <div class="mt-3">
-                    <h6>Descrizione</h6>
-                    <p class="text-muted small">{{ document.description }}</p>
+                {% if document.tags %}
+                <div class="mb-3">
+                    <div class="small text-muted mb-2">Tag</div>
+                    <div>
+                        {% for tag in document.tags %}
+                        <span class="document-tag" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}50;">
+                            <i class="bi bi-tag-fill me-1 small"></i>{{ tag.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -167,22 +324,29 @@
         
         <!-- Document versions -->
         {% if versions %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Cronologia Versioni</h5>
+        <div class="card document-meta-card mb-4">
+            <div class="card-header bg-light border-0">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Cronologia Versioni
+                </h5>
             </div>
             <div class="card-body">
-                <div class="list-group list-group-flush">
+                <div class="timeline">
                     {% for version in versions %}
-                    <div class="list-group-item bg-transparent p-3">
+                    <div class="version-item">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">Versione {{ version.version_number }}</h6>
-                            <span class="badge bg-secondary">{{ version.created_at.strftime('%d/%m/%Y') }}</span>
+                            <div class="d-flex align-items-center">
+                                <span class="badge {% if version.version_number == 1 %}bg-primary{% else %}bg-info{% endif %} me-2">v{{ version.version_number }}</span>
+                                <span class="fw-bold">{{ version.created_at.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                            <small class="text-muted">{{ version.created_at.strftime('%H:%M') }}</small>
                         </div>
-                        <p class="text-muted small mb-2">Da {{ version.created_by.full_name }}</p>
-                        {% if version.change_summary %}
-                        <p class="mb-0 small">{{ version.change_summary }}</p>
-                        {% endif %}
+                        <div class="mt-2 ps-2 border-start border-2 border-light">
+                            <div class="text-muted">Autore: {{ version.created_by.full_name }}</div>
+                            {% if version.change_summary %}
+                            <div class="mt-1 p-2 bg-light rounded">{{ version.change_summary }}</div>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -190,25 +354,25 @@
         </div>
         {% endif %}
         
-        <!-- Document workflow status -->
         <!-- Documenti allegati -->
         {% if attachments_info %}
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="card document-meta-card mb-4">
+            <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-paperclip me-2"></i> Documenti Allegati
+                    <i class="bi bi-paperclip me-2"></i>Documenti Allegati
+                    <span class="badge bg-secondary ms-1">{{ attachments_info|length }}</span>
                 </h5>
-                <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-sm btn-outline-success">
-                    <i class="bi bi-plus-lg"></i> Gestisci allegati
+                <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Gestisci
                 </a>
             </div>
             <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    {% for item in attachments_info %}
-                    <div class="list-group-item bg-transparent p-3">
-                        <div class="d-flex justify-content-between align-items-center">
+                {% for item in attachments_info %}
+                <div class="attachment-item p-3 {% if not loop.last %}border-bottom{% endif %}">
+                    <div class="row align-items-center">
+                        <div class="col-lg-8">
                             <div class="d-flex align-items-center">
-                                <div class="document-icon me-3">
+                                <div class="attachment-icon text-center me-3" style="width: 40px; height: 40px; font-size: 1.5rem;">
                                     {% if item.document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}
                                         <i class="bi bi-file-image text-info"></i>
                                     {% elif item.document.file_type == 'pdf' %}
@@ -222,10 +386,8 @@
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <h6 class="mb-1">{{ item.document.title or item.document.original_filename }}</h6>
-                                    <div class="d-flex">
-                                        <span class="badge bg-light text-dark me-2">{{ item.document.file_type.upper() }}</span>
-                                        <small class="text-muted">{{ (item.document.file_size / 1024)|round|int }} KB</small>
+                                    <h6 class="mb-1 d-flex align-items-center">
+                                        {{ item.document.title or item.document.original_filename }}
                                         {% if item.type == 'amendment' %}
                                             <span class="badge bg-primary ms-2">Modifica</span>
                                         {% elif item.type == 'supplement' %}
@@ -235,96 +397,114 @@
                                         {% else %}
                                             <span class="badge bg-light text-dark ms-2">Allegato</span>
                                         {% endif %}
+                                    </h6>
+                                    <div class="d-flex small text-muted">
+                                        <span class="me-3">{{ item.document.file_type.upper() }}</span>
+                                        <span>{{ (item.document.file_size / 1024)|round|int }} KB</span>
                                     </div>
+                                    {% if item.note %}
+                                    <p class="mt-1 mb-0 small text-muted fst-italic">{{ item.note }}</p>
+                                    {% endif %}
                                 </div>
                             </div>
+                        </div>
+                        <div class="col-lg-4 mt-2 mt-lg-0 text-end">
                             <div class="btn-group">
-                                <a href="{{ url_for('view_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ url_for('view_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-primary" title="Visualizza">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ url_for('download_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <a href="{{ url_for('download_document', document_id=item.document.id) }}" class="btn btn-sm btn-outline-secondary" title="Scarica">
                                     <i class="bi bi-download"></i>
                                 </a>
                                 {% if document.owner_id == current_user.id %}
                                 <form action="{{ url_for('detach_document', document_id=document.id, attachment_id=item.document.id) }}" method="POST" class="d-inline">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Sei sicuro di voler rimuovere questo allegato?');">
-                                        <i class="bi bi-x-circle"></i>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Rimuovi allegato" onclick="return confirm('Sei sicuro di voler rimuovere questo allegato?');">
+                                        <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>
                                 {% endif %}
                             </div>
                         </div>
-                        {% if item.note %}
-                        <p class="mt-2 mb-0 small text-muted fst-italic">{{ item.note }}</p>
-                        {% endif %}
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
         </div>
         {% endif %}
         
         {% if workflow_tasks %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Stato Workflow</h5>
+        <div class="card document-meta-card mb-4">
+            <div class="card-header bg-light border-0">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-kanban me-2"></i>Stato Workflow
+                </h5>
             </div>
             <div class="card-body">
                 <div class="workflow-progress">
                     {% for task in workflow_tasks %}
-                    <div class="workflow-step mb-3 d-flex align-items-start">
-                        <div class="workflow-step-icon 
-                            {% if task.status == 'complete' %}bg-success
-                            {% elif task.status == 'in_progress' %}bg-primary
-                            {% elif task.status == 'rejected' %}bg-danger
-                            {% else %}bg-secondary{% endif %}">
-                            {% if task.status == 'complete' %}
-                            <i class="fas fa-check"></i>
-                            {% elif task.status == 'in_progress' %}
-                            <i class="fas fa-arrow-right"></i>
-                            {% elif task.status == 'rejected' %}
-                            <i class="fas fa-times"></i>
-                            {% else %}
-                            <i class="fas fa-clock"></i>
-                            {% endif %}
-                        </div>
-                        <div class="ms-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-1">{{ task.name }}</h6>
-                                <span class="badge 
-                                    {% if task.status == 'complete' %}bg-success
-                                    {% elif task.status == 'in_progress' %}bg-primary
-                                    {% elif task.status == 'rejected' %}bg-danger
-                                    {% else %}bg-secondary{% endif %}">
-                                    {% if task.status == 'complete' %}Completato
-                                    {% elif task.status == 'in_progress' %}In Corso
-                                    {% elif task.status == 'pending' %}In Attesa
-                                    {% elif task.status == 'rejected' %}Rifiutato
-                                    {% else %}{{ task.status|replace('_', ' ')|title }}
+                    <div class="workflow-step mb-3">
+                        <div class="d-flex">
+                            <div class="timeline-icon me-3 rounded-circle d-flex align-items-center justify-content-center"
+                                 style="width: 36px; height: 36px; 
+                                 background-color: {% if task.status == 'complete' %}var(--bs-success)
+                                         {% elif task.status == 'in_progress' %}var(--bs-primary)
+                                         {% elif task.status == 'rejected' %}var(--bs-danger)
+                                         {% else %}var(--bs-secondary){% endif %};">
+                                <i class="bi 
+                                    {% if task.status == 'complete' %}bi-check-lg text-white
+                                    {% elif task.status == 'in_progress' %}bi-arrow-right text-white
+                                    {% elif task.status == 'rejected' %}bi-x-lg text-white
+                                    {% else %}bi-clock text-white{% endif %}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">{{ task.name }}</span>
+                                    <span class="badge 
+                                        {% if task.status == 'complete' %}bg-success
+                                        {% elif task.status == 'in_progress' %}bg-primary
+                                        {% elif task.status == 'rejected' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {% if task.status == 'complete' %}Completato
+                                        {% elif task.status == 'in_progress' %}In Corso
+                                        {% elif task.status == 'pending' %}In Attesa
+                                        {% elif task.status == 'rejected' %}Rifiutato
+                                        {% else %}{{ task.status|replace('_', ' ')|title }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="d-flex flex-wrap mt-1">
+                                    <span class="small text-muted me-3">
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ task.assigned_to.full_name if task.assigned_to else 'Non assegnato' }}
+                                    </span>
+                                    {% if task.due_date %}
+                                    <span class="small text-muted me-3">
+                                        <i class="bi bi-calendar-event me-1"></i>
+                                        {{ task.due_date.strftime('%d/%m/%Y') }}
+                                    </span>
                                     {% endif %}
-                                </span>
+                                </div>
+                                
+                                {% if current_user.id == task.assigned_to_id and task.status in ['pending', 'in_progress'] %}
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskActionModal" data-task-id="{{ task.id }}">
+                                        <i class="bi bi-check-circle me-1"></i> Completa
+                                    </button>
+                                </div>
+                                {% endif %}
                             </div>
-                            <p class="mb-1 small text-muted">Assegnato a: {{ task.assigned_to.full_name if task.assigned_to else 'Non assegnato' }}</p>
-                            {% if task.due_date %}
-                            <p class="mb-1 small text-muted">Scadenza: {{ task.due_date.strftime('%d/%m/%Y') }}</p>
-                            {% endif %}
-                            
-                            {% if current_user.id == task.assigned_to_id and task.status in ['pending', 'in_progress'] %}
-                            <div class="mt-2">
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taskActionModal" data-task-id="{{ task.id }}">
-                                    <i class="fas fa-check"></i> Completa Attività
-                                </button>
-                            </div>
-                            {% endif %}
                         </div>
+                        {% if not loop.last %}
+                        <div class="timeline-connector" style="height: 20px; width: 2px; background-color: #e9ecef; margin-left: 18px;"></div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
                 
-                <div class="mt-3">
+                <div class="mt-3 text-center">
                     <a href="{{ url_for('workflow_detail', workflow_id=document.workflow_id) }}" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-project-diagram"></i> Visualizza Workflow Completo
+                        <i class="bi bi-diagram-3 me-1"></i> Visualizza Workflow Completo
                     </a>
                 </div>
             </div>
@@ -333,30 +513,39 @@
         
         <!-- Shared with users -->
         {% if document.shared_with and document.owner_id == current_user.id %}
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Condiviso Con</h5>
+        <div class="card document-meta-card mb-4">
+            <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-people me-2"></i>Condiviso Con
+                    <span class="badge bg-secondary ms-1">{{ document.shared_with|length }}</span>
+                </h5>
                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
-                    <i class="fas fa-plus"></i> Condividi
+                    <i class="bi bi-plus-lg me-1"></i> Condividi
                 </button>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
                     {% for user in document.shared_with %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                        <div>
-                            <i class="fas fa-user-circle me-2"></i>
-                            {{ user.full_name }}
+                    <div class="list-group-item border-0 d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle bg-light rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                 style="width: 40px; height: 40px; color: var(--bs-primary);">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <div>
+                                <div class="fw-medium">{{ user.full_name }}</div>
+                                <div class="small text-muted">{{ user.email }}</div>
+                            </div>
                         </div>
                         <form action="{{ url_for('unshare_document', document_id=document.id, user_id=user.id) }}" method="POST" class="d-inline">
                             {{ form.hidden_tag() }}
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-times-circle"></i> Rimuovi
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Rimuovere la condivisione con {{ user.full_name }}?');">
+                                <i class="bi bi-x-circle me-1"></i> Rimuovi
                             </button>
                         </form>
-                    </li>
+                    </div>
                     {% endfor %}
-                </ul>
+                </div>
             </div>
         </div>
         {% endif %}
