@@ -152,19 +152,19 @@
 {% endblock %}
 
 {% block content %}
-<div class="document-header">
+<div class="document-header bg-light p-3 rounded mb-4">
     <div class="row align-items-center">
-        <div class="col-lg-8">
+        <div class="col-lg-12">
             <div class="d-flex align-items-center">
-                <div class="document-icon">
+                <div class="document-icon me-3" style="font-size: 2.5rem; min-width: 50px; display: flex; align-items: center; justify-content: center;">
                     <i class="bi 
-                        {% if document.file_type == 'pdf' %}bi-file-earmark-pdf
-                        {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word
-                        {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel
-                        {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image
-                        {% else %}bi-file-earmark{% endif %}"></i>
+                        {% if document.file_type == 'pdf' %}bi-file-earmark-pdf text-danger
+                        {% elif document.file_type in ['docx', 'doc'] %}bi-file-earmark-word text-primary
+                        {% elif document.file_type in ['xlsx', 'xls'] %}bi-file-earmark-excel text-success
+                        {% elif document.file_type in ['jpg', 'jpeg', 'png', 'gif'] %}bi-file-earmark-image text-info
+                        {% else %}bi-file-earmark text-secondary{% endif %}"></i>
                 </div>
-                <div>
+                <div class="flex-grow-1">
                     <h1 class="h3 mb-1">{{ document.title or document.original_filename }}</h1>
                     <div class="d-flex align-items-center flex-wrap">
                         <span class="badge 
@@ -182,48 +182,46 @@
                         {% endif %}
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-lg-4 mt-3 mt-lg-0">
-            <div class="d-flex flex-wrap justify-content-lg-end">
-                <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary btn-action mb-2 mb-md-0 me-2">
-                    <i class="bi bi-download"></i> Download
-                </a>
-                
-                <div class="custom-dropdown d-inline-block mb-2 mb-md-0 position-relative">
-                    <button class="btn btn-outline-secondary btn-action" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
-                        <i class="bi bi-three-dots"></i> Azioni
-                    </button>
-                </div>
-                
-                <!-- Menu personalizzato -->
-                <div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000; width:240px; max-height:400px; overflow-y:auto; top:0; right:0;">
-                    <div class="custom-menu shadow bg-light rounded border" style="width:100%; overflow:visible;">
-                        <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
-                            <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
-                        </a>
-                        <a class="custom-menu-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
-                            <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
-                            {% if document.attachments %}
-                            <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
-                            {% endif %}
-                        </a>
-                        <div class="dropdown-divider my-1"></div>
-                        {% if document.owner_id == current_user.id %}
-                        <a class="custom-menu-item" href="{{ url_for('update_document', document_id=document.id) }}">
-                            <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
-                        </a>
-                        <a class="custom-menu-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal" onclick="toggleCustomMenu()">
-                            <i class="bi bi-share me-2 text-primary"></i> Condividi
-                        </a>
-                        {% endif %}
-                        <a class="custom-menu-item" href="#" onclick="window.print(); toggleCustomMenu()">
-                            <i class="bi bi-printer me-2 text-secondary"></i> Stampa
-                        </a>
+                <div class="ms-auto action-buttons">
+                    <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary btn-action">
+                        <i class="bi bi-download"></i> Download
+                    </a>
+                    
+                    <div class="custom-dropdown d-inline-block position-relative ms-2">
+                        <button class="btn btn-outline-secondary btn-action" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
+                            <i class="bi bi-three-dots"></i> Azioni
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Menu personalizzato -->
+<div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000; width:240px; max-height:400px; overflow-y:auto; top:0; right:0;">
+    <div class="custom-menu shadow bg-light rounded border" style="width:100%; overflow:visible;">
+        <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
+            <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
+        </a>
+        <a class="custom-menu-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
+            <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
+            {% if document.attachments %}
+            <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
+            {% endif %}
+        </a>
+        <div class="dropdown-divider my-1"></div>
+        {% if document.owner_id == current_user.id %}
+        <a class="custom-menu-item" href="{{ url_for('update_document', document_id=document.id) }}">
+            <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
+        </a>
+        <a class="custom-menu-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal" onclick="toggleCustomMenu()">
+            <i class="bi bi-share me-2 text-primary"></i> Condividi
+        </a>
+        {% endif %}
+        <a class="custom-menu-item" href="#" onclick="window.print(); toggleCustomMenu()">
+            <i class="bi bi-printer me-2 text-secondary"></i> Stampa
+        </a>
     </div>
 </div>
 
