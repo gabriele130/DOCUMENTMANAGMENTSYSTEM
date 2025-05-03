@@ -567,6 +567,11 @@ def view_document(document_id):
 def download_document(document_id):
     # Utilizziamo il nuovo sistema di monitoraggio documenti
     from services.document_monitor import verify_before_access
+    from services.central_storage import get_file_from_storage
+    from services.file_recovery import recover_missing_file
+    
+    # Flag per forzare il recupero avanzato
+    force_recovery = request.args.get('force_recovery', '0') == '1'
     
     # Verifica e recupera se necessario
     document, status_code, message = verify_before_access(document_id, current_user.id)
@@ -574,6 +579,30 @@ def download_document(document_id):
     if not document:
         flash('Documento non trovato nel database.', 'danger')
         return redirect(url_for('documents'))
+    
+    # Se è richiesto il recupero avanzato, utilizziamo tutte le tecniche disponibili
+    if force_recovery and (status_code != 200 or not os.path.exists(document.file_path)):
+        logging.info(f"Tentativo di recupero avanzato per documento ID: {document_id}")
+        
+        # 1. Prova con il sistema di recupero standard
+        if recover_missing_file(document):
+            flash("File recuperato con successo dal sistema di recupero standard.", 'success')
+            status_code = 200
+        else:
+            # 2. Prova con il sistema di storage centralizzato
+            file_path = get_file_from_storage(document.filename, document_id)
+            if file_path:
+                document.file_path = file_path
+                db.session.commit()
+                flash("File recuperato con successo dal sistema di storage centralizzato.", 'success')
+                status_code = 200
+            else:
+                # 3. Ricerca avanzata in tutti i percorsi conosciuti
+                from services.central_storage import migrate_document_to_central_storage
+                result = migrate_document_to_central_storage(document)
+                if result and result.get('status') == 'migrated':
+                    flash("File recuperato con successo tramite migrazione al sistema centralizzato.", 'success')
+                    status_code = 200
     
     # Se il file è stato recuperato, mostra un messaggio informativo
     if status_code == 409:  # File recuperato
@@ -596,6 +625,11 @@ def download_document(document_id):
         
         return redirect(url_for('view_document', document_id=document.id))
     
+    # Verifica finale che il file sia accessibile
+    if not os.path.exists(document.file_path):
+        flash("Il file non è ancora disponibile nonostante i tentativi di recupero.", 'danger')
+        return redirect(url_for('view_document', document_id=document.id))
+    
     # Log del download per audit trail
     from services.audit_service import log_activity
     log_activity(
@@ -603,7 +637,7 @@ def download_document(document_id):
         action="download",
         document_id=document_id,
         action_category='ACCESS',
-        details="Download documento",
+        details="Download documento" + (" (dopo recupero avanzato)" if force_recovery else ""),
         result="success"
     )
     

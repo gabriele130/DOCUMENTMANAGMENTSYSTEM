@@ -21,8 +21,11 @@ from services.central_storage import (
     migrate_files_to_central_storage,
     verify_and_repair_storage,
     validate_document_storage,
-    cleanup_orphaned_files
+    cleanup_orphaned_files,
+    get_file_from_storage,
+    migrate_document_to_central_storage
 )
+from services.file_recovery import recover_missing_file
 
 # Configurazione del blueprint
 maintenance_bp = Blueprint('maintenance', __name__, url_prefix='/admin/maintenance')
