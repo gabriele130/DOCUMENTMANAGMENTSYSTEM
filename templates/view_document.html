@@ -61,9 +61,22 @@
     
     /* Assicura che il dropdown menu sia sempre visibile sopra gli altri elementi */
     .dropdown-menu {
-        z-index: 1030;
+        z-index: 9999 !important;
         max-height: 80vh;
         overflow-y: auto;
+        position: fixed !important;
+    }
+    
+    /* Fix specifico per il menu azioni del documento */
+    #documentActionsMenu {
+        position: absolute !important;
+        top: 100% !important;
+        left: auto !important;
+        right: 0 !important;
+        transform: none !important;
+        margin-top: 2px !important;
+        z-index: 10000 !important;
+        width: 250px !important;
     }
 
     .document-iframe-container {
@@ -156,7 +169,7 @@
                     <button class="btn btn-outline-secondary dropdown-toggle btn-action" type="button" id="documentActions" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-three-dots"></i> Azioni
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm position-absolute" aria-labelledby="documentActions" style="min-width:220px;">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm position-absolute" id="documentActionsMenu" aria-labelledby="documentActions" style="min-width:220px;">
                         <li>
                             <a class="dropdown-item d-flex align-items-center" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
                                 <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
@@ -629,6 +642,23 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Fix per il menu dropdown che viene nascosto
+    const actionsButton = document.getElementById('documentActions');
+    const actionsMenu = document.getElementById('documentActionsMenu');
+    
+    if (actionsButton && actionsMenu) {
+        // Aggiungi event listener per posizionare correttamente il menu
+        actionsButton.addEventListener('click', function() {
+            setTimeout(() => {
+                const buttonRect = actionsButton.getBoundingClientRect();
+                actionsMenu.style.top = (window.scrollY + buttonRect.bottom + 5) + 'px';
+                actionsMenu.style.left = (window.scrollX + buttonRect.left) + 'px';
+                actionsMenu.style.position = 'absolute';
+                actionsMenu.style.zIndex = '10000';
+            }, 10);
+        });
+    }
+    
     // Task action modal
     const taskModal = document.getElementById('taskActionModal');
     if (taskModal) {
