@@ -129,7 +129,7 @@ def save_file_to_central_storage(file_obj=None, file_path=None, original_filenam
 
 def get_file_from_storage(filename, document_id=None):
     """
-    Recupera un file dal sistema di storage centralizzato.
+    Recupera un file dal sistema di storage centralizzato con meccanismi avanzati di recupero.
     
     Args:
         filename: Nome del file da recuperare
@@ -139,41 +139,147 @@ def get_file_from_storage(filename, document_id=None):
         str: Percorso del file recuperato o None se non trovato
     """
     try:
+        if not filename:
+            logging.warning("Richiesto recupero file con nome vuoto")
+            return None
+            
         # Controlla se il file esiste nella directory principale
         main_path = os.path.join(ORIGINAL_FILES_DIR, filename)
         if os.path.exists(main_path):
+            logging.debug(f"File trovato nel percorso principale: {main_path}")
             return main_path
         
         # Se non esiste nella directory principale, controlla il backup
         backup_path = os.path.join(BACKUP_FILES_DIR, filename)
         if os.path.exists(backup_path):
             # Se esiste nel backup, ripristinalo nella directory principale
-            shutil.copy2(backup_path, main_path)
-            logging.info(f"File ripristinato dal backup: {main_path}")
-            return main_path
+            try:
+                # Assicurati che la directory principale esista
+                os.makedirs(ORIGINAL_FILES_DIR, exist_ok=True)
+                
+                # Copia il file dal backup alla directory principale
+                shutil.copy2(backup_path, main_path)
+                logging.info(f"File ripristinato dal backup: {main_path}")
+                return main_path
+            except Exception as e:
+                logging.error(f"Errore durante il ripristino del file dal backup: {str(e)}")
+                # Restituisci il percorso del backup se non è possibile ripristinare
+                return backup_path
         
         # Se abbiamo l'ID del documento, prova a cercarlo nel database
         if document_id:
-            doc = Document.query.get(document_id)
-            if doc and doc.file_path and os.path.exists(doc.file_path):
-                # Se il file esiste nel percorso registrato, copialo nel sistema centralizzato
-                unique_filename = generate_unique_filename(doc.original_filename)
-                destination_path = os.path.join(ORIGINAL_FILES_DIR, unique_filename)
-                backup_path = os.path.join(BACKUP_FILES_DIR, unique_filename)
-                
-                shutil.copy2(doc.file_path, destination_path)
-                shutil.copy2(doc.file_path, backup_path)
-                
-                # Aggiorna il percorso nel database
-                doc.file_path = destination_path
-                doc.filename = unique_filename
-                db.session.commit()
-                
-                logging.info(f"File migrato al sistema centralizzato: {destination_path}")
-                return destination_path
+            try:
+                doc = Document.query.get(document_id)
+                if doc:
+                    # 1. Controlla il percorso registrato nel documento
+                    if doc.file_path and os.path.exists(doc.file_path) and doc.file_path != main_path:
+                        logging.info(f"File trovato nel percorso registrato nel database: {doc.file_path}")
+                        
+                        # Migra il file al sistema centralizzato
+                        try:
+                            # Se il file esiste nel percorso registrato, copialo nel sistema centralizzato
+                            shutil.copy2(doc.file_path, main_path)
+                            
+                            # Crea anche un backup
+                            shutil.copy2(doc.file_path, backup_path)
+                            
+                            # Aggiorna il percorso nel database solo se necessario
+                            if doc.file_path != main_path:
+                                doc.file_path = main_path
+                                db.session.commit()
+                                
+                            logging.info(f"File migrato al sistema centralizzato: {main_path}")
+                            return main_path
+                        except Exception as e:
+                            logging.error(f"Errore durante la migrazione del file: {str(e)}")
+                            # Restituisci comunque il percorso originale se non è possibile migrare
+                            return doc.file_path
+                    
+                    # 2. Prova a cercare in percorsi alternativi
+                    if doc.original_filename:
+                        alternative_paths = [
+                            os.path.join('uploads', doc.original_filename),
+                            os.path.join('document_cache', doc.original_filename),
+                            os.path.join('attached_assets', doc.original_filename),
+                            # Aggiungi più percorsi se necessario
+                        ]
+                        
+                        # UUID dal nome del file
+                        uuid_part = None
+                        if filename and "_" in filename:
+                            uuid_part = filename.split("_", 1)[0]
+                        
+                        # Cerca anche per modelli simili con lo stesso UUID
+                        if uuid_part:
+                            for folder in ['uploads', 'document_cache', 'attached_assets']:
+                                if os.path.exists(folder):
+                                    for file in os.listdir(folder):
+                                        if file.startswith(uuid_part):
+                                            alternative_paths.append(os.path.join(folder, file))
+                        
+                        for alt_path in alternative_paths:
+                            if os.path.exists(alt_path):
+                                logging.info(f"File trovato in percorso alternativo: {alt_path}")
+                                
+                                try:
+                                    # Copia il file nel sistema centralizzato
+                                    shutil.copy2(alt_path, main_path)
+                                    
+                                    # Crea anche un backup
+                                    shutil.copy2(alt_path, backup_path)
+                                    
+                                    # Aggiorna il percorso nel database
+                                    doc.file_path = main_path
+                                    db.session.commit()
+                                    
+                                    logging.info(f"File recuperato da percorso alternativo: {alt_path}")
+                                    return main_path
+                                except Exception as e:
+                                    logging.error(f"Errore durante il recupero da percorso alternativo: {str(e)}")
+                                    # Restituisci comunque il percorso alternativo
+                                    return alt_path
+            except Exception as e:
+                logging.error(f"Errore durante la ricerca del documento nel database: {str(e)}")
+        
+        # 3. Ulteriore verifica manuale in tutte le directory di archiviazione
+        # Cerca per nome file originale o per UUID
+        uuid_part = None
+        if filename and "_" in filename:
+            uuid_part = filename.split("_", 1)[0]
+            
+        if uuid_part:
+            for folder in ['uploads', 'document_cache', 'attached_assets', 'document_storage', 'document_storage/originals', 'document_storage/backup']:
+                if os.path.exists(folder):
+                    for file in os.listdir(folder):
+                        if file.startswith(uuid_part) or (filename and file == filename):
+                            found_path = os.path.join(folder, file)
+                            logging.info(f"File trovato in ricerca approfondita: {found_path}")
+                            
+                            try:
+                                # Copia il file nel sistema centralizzato
+                                shutil.copy2(found_path, main_path)
+                                
+                                # Crea anche un backup
+                                shutil.copy2(found_path, backup_path)
+                                
+                                # Aggiorna il documento nel database se possibile
+                                if document_id:
+                                    try:
+                                        doc = Document.query.get(document_id)
+                                        if doc:
+                                            doc.file_path = main_path
+                                            db.session.commit()
+                                    except Exception as e:
+                                        logging.error(f"Errore durante l'aggiornamento del database: {str(e)}")
+                                
+                                logging.info(f"File recuperato da ricerca approfondita: {found_path}")
+                                return main_path
+                            except Exception as e:
+                                logging.error(f"Errore durante il recupero da ricerca approfondita: {str(e)}")
+                                return found_path
         
         # Se non trovato in nessuna posizione, restituisci None
-        logging.warning(f"File non trovato nel sistema centralizzato: {filename}")
+        logging.warning(f"File non trovato in nessuna posizione conosciuta: {filename}")
         return None
     except Exception as e:
         logging.error(f"Errore durante il recupero del file: {str(e)}")

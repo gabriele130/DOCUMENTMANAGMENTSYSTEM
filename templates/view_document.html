@@ -70,7 +70,24 @@
                             <h4 class="alert-heading">File non disponibile</h4>
                             <p>Il file fisico associato a questo documento non è stato trovato nel sistema.</p>
                             <p>Il percorso registrato nel database è: <code>{{ document.file_path }}</code></p>
-                            <p>Contattare l'amministratore per risolvere il problema.</p>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <p class="mb-0">Scegli una delle seguenti opzioni:</p>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('download_document', document_id=document.id, force_recovery='1') }}" class="btn btn-primary">
+                                        <i class="bi bi-arrow-repeat"></i> Tenta Recupero Automatico
+                                    </a>
+                                    {% if current_user.is_admin %}
+                                    <a href="{{ url_for('validate_document', doc_id=document.id) }}" class="btn btn-warning">
+                                        <i class="bi bi-tools"></i> Riparazione Avanzata
+                                    </a>
+                                    {% else %}
+                                    <a href="mailto:admin@example.com?subject=Ripristino documento {{ document.id }}" class="btn btn-warning">
+                                        <i class="bi bi-envelope"></i> Contatta Amministratore
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                     {% elif document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
                         <div class="mb-3 d-flex justify-content-between align-items-center p-3">
