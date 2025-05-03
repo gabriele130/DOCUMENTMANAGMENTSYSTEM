@@ -83,16 +83,25 @@
     .custom-menu-item {
         display: flex;
         align-items: center;
-        padding: 10px 15px;
-        color: #495057;
+        padding: 12px 15px;
+        color: #212529 !important;
         text-decoration: none;
         transition: all 0.2s ease;
         font-weight: 400;
+        border-bottom: 1px solid #f0f0f0;
+        background-color: #ffffff !important;
     }
     
     .custom-menu-item:hover {
-        background-color: #f8f9fa;
-        color: #212529;
+        background-color: #f8f9fa !important;
+        color: #000000 !important;
+        font-weight: 500;
+    }
+    
+    .custom-menu-item i {
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
     }
 
     .document-iframe-container {
@@ -188,8 +197,8 @@
                 </div>
                 
                 <!-- Menu personalizzato -->
-                <div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000;">
-                    <div class="custom-menu shadow-sm bg-white rounded border">
+                <div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000; width:240px; max-height:400px; overflow-y:auto; top:0; right:0;">
+                    <div class="custom-menu shadow bg-light rounded border" style="width:100%; overflow:visible;">
                         <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
                             <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
                         </a>
@@ -659,9 +668,24 @@ function toggleCustomMenu() {
     if (menu.style.display === 'none' || menu.style.display === '') {
         // Posiziona il menu vicino al pulsante
         const buttonRect = button.getBoundingClientRect();
-        menu.style.top = (window.scrollY + buttonRect.bottom + 5) + 'px';
-        menu.style.left = (window.scrollX + buttonRect.right - 240) + 'px'; // Allinea a destra
+        
+        // Posizionamento assoluto per assicurare la visibilità completa
+        menu.style.top = (window.scrollY + buttonRect.bottom) + 'px';
+        menu.style.left = Math.max(0, window.scrollX + buttonRect.right - 240) + 'px'; // Allinea a destra
         menu.style.display = 'block';
+        
+        // Forza la visualizzazione sopra tutto in modo esplicito
+        menu.style.zIndex = '99999';
+        menu.style.background = '#fff';
+        
+        // Controlla se il menu esce dalla finestra
+        const menuRect = menu.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // Se il menu va oltre il bordo inferiore della finestra, riposizionalo
+        if (menuRect.bottom > windowHeight) {
+            menu.style.top = (window.scrollY + windowHeight - menuRect.height - 10) + 'px';
+        }
     } else {
         menu.style.display = 'none';
     }
