@@ -67,16 +67,32 @@
         position: fixed !important;
     }
     
-    /* Fix specifico per il menu azioni del documento */
-    #documentActionsMenu {
-        position: absolute !important;
-        top: 100% !important;
-        left: auto !important;
-        right: 0 !important;
-        transform: none !important;
-        margin-top: 2px !important;
-        z-index: 10000 !important;
-        width: 250px !important;
+    /* Stile per il menu personalizzato */
+    .custom-menu-container {
+        position: fixed;
+        z-index: 10000;
+    }
+    
+    .custom-menu {
+        width: 240px;
+        overflow: hidden;
+        border-radius: 6px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
+    }
+    
+    .custom-menu-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        font-weight: 400;
+    }
+    
+    .custom-menu-item:hover {
+        background-color: #f8f9fa;
+        color: #212529;
     }
 
     .document-iframe-container {
@@ -165,43 +181,37 @@
                     <i class="bi bi-download"></i> Download
                 </a>
                 
-                <div class="dropdown d-inline-block mb-2 mb-md-0 position-relative">
-                    <button class="btn btn-outline-secondary dropdown-toggle btn-action" type="button" id="documentActions" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="custom-dropdown d-inline-block mb-2 mb-md-0 position-relative">
+                    <button class="btn btn-outline-secondary btn-action" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
                         <i class="bi bi-three-dots"></i> Azioni
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm position-absolute" id="documentActionsMenu" aria-labelledby="documentActions" style="min-width:220px;">
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
-                                <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('document_attachments', document_id=document.id) }}">
-                                <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
-                                {% if document.attachments %}
-                                <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
-                                {% endif %}
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
+                </div>
+                
+                <!-- Menu personalizzato -->
+                <div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000;">
+                    <div class="custom-menu shadow-sm bg-white rounded border">
+                        <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
+                            <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
+                        </a>
+                        <a class="custom-menu-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
+                            <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
+                            {% if document.attachments %}
+                            <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
+                            {% endif %}
+                        </a>
+                        <div class="dropdown-divider my-1"></div>
                         {% if document.owner_id == current_user.id %}
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('update_document', document_id=document.id) }}">
-                                <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
-                                <i class="bi bi-share me-2 text-primary"></i> Condividi
-                            </a>
-                        </li>
+                        <a class="custom-menu-item" href="{{ url_for('update_document', document_id=document.id) }}">
+                            <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
+                        </a>
+                        <a class="custom-menu-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal" onclick="toggleCustomMenu()">
+                            <i class="bi bi-share me-2 text-primary"></i> Condividi
+                        </a>
                         {% endif %}
-                        <li>
-                            <button type="button" class="dropdown-item d-flex align-items-center" onclick="window.print()">
-                                <i class="bi bi-printer me-2 text-secondary"></i> Stampa
-                            </button>
-                        </li>
-                    </ul>
+                        <a class="custom-menu-item" href="#" onclick="window.print(); toggleCustomMenu()">
+                            <i class="bi bi-printer me-2 text-secondary"></i> Stampa
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -641,23 +651,46 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Fix per il menu dropdown che viene nascosto
-    const actionsButton = document.getElementById('documentActions');
-    const actionsMenu = document.getElementById('documentActionsMenu');
+// Funzione per aprire/chiudere il menu personalizzato
+function toggleCustomMenu() {
+    const menu = document.getElementById('customDocumentMenu');
+    const button = document.getElementById('documentActionsBtn');
     
-    if (actionsButton && actionsMenu) {
-        // Aggiungi event listener per posizionare correttamente il menu
-        actionsButton.addEventListener('click', function() {
-            setTimeout(() => {
-                const buttonRect = actionsButton.getBoundingClientRect();
-                actionsMenu.style.top = (window.scrollY + buttonRect.bottom + 5) + 'px';
-                actionsMenu.style.left = (window.scrollX + buttonRect.left) + 'px';
-                actionsMenu.style.position = 'absolute';
-                actionsMenu.style.zIndex = '10000';
-            }, 10);
-        });
+    if (menu.style.display === 'none' || menu.style.display === '') {
+        // Posiziona il menu vicino al pulsante
+        const buttonRect = button.getBoundingClientRect();
+        menu.style.top = (window.scrollY + buttonRect.bottom + 5) + 'px';
+        menu.style.left = (window.scrollX + buttonRect.right - 240) + 'px'; // Allinea a destra
+        menu.style.display = 'block';
+    } else {
+        menu.style.display = 'none';
     }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestione del menu personalizzato
+    // Chiudi il menu quando si clicca fuori
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('customDocumentMenu');
+        const button = document.getElementById('documentActionsBtn');
+        
+        if (menu && button) {
+            // Se il clic non è sul pulsante e non è all'interno del menu, chiudi il menu
+            if (!button.contains(e.target) && !menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        }
+    });
+    
+    // Chiudi il menu quando si preme ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const menu = document.getElementById('customDocumentMenu');
+            if (menu) {
+                menu.style.display = 'none';
+            }
+        }
+    });
     
     // Task action modal
     const taskModal = document.getElementById('taskActionModal');
