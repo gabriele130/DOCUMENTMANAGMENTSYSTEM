@@ -48,6 +48,7 @@
                     <p>Migra tutti i documenti esistenti al sistema di storage permanente per garantire la loro disponibilità a lungo termine.</p>
                     <p class="text-warning">Nota: la migrazione può richiedere del tempo, specialmente se ci sono molti documenti.</p>
                     <form action="{{ url_for('maintenance.migrate_to_permanent_storage') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="d-flex justify-content-between">
                             <span>Documenti totali: <strong>{{ total_documents }}</strong></span>
                             <button type="submit" class="btn btn-primary">Avvia Migrazione</button>
@@ -63,6 +64,7 @@
                 <div class="card-body">
                     <p>Verifica l'integrità dello storage permanente e ripara automaticamente eventuali problemi.</p>
                     <form action="{{ url_for('maintenance.verify_permanent_storage') }}" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" class="btn btn-warning">Verifica e Ripara</button>
                     </form>
                 </div>
@@ -88,6 +90,7 @@
                                     <div class="d-flex">
                                         <a href="{{ url_for('view_document', document_id=doc.id) }}" class="btn btn-sm btn-secondary mr-2">Dettagli</a>
                                         <form action="{{ url_for('documents.verify_document_storage', document_id=doc.id) }}" method="post" class="ml-2">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                             <button type="submit" class="btn btn-sm btn-warning">Ripara</button>
                                         </form>
                                     </div>
@@ -135,6 +138,7 @@
                                             <div class="btn-group btn-group-sm">
                                                 <a href="{{ url_for('view_document', document_id=doc.id) }}" class="btn btn-info">Visualizza</a>
                                                 <form action="{{ url_for('documents.verify_document_storage', document_id=doc.id) }}" method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                     <button type="submit" class="btn btn-warning">Verifica</button>
                                                 </form>
                                             </div>
