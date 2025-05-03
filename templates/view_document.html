@@ -58,6 +58,13 @@
     .btn-action i {
         margin-right: 0.5rem;
     }
+    
+    /* Assicura che il dropdown menu sia sempre visibile sopra gli altri elementi */
+    .dropdown-menu {
+        z-index: 1030;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
 
     .document-iframe-container {
         border-radius: 0 0 8px 8px;
@@ -145,19 +152,19 @@
                     <i class="bi bi-download"></i> Download
                 </a>
                 
-                <div class="dropdown d-inline-block mb-2 mb-md-0">
+                <div class="dropdown d-inline-block mb-2 mb-md-0 position-relative">
                     <button class="btn btn-outline-secondary dropdown-toggle btn-action" type="button" id="documentActions" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-three-dots"></i> Azioni
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="documentActions">
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm position-absolute" aria-labelledby="documentActions" style="min-width:220px;">
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
-                                <i class="bi bi-calendar-plus me-2"></i> Aggiungi promemoria
+                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
+                                <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
-                                <i class="bi bi-paperclip me-2"></i> Gestisci allegati
+                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('document_attachments', document_id=document.id) }}">
+                                <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
                                 {% if document.attachments %}
                                 <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
                                 {% endif %}
@@ -166,19 +173,19 @@
                         <li><hr class="dropdown-divider"></li>
                         {% if document.owner_id == current_user.id %}
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('update_document', document_id=document.id) }}">
-                                <i class="bi bi-pencil me-2"></i> Modifica documento
+                            <a class="dropdown-item d-flex align-items-center" href="{{ url_for('update_document', document_id=document.id) }}">
+                                <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
-                                <i class="bi bi-share me-2"></i> Condividi
+                            <a class="dropdown-item d-flex align-items-center" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal">
+                                <i class="bi bi-share me-2 text-primary"></i> Condividi
                             </a>
                         </li>
                         {% endif %}
                         <li>
-                            <button type="button" class="dropdown-item" onclick="window.print()">
-                                <i class="bi bi-printer me-2"></i> Stampa
+                            <button type="button" class="dropdown-item d-flex align-items-center" onclick="window.print()">
+                                <i class="bi bi-printer me-2 text-secondary"></i> Stampa
                             </button>
                         </li>
                     </ul>
