@@ -188,32 +188,7 @@
     </div>
 </div>
 
-<!-- Menu personalizzato -->
-<div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:absolute; z-index:10000; width:240px; max-height:400px; overflow-y:auto;">
-    <div class="custom-menu shadow bg-light rounded border" style="width:100%; overflow:visible;">
-        <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
-            <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
-        </a>
-        <a class="custom-menu-item" href="{{ url_for('document_attachments', document_id=document.id) }}">
-            <i class="bi bi-paperclip me-2 text-success"></i> Gestisci allegati
-            {% if document.attachments %}
-            <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
-            {% endif %}
-        </a>
-        <div class="dropdown-divider my-1"></div>
-        {% if document.owner_id == current_user.id %}
-        <a class="custom-menu-item" href="{{ url_for('update_document', document_id=document.id) }}">
-            <i class="bi bi-pencil me-2 text-info"></i> Modifica documento
-        </a>
-        <a class="custom-menu-item" href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal" onclick="toggleCustomMenu()">
-            <i class="bi bi-share me-2 text-primary"></i> Condividi
-        </a>
-        {% endif %}
-        <a class="custom-menu-item" href="#" onclick="window.print(); toggleCustomMenu()">
-            <i class="bi bi-printer me-2 text-secondary"></i> Stampa
-        </a>
-    </div>
-</div>
+<!-- Menu personalizzato rimosso -->
 
 <div class="row">
     <!-- Document Preview Column -->
@@ -271,16 +246,35 @@
     <!-- Document Info Column -->
     <div class="col-lg-4">
         <!-- Pulsanti di azione -->
-        <div class="d-flex justify-content-between mb-4">
-            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary flex-grow-1 me-2">
+        <div class="mb-4">
+            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary d-block w-100 mb-2">
                 <i class="bi bi-download"></i> Download
             </a>
             
-            <div class="custom-dropdown">
-                <button class="btn btn-outline-secondary flex-grow-1" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
-                    <i class="bi bi-three-dots"></i> Azioni
-                </button>
-            </div>
+            <a href="{{ url_for('add_document_reminder', document_id=document.id) }}" class="btn btn-outline-primary d-block w-100 mb-2">
+                <i class="bi bi-calendar-plus me-2"></i> Aggiungi promemoria
+            </a>
+            
+            <a href="{{ url_for('document_attachments', document_id=document.id) }}" class="btn btn-outline-success d-block w-100 mb-2">
+                <i class="bi bi-paperclip me-2"></i> Gestisci allegati
+                {% if document.attachments %}
+                <span class="badge bg-secondary ms-1">{{ document.attachments|length }}</span>
+                {% endif %}
+            </a>
+            
+            {% if document.owner_id == current_user.id %}
+            <a href="{{ url_for('update_document', document_id=document.id) }}" class="btn btn-outline-info d-block w-100 mb-2">
+                <i class="bi bi-pencil me-2"></i> Modifica documento
+            </a>
+            
+            <a href="#" data-bs-toggle="modal" data-bs-target="#shareDocumentModal" class="btn btn-outline-primary d-block w-100 mb-2">
+                <i class="bi bi-share me-2"></i> Condividi
+            </a>
+            {% endif %}
+            
+            <a href="#" onclick="window.print();" class="btn btn-outline-secondary d-block w-100 mb-2">
+                <i class="bi bi-printer me-2"></i> Stampa
+            </a>
         </div>
         
         <!-- Document details -->
@@ -661,61 +655,10 @@
 
 {% block scripts %}
 <script>
-// Funzione per aprire/chiudere il menu personalizzato
-function toggleCustomMenu() {
-    const menu = document.getElementById('customDocumentMenu');
-    const button = document.getElementById('documentActionsBtn');
-    
-    if (menu.style.display === 'none' || menu.style.display === '') {
-        // Posiziona il menu vicino al pulsante
-        const buttonRect = button.getBoundingClientRect();
-        
-        // Posizionamento assoluto per assicurare la visibilità completa
-        menu.style.top = (window.scrollY + buttonRect.bottom) + 'px';
-        menu.style.left = Math.max(0, window.scrollX + buttonRect.right - 240) + 'px'; // Allinea a destra
-        menu.style.display = 'block';
-        
-        // Forza la visualizzazione sopra tutto in modo esplicito
-        menu.style.zIndex = '99999';
-        menu.style.background = '#fff';
-        
-        // Controlla se il menu esce dalla finestra
-        const menuRect = menu.getBoundingClientRect();
-        const windowHeight = window.innerHeight;
-        
-        // Se il menu va oltre il bordo inferiore della finestra, riposizionalo
-        if (menuRect.bottom > windowHeight) {
-            menu.style.top = (window.scrollY + windowHeight - menuRect.height - 10) + 'px';
-        }
-    } else {
-        menu.style.display = 'none';
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Gestione del menu personalizzato
-    // Chiudi il menu quando si clicca fuori
-    document.addEventListener('click', function(e) {
-        const menu = document.getElementById('customDocumentMenu');
-        const button = document.getElementById('documentActionsBtn');
-        
-        if (menu && button) {
-            // Se il clic non è sul pulsante e non è all'interno del menu, chiudi il menu
-            if (!button.contains(e.target) && !menu.contains(e.target)) {
-                menu.style.display = 'none';
-            }
-        }
-    });
+    // Tutto il codice del menu personalizzato è stato rimosso perché non serve più
     
-    // Chiudi il menu quando si preme ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const menu = document.getElementById('customDocumentMenu');
-            if (menu) {
-                menu.style.display = 'none';
-            }
-        }
-    });
+    // Codice rimosso per chiudere il menu con ESC perché non serve più
     
     // Task action modal
     const taskModal = document.getElementById('taskActionModal');
