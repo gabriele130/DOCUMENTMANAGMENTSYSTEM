@@ -6,12 +6,17 @@ from models import Document, db
 
 logger = logging.getLogger(__name__)
 
-# Directories to search for missing files
+# Percorso base assoluto
+BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
+# Directories to search for missing files (percorsi assoluti)
 SEARCH_DIRECTORIES = [
-    'uploads',
-    'document_cache',
-    'attached_assets',
-    'exports'
+    os.path.join(BASE_DIR, 'uploads'),
+    os.path.join(BASE_DIR, 'document_cache'),
+    os.path.join(BASE_DIR, 'attached_assets'),
+    os.path.join(BASE_DIR, 'exports'),
+    os.path.join(BASE_DIR, 'document_storage', 'originals'),
+    os.path.join(BASE_DIR, 'document_storage', 'backup')
 ]
 
 def find_file_alternative_paths(filename):
@@ -25,7 +30,6 @@ def find_file_alternative_paths(filename):
         List of full paths where the file was found
     """
     found_paths = []
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
     # Extract the UUID prefix if present
     uuid_part = None
@@ -43,30 +47,30 @@ def find_file_alternative_paths(filename):
     logger.info(f"UUID part: {uuid_part}, Nome originale: {original_name}")
     
     for directory in SEARCH_DIRECTORIES:
-        dir_path = os.path.join(base_dir, directory)
-        if not os.path.exists(dir_path):
+        # Le directory ora sono già percorsi assoluti
+        if not os.path.exists(directory):
             continue
             
         # Look for exact matches
-        full_path = os.path.join(dir_path, filename)
+        full_path = os.path.join(directory, filename)
         if os.path.exists(full_path):
             found_paths.append(full_path)
             logger.info(f"Trovato file esatto: {full_path}")
             
         # Look for files with the same original filename (without UUID)
         if uuid_part:
-            for file in os.listdir(dir_path):
+            for file in os.listdir(directory):
                 if file.endswith(original_name) or original_name in file:
-                    full_path = os.path.join(dir_path, file)
+                    full_path = os.path.join(directory, file)
                     if full_path not in found_paths:
                         found_paths.append(full_path)
                         logger.info(f"Trovato file con nome originale: {full_path}")
                         
         # Look for files with the same UUID prefix
         if uuid_part:
-            for file in os.listdir(dir_path):
+            for file in os.listdir(directory):
                 if file.startswith(uuid_part):
-                    full_path = os.path.join(dir_path, file)
+                    full_path = os.path.join(directory, file)
                     if full_path not in found_paths:
                         found_paths.append(full_path)
                         logger.info(f"Trovato file con UUID uguale: {full_path}")
@@ -105,22 +109,28 @@ def recover_missing_file(document):
         # If we found alternatives, use the first one
         new_path = alternative_paths[0]
         
-        # Ensure the uploads directory exists
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        uploads_dir = os.path.join(base_dir, 'uploads')
-        if not os.path.exists(uploads_dir):
-            os.makedirs(uploads_dir)
+        # Ensure the central storage directory exists (è preferibile salvare nel central storage)
+        from services.central_storage import ORIGINAL_FILES_DIR, ensure_storage_directories
         
-        # Copy the file to the uploads directory if it's not already there
-        if not new_path.startswith(uploads_dir):
-            filename = os.path.basename(new_path)
-            destination = os.path.join(uploads_dir, filename)
-            logger.info(f"Copiando file da {new_path} a {destination}")
-            try:
-                shutil.copy2(new_path, destination)
-                new_path = destination
-            except Exception as e:
-                logger.error(f"Errore durante la copia del file: {e}")
+        # Assicurati che le directory esistano
+        ensure_storage_directories()
+        
+        # Copy the file to the central storage directory
+        filename = os.path.basename(new_path)
+        destination = os.path.join(ORIGINAL_FILES_DIR, filename)
+        
+        logger.info(f"Copiando file da {new_path} a {destination}")
+        try:
+            shutil.copy2(new_path, destination)
+            new_path = destination
+            
+            # Crea anche un backup
+            from services.central_storage import BACKUP_FILES_DIR
+            backup_destination = os.path.join(BACKUP_FILES_DIR, filename)
+            shutil.copy2(new_path, backup_destination)
+            logger.info(f"Creato backup del file in: {backup_destination}")
+        except Exception as e:
+            logger.error(f"Errore durante la copia del file: {e}")
         
         # Update the document record
         old_path = document.file_path

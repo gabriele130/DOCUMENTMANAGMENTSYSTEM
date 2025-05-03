@@ -16,8 +16,9 @@ from werkzeug.utils import secure_filename
 from app import db
 from models import Document
 
-# Configurazione delle directory di storage
-STORAGE_ROOT = 'document_storage'
+# Configurazione delle directory di storage - usa percorsi assoluti
+BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+STORAGE_ROOT = os.path.join(BASE_DIR, 'document_storage')
 ORIGINAL_FILES_DIR = os.path.join(STORAGE_ROOT, 'originals')
 BACKUP_FILES_DIR = os.path.join(STORAGE_ROOT, 'backup')
 
@@ -30,7 +31,7 @@ def ensure_storage_directories():
     os.makedirs(BACKUP_FILES_DIR, exist_ok=True)
     
     # Log informativo
-    logging.info(f"Directory storage centralizzato: {ORIGINAL_FILES_DIR} e {BACKUP_FILES_DIR}")
+    logging.info(f"Directory storage centralizzato (percorsi assoluti): {ORIGINAL_FILES_DIR} e {BACKUP_FILES_DIR}")
     return True
 
 def generate_unique_filename(original_filename):

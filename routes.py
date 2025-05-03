@@ -1789,6 +1789,53 @@ def verify_log_integrity():
     
     # Torna alla pagina dei log
     return redirect(url_for('activity_logs'))
+
+@app.route('/documents/<int:document_id>/verify-storage', methods=['POST'])
+@login_required
+def verify_document_storage(document_id):
+    """
+    Verifica e ripara lo storage di un documento usando il sistema centralizzato.
+    Utilizza processi avanzati di recupero file per garantire la disponibilità permanente.
+    """
+    document = Document.query.get_or_404(document_id)
+    
+    # Verifica permessi
+    if document.owner_id != current_user.id and not current_user.is_admin:
+        flash('Non hai i permessi per eseguire questa operazione.', 'danger')
+        return redirect(url_for('view_document', document_id=document_id))
+    
+    # Importa il servizio di storage centralizzato
+    from services.central_storage import validate_document_storage, ensure_storage_directories
+    
+    # Assicurati che le directory di storage esistano
+    ensure_storage_directories()
+    
+    # Verifica e ripara il documento
+    result = validate_document_storage(document)
+    
+    # Registra l'operazione nell'audit trail
+    from services.audit_service import log_activity
+    log_activity(
+        user_id=current_user.id,
+        action='verify_storage',
+        document_id=document.id,
+        action_category='MAINTENANCE',
+        details=f"Verifica storage centralizzato: {result['status']} - {result['message']}",
+        result='success' if result['status'] in ['ok', 'updated', 'restored', 'migrated'] else 'failure'
+    )
+    
+    # Mostra un messaggio appropriato
+    if result['status'] in ['ok', 'updated', 'restored', 'migrated']:
+        flash(f"Verifica completata: {result['message']}", 'success')
+    else:
+        # Tenta un recupero avanzato con il servizio file_recovery
+        from services.file_recovery import recover_missing_file
+        if recover_missing_file(document):
+            flash("Recupero avanzato completato con successo. Il file è ora disponibile.", 'success')
+        else:
+            flash(f"Problema durante la verifica: {result['message']}", 'warning')
+    
+    return redirect(url_for('view_document', document_id=document_id))
     
 @app.route('/documents/<int:document_id>/validate', methods=['GET', 'POST'])
 @login_required

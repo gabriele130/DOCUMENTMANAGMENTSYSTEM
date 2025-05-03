@@ -205,12 +205,18 @@
             <div class="card-body p-0">
                 <div class="document-preview-container">
                     {% if (file_exists is defined and not file_exists) or (file_exists is not defined and not os.path.exists(document.file_path)) %}
-                        <div class="alert alert-info m-3">
-                            <h4 class="alert-heading">File in caricamento</h4>
-                            <p>Il sistema sta elaborando questo documento. Riprova tra qualche istante.</p>
+                        <div class="alert alert-warning m-3">
+                            <h4 class="alert-heading">Recupero file in corso</h4>
+                            <p>Il sistema sta tentando di recuperare questo documento. <a href="{{ url_for('validate_user_document', document_id=document.id) }}" class="btn btn-sm btn-primary">Tenta Recupero Manuale</a></p>
                             {% if current_user.is_admin %}
                             <hr>
                             <small class="text-muted">Percorso registrato: <code>{{ document.file_path }}</code></small>
+                            <div class="mt-2">
+                                <form action="{{ url_for('verify_document_storage', document_id=document.id) }}" method="post">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                    <button type="submit" class="btn btn-sm btn-primary">Verifica Storage Centralizzato</button>
+                                </form>
+                            </div>
                             {% endif %}
                         </div>
                     {% elif document.file_type in ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'] %}
