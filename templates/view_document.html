@@ -182,24 +182,14 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="ms-auto action-buttons">
-                    <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary btn-action">
-                        <i class="bi bi-download"></i> Download
-                    </a>
-                    
-                    <div class="custom-dropdown d-inline-block position-relative ms-2">
-                        <button class="btn btn-outline-secondary btn-action" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
-                            <i class="bi bi-three-dots"></i> Azioni
-                        </button>
-                    </div>
-                </div>
+                <!-- I pulsanti sono stati rimossi da qui e spostati nella colonna destra -->
             </div>
         </div>
     </div>
 </div>
 
 <!-- Menu personalizzato -->
-<div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:fixed; z-index:10000; width:240px; max-height:400px; overflow-y:auto; top:0; right:0;">
+<div id="customDocumentMenu" class="custom-menu-container" style="display:none; position:absolute; z-index:10000; width:240px; max-height:400px; overflow-y:auto;">
     <div class="custom-menu shadow bg-light rounded border" style="width:100%; overflow:visible;">
         <a class="custom-menu-item" href="{{ url_for('add_document_reminder', document_id=document.id) }}">
             <i class="bi bi-calendar-plus me-2 text-primary"></i> Aggiungi promemoria
@@ -280,6 +270,19 @@
     
     <!-- Document Info Column -->
     <div class="col-lg-4">
+        <!-- Pulsanti di azione -->
+        <div class="d-flex justify-content-between mb-4">
+            <a href="{{ url_for('download_document', document_id=document.id) }}" class="btn btn-primary flex-grow-1 me-2">
+                <i class="bi bi-download"></i> Download
+            </a>
+            
+            <div class="custom-dropdown">
+                <button class="btn btn-outline-secondary flex-grow-1" type="button" id="documentActionsBtn" onclick="toggleCustomMenu()">
+                    <i class="bi bi-three-dots"></i> Azioni
+                </button>
+            </div>
+        </div>
+        
         <!-- Document details -->
         <div class="card document-meta-card mb-4">
             <div class="card-header bg-light border-0">
