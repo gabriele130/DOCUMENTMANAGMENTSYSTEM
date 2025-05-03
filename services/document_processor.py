@@ -10,7 +10,7 @@ from openpyxl import load_workbook
 import magic
 import html
 import logging
-from services.central_storage import save_file_to_central_storage, get_file_from_storage
+from services.persistent_storage import store_permanent_file, get_permanent_file
 
 def allowed_file(filename):
     """Check if the file has an allowed extension."""
@@ -25,7 +25,7 @@ def get_file_type(file_path):
 
 def save_document(file, owner_id):
     """
-    Salva un documento utilizzando il sistema di storage centralizzato
+    Salva un documento utilizzando il sistema di storage permanente
     e restituisce i metadati del file salvato.
     
     Args:
@@ -35,28 +35,27 @@ def save_document(file, owner_id):
     Returns:
         dict: Dizionario con i metadati del file salvato
     """
-    # Utilizza il sistema di storage centralizzato
+    # Utilizza il sistema di storage permanente
     try:
         # Prepara il nome originale del file
         original_filename = secure_filename(file.filename)
         
-        # Salva il file nel repository centralizzato
-        storage_result = save_file_to_central_storage(
+        # Salva il file nello storage permanente con ridondanza multipla
+        storage_result = store_permanent_file(
             file_obj=file,
             original_filename=original_filename,
-            create_backup=True  # Crea automaticamente un backup
+            document_id=None  # Verrà aggiornato dopo la creazione del documento
         )
         
         if not storage_result:
-            raise Exception("Errore durante il salvataggio del file nel repository centralizzato")
+            raise Exception("Errore durante il salvataggio del file nello storage permanente")
         
         # Estrai il tipo di file dall'estensione
         file_type = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'unknown'
         
         # Registra l'operazione
-        logging.info(f"Documento salvato nel repository centralizzato: {storage_result['file_path']}")
-        if storage_result['backup_path']:
-            logging.info(f"Backup creato: {storage_result['backup_path']}")
+        logging.info(f"Documento salvato nello storage permanente: {storage_result['file_path']}")
+        logging.info(f"Creati {len(storage_result['backup_paths'])} backup per ridondanza")
         
         # Restituisci i metadati del file
         return {
@@ -215,8 +214,8 @@ def get_document_preview(document):
     if not os.path.exists(file_path):
         logging.warning(f"File non trovato al percorso originale: {file_path}")
         
-        # Tenta di recuperare il file tramite il sistema di storage centralizzato
-        recovered_path = get_file_from_storage(document.filename, document_id=document.id)
+        # Tenta di recuperare il file tramite il sistema di storage permanente
+        recovered_path = get_permanent_file(document.filename, document_id=document.id)
         
         if recovered_path:
             # Se trovato, aggiorna il percorso nel database
@@ -300,10 +299,10 @@ def get_document_preview(document):
                 return f"""
                 <div class="alert alert-danger">
                     <h4>File non trovato</h4>
-                    <p>Il file non è stato trovato nel sistema. Contattare l'amministratore.</p>
+                    <p>Il file non è stato trovato nel sistema. Contattare l'amministratore o utilizzare il pulsante "Tenta Recupero Manuale" per recuperare il file.</p>
                     <p>ID documento: {document.id}, Filename: {document.filename}</p>
                     <p>Percorso registrato: {document.file_path}</p>
-                    <p>Nota: È stato creato un sistema di storage centralizzato. Se il problema persiste, un amministratore deve eseguire la migrazione dei documenti al nuovo sistema.</p>
+                    <p>Nota: È stato creato un sistema di storage permanente con ridondanza multipla. Per risolvere definitivamente il problema, un amministratore deve eseguire la migrazione dei documenti al nuovo sistema.</p>
                 </div>
                 """
     
