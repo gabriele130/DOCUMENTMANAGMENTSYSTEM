@@ -78,12 +78,12 @@
                                         <i class="bi bi-arrow-repeat"></i> Tenta Recupero Automatico
                                     </a>
                                     {% if current_user.is_admin %}
-                                    <a href="{{ url_for('validate_document', doc_id=document.id) }}" class="btn btn-warning">
+                                    <a href="{{ url_for('maintenance.validate_document', doc_id=document.id) }}" class="btn btn-warning">
                                         <i class="bi bi-tools"></i> Riparazione Avanzata
                                     </a>
                                     {% else %}
-                                    <a href="mailto:admin@example.com?subject=Ripristino documento {{ document.id }}" class="btn btn-warning">
-                                        <i class="bi bi-envelope"></i> Contatta Amministratore
+                                    <a href="{{ url_for('validate_user_document', document_id=document.id) }}" class="btn btn-warning">
+                                        <i class="bi bi-tools"></i> Riparazione Utente
                                     </a>
                                     {% endif %}
                                 </div>

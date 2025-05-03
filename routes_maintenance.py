@@ -202,7 +202,7 @@ def verify_repair_storage():
         
         return redirect(url_for('maintenance.central_storage'))
 
-@maintenance_bp.route('/valida-documento/<int:doc_id>', methods=['POST'])
+@maintenance_bp.route('/valida-documento/<int:doc_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def validate_document(doc_id):

@@ -16,6 +16,8 @@ from services.ai_classifier import classify_document, extract_data_from_document
 from services.ocr import extract_text_from_document
 from services.search import search_documents
 from services.workflow import create_workflow, assign_workflow_task, complete_workflow_task
+from services.central_storage import get_file_from_storage, migrate_document_to_central_storage
+from services.file_recovery import recover_missing_file
 
 # Helper functions
 def admin_required(f):
@@ -1786,6 +1788,73 @@ def verify_log_integrity():
     # Torna alla pagina dei log
     return redirect(url_for('activity_logs'))
     
+@app.route('/documents/<int:document_id>/validate', methods=['GET', 'POST'])
+@login_required
+def validate_user_document(document_id):
+    """Route pubblica per consentire agli utenti di tentare il recupero avanzato di un documento"""
+    document = Document.query.get_or_404(document_id)
+    
+    # Verifica se l'utente ha il permesso di vedere questo documento
+    if document.owner_id != current_user.id and current_user not in document.shared_with and not current_user.is_admin():
+        flash('Non hai i permessi per gestire questo documento.', 'danger')
+        return redirect(url_for('documents'))
+    
+    # Verifica se il file esiste già
+    if os.path.exists(document.file_path):
+        flash('Il file è già disponibile, non è necessario il recupero.', 'info')
+        return redirect(url_for('view_document', document_id=document.id))
+    
+    # Tenta il recupero con vari metodi
+    recovery_result = {
+        'success': False,
+        'methods_tried': [],
+        'method_succeeded': None,
+        'message': 'Nessun metodo di recupero è riuscito a trovare il file.'
+    }
+    
+    # 1. Prova con il metodo standard di recupero
+    recovery_result['methods_tried'].append('standard')
+    if recover_missing_file(document):
+        recovery_result['success'] = True
+        recovery_result['method_succeeded'] = 'standard'
+        recovery_result['message'] = 'File recuperato con il metodo standard.'
+    else:
+        # 2. Prova con il sistema di storage centralizzato
+        recovery_result['methods_tried'].append('central_storage')
+        file_path = get_file_from_storage(document.filename, document_id)
+        if file_path:
+            document.file_path = file_path
+            db.session.commit()
+            recovery_result['success'] = True
+            recovery_result['method_succeeded'] = 'central_storage'
+            recovery_result['message'] = 'File recuperato dal sistema di storage centralizzato.'
+        else:
+            # 3. Prova con la migrazione al sistema centralizzato
+            recovery_result['methods_tried'].append('migration')
+            result = migrate_document_to_central_storage(document)
+            if result and result.get('status') == 'migrated':
+                recovery_result['success'] = True
+                recovery_result['method_succeeded'] = 'migration'
+                recovery_result['message'] = 'File recuperato tramite migrazione al sistema centralizzato.'
+    
+    # Log del tentativo di recupero
+    from services.audit_service import log_activity
+    log_activity(
+        user_id=current_user.id,
+        action="document_recovery",
+        document_id=document_id,
+        action_category='MAINTENANCE',
+        details=f"Tentativo di recupero documento: {recovery_result['message']} (metodi: {', '.join(recovery_result['methods_tried'])})",
+        result="success" if recovery_result['success'] else "failure"
+    )
+    
+    if recovery_result['success']:
+        flash(f"Recupero riuscito: {recovery_result['message']}", 'success')
+    else:
+        flash(f"Recupero fallito: {recovery_result['message']}", 'danger')
+    
+    return redirect(url_for('view_document', document_id=document.id))
+
 @app.route('/documents/<int:document_id>/view-content')
 @login_required
 def view_document_content(document_id):
