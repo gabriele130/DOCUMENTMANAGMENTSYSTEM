@@ -116,7 +116,7 @@
                         <li>
                             <a class="dropdown-item {% if root_folder.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=root_folder.id) }}">
                                 <i class="fas fa-folder{% if root_folder.is_active %}-open text-warning{% endif %} me-1"></i>
-                                {{ root_folder.name }}
+                                {{ root_folder.name }} <span class="badge bg-info">{{ root_folder.document_count }}</span>
                             </a>
                         </li>
                         
@@ -125,7 +125,7 @@
                                 <li>
                                     <a class="dropdown-item {% if child.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=child.id) }}" style="padding-left: {{ 1.5 + child.level }}rem;">
                                         <i class="fas fa-folder{% if child.is_active %}-open text-warning{% endif %} me-1"></i>
-                                        {{ child.name }}
+                                        {{ child.name }} <span class="badge bg-info">{{ child.document_count }}</span>
                                     </a>
                                 </li>
                                 
@@ -134,7 +134,7 @@
                                         <li>
                                             <a class="dropdown-item {% if grandchild.is_active %}fw-bold{% endif %}" href="{{ url_for('folder_detail', folder_id=grandchild.id) }}" style="padding-left: {{ 1.5 + grandchild.level }}rem;">
                                                 <i class="fas fa-folder{% if grandchild.is_active %}-open text-warning{% endif %} me-1"></i>
-                                                {{ grandchild.name }}
+                                                {{ grandchild.name }} <span class="badge bg-info">{{ grandchild.document_count }}</span>
                                             </a>
                                         </li>
                                     {% endfor %}
@@ -165,7 +165,10 @@
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
                                 <i class="fas fa-folder fa-2x text-warning me-3"></i>
-                                <h5 class="card-title mb-0">{{ subfolder.name }}</h5>
+                                <div>
+                                    <h5 class="card-title mb-0">{{ subfolder.name }}</h5>
+                                    <span class="badge bg-info">{{ Document.query.filter_by(folder_id=subfolder.id).count() }} file</span>
+                                </div>
                             </div>
                             <p class="card-text">{{ subfolder.description or 'Nessuna descrizione' }}</p>
                         </div>
