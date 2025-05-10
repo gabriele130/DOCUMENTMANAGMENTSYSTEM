@@ -356,6 +356,10 @@ def folder_detail(folder_id):
     # Get subfolders with sorting
     subfolders = Folder.query.filter_by(parent_id=folder.id).order_by(sort_field).all()
     
+    # Aggiungi il conteggio dei documenti per ogni sottocartella
+    for subfolder in subfolders:
+        subfolder.document_count = Document.query.filter_by(folder_id=subfolder.id).count()
+    
     # Get documents in this folder with sorting
     if sort_by == 'name' or sort_by == 'title':
         doc_sort_field = Document.title

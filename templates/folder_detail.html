@@ -167,7 +167,7 @@
                                 <i class="fas fa-folder fa-2x text-warning me-3"></i>
                                 <div>
                                     <h5 class="card-title mb-0">{{ subfolder.name }}</h5>
-                                    <span class="badge bg-info">{{ Document.query.filter_by(folder_id=subfolder.id).count() }} file</span>
+                                    <span class="badge bg-info">{{ subfolder.document_count }} file</span>
                                 </div>
                             </div>
                             <p class="card-text">{{ subfolder.description or 'Nessuna descrizione' }}</p>
