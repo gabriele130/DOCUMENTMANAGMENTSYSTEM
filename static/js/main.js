@@ -238,6 +238,16 @@ function updateNotificationCount() {
             if (notificationBadge) {
                 notificationBadge.classList.add('d-none');
             }
+            
+            // Mostra messaggio di errore nel container delle notifiche
+            if (notificationList) {
+                notificationList.innerHTML = `
+                    <div class="p-3 text-center text-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <p class="mb-0 small">Impossibile caricare le notifiche</p>
+                    </div>
+                `;
+            }
         });
 }
 
