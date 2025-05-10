@@ -16,8 +16,7 @@ from services.ai_classifier import classify_document, extract_data_from_document
 from services.ocr import extract_text_from_document
 from services.search import search_documents
 from services.workflow import create_workflow, assign_workflow_task, complete_workflow_task
-from services.central_storage import get_file_from_storage, migrate_document_to_central_storage
-from services.file_recovery import recover_missing_file
+from services.simple_document_storage import get_file_path, verify_document_file
 
 # Helper functions
 def admin_required(f):
@@ -308,17 +307,23 @@ def upload_document():
     if request.method == 'POST':
         # Check if the post request has the file part
         if 'document' not in request.files:
-            flash('No file part', 'danger')
+            flash('Nessun file incluso nella richiesta', 'danger')
             return redirect(request.url)
         
         file = request.files['document']
         if file.filename == '':
-            flash('No selected file', 'danger')
+            flash('Nessun file selezionato', 'danger')
             return redirect(request.url)
         
         if file and allowed_file(file.filename):
-            # Save the uploaded file using il servizio document_processor
+            # Utilizza il servizio semplificato di storage documenti
+            from services.simple_document_storage import save_document
             document_data = save_document(file, current_user.id)
+            
+            if not document_data:
+                flash('Errore durante il salvataggio del file. Riprova.', 'danger')
+                return redirect(request.url)
+                
             filename = document_data['original_filename']
             unique_filename = document_data['filename']
             file_path = document_data['file_path']
@@ -326,7 +331,7 @@ def upload_document():
             file_size = document_data['file_size']
             
             # Log del percorso per debug
-            app.logger.info(f"File salvato in: {file_path} e copiato nella cache di backup")
+            app.logger.info(f"File salvato in: {file_path} (sistema semplificato)")
             
             # Create new document record
             document = Document(
@@ -571,78 +576,53 @@ def view_document(document_id):
 @app.route('/documents/<int:document_id>/download')
 @login_required
 def download_document(document_id):
-    # Utilizziamo il nuovo sistema di monitoraggio documenti
-    from services.document_monitor import verify_before_access
-    from services.central_storage import get_file_from_storage
-    from services.file_recovery import recover_missing_file
+    """
+    Download documento con logica semplificata
+    """
+    # Recupera il documento dal database
+    document = Document.query.get_or_404(document_id)
     
-    # Verifica e recupera se necessario
-    document, status_code, message = verify_before_access(document_id, current_user.id)
-    
-    if not document:
-        flash('Documento non trovato nel database.', 'danger')
-        return redirect(url_for('documents'))
-    
-    # Tenta sempre il recupero automatico se il file non esiste
-    if status_code != 200 or not os.path.exists(document.file_path):
-        # Registra il tentativo nei log ma non mostra nulla all'utente
-        app.logger.info(f"Tentativo di recupero automatico per documento ID: {document_id}")
+    # Verifica che l'utente abbia i permessi per scaricare il documento
+    if document.owner_id != current_user.id and not current_user.is_admin:
+        # Controlla se il documento è stato condiviso con l'utente corrente
+        shared_with_current_user = False
+        for user in document.shared_with:
+            if user.id == current_user.id:
+                shared_with_current_user = True
+                break
         
-        # 1. Prova con il sistema di recupero standard
-        if recover_missing_file(document):
-            app.logger.info(f"File recuperato con successo dal sistema di recupero standard per documento ID: {document_id}")
-            status_code = 200
-        else:
-            # 2. Prova con il sistema di storage centralizzato
-            file_path = get_file_from_storage(document.filename, document_id)
-            if file_path:
-                document.file_path = file_path
-                db.session.commit()
-                app.logger.info(f"File recuperato con successo dal sistema di storage centralizzato per documento ID: {document_id}")
-                status_code = 200
-            else:
-                # 3. Ricerca avanzata in tutti i percorsi conosciuti
-                from services.central_storage import migrate_document_to_central_storage
-                result = migrate_document_to_central_storage(document)
-                if result and result.get('status') == 'migrated':
-                    app.logger.info(f"File recuperato con successo tramite migrazione al sistema centralizzato per documento ID: {document_id}")
-                    status_code = 200
+        if not shared_with_current_user:
+            flash('Non hai i permessi per scaricare questo documento.', 'danger')
+            return redirect(url_for('documents'))
     
-    # Se il file è stato recuperato, mostra un messaggio informativo
-    if status_code == 409:  # File recuperato
-        flash(message, 'info')
-    
-    # Se il file non è disponibile, mostra un errore e reindirizza
-    if status_code != 200 and status_code != 409:
-        flash(message, 'danger')
-        
-        # Log del problema per audit trail
-        from services.audit_service import log_activity
-        log_activity(
-            user_id=current_user.id,
-            action="download",
-            document_id=document_id,
-            action_category='ACCESS',
-            details=f"Download fallito: {message}",
-            result="failure"
-        )
-        
-        return redirect(url_for('view_document', document_id=document.id))
-    
-    # Verifica finale che il file sia accessibile
+    # Verifica che il file esista
     if not os.path.exists(document.file_path):
-        flash("Il file non è ancora disponibile nonostante i tentativi di recupero.", 'danger')
-        return redirect(url_for('view_document', document_id=document.id))
+        # Tentativo semplice di recupero in base al filename
+        uploads_path = os.path.join(os.path.abspath('uploads'), document.filename)
+        if os.path.exists(uploads_path):
+            # Aggiorna il percorso nel database
+            document.file_path = uploads_path
+            db.session.commit()
+            app.logger.info(f"Percorso documento aggiornato: {uploads_path}")
+        else:
+            flash('Il file non è disponibile. Contatta l\'amministratore.', 'danger')
+            app.logger.error(f"File non trovato per documento ID: {document_id}, percorso: {document.file_path}")
+            
+            # Log del problema per audit trail
+            log_activity(
+                user_id=current_user.id,
+                document_id=document_id,
+                action="download",
+                details=f"Download fallito: File non trovato"
+            )
+            return redirect(url_for('view_document', document_id=document.id))
     
     # Log del download per audit trail
-    from services.audit_service import log_activity
     log_activity(
         user_id=current_user.id,
-        action="download",
         document_id=document_id,
-        action_category='ACCESS',
-        details="Download documento",
-        result="success"
+        action="download",
+        details="Download documento"
     )
     
     # Se siamo qui, il file esiste e può essere scaricato

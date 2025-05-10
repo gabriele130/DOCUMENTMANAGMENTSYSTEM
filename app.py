@@ -39,11 +39,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Configure file upload settings
+# Configure file upload settings per il sistema semplificato
 # Usa un percorso assoluto per salvare i file in modo persistente
 app.config["UPLOAD_FOLDER"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
-app.config["DOCUMENT_CACHE"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "document_cache"))
-app.config["FALLBACK_PDF"] = os.path.abspath(os.path.join(os.path.dirname(__file__), "static", "img", "document_placeholder.pdf"))
+
+# Assicura che la directory esista
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Inizializza il sistema di storage semplificato
+from services.simple_document_storage import setup_storage
+setup_storage()
 
 # Non impostiamo limiti di dimensione file per il caricamento
 app.config["ALLOWED_EXTENSIONS"] = {
@@ -51,9 +56,8 @@ app.config["ALLOWED_EXTENSIONS"] = {
     "mp4", "mov", "avi", "mp3", "wav", "ogg", "csv", "xls", "doc", "rtf", "odt", "ods"
 }
 
-# Ensure upload directory exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-os.makedirs(app.config["DOCUMENT_CACHE"], exist_ok=True)
+# La directory di upload è già stata creata precedentemente
+# Non abbiamo più bisogno di directory cache aggiuntive
 
 # Initialize extensions with app
 db.init_app(app)
