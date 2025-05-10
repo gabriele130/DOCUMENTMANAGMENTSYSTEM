@@ -299,12 +299,16 @@ def get_folder_tree(company_id, current_folder_id=None):
                     current = current.parent
                 is_active = folder.id in parent_chain
             
+            # Conta i documenti nella cartella
+            document_count = Document.query.filter_by(folder_id=folder.id).count()
+            
             # Add this folder to the result
             folder_data = {
                 'id': folder.id,
                 'name': folder.name,
                 'level': level,
                 'is_active': is_active,
+                'document_count': document_count,
                 'children': []
             }
             
