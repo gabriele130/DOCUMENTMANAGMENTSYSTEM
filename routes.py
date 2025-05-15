@@ -1915,8 +1915,8 @@ def view_document_content(document_id):
         ]
         alternatives.extend(attached_alternatives)
         
-        # Cerca in tutta la directory /home/runner/workspace
-        workspace_path = '/home/runner/workspace'
+        # Cerca in tutta la directory .
+        workspace_path = '.'
         find_command = f"find {workspace_path} -name '{document.original_filename}' -o -name '{document.filename}' 2>/dev/null"
         try:
             import subprocess
