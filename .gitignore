@@ -1,0 +1,66 @@
+# Ambiente Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# File specifici Replit
+.replit
+replit.nix
+.upm/
+poetry.lock
+.breakpoints
+.config/
+.cache/
+
+# File di database
+*.sqlite
+*.db
+instance/
+
+# File di upload e dati sensibili
+uploads/
+document_cache/
+document_storage/
+permanent_storage/
+attached_assets/
+*.log
+
+# File di configurazione con valori sensibili
+.env
+.env.*
+.secrets/
+
+# File temporanei
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# File dei contenuti
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.png
+*.jpg
+*.jpeg
